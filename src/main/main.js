@@ -14,7 +14,7 @@ import { testHermes } from './tools/hermes.js';
 import { testPaperclip } from './tools/paperclip.js';
 import { transcribe, synthesize, speakable, SentenceChunker } from './voice.js';
 import { isBundleAllowed } from './bundle-allowed.js';
-import { APP_ROOT, listSkins, getSkin, saveSkin, deleteSkin, fetchImage, segmentModelStatus, downloadSegmentModel } from './skins.js';
+import { APP_ROOT, listSkins, getSkin, saveSkin, deleteSkin, fetchImage, segmentModelStatus, downloadSegmentModel, stageVrm, downloadVrm, saveVrmSkin, clearVrmTmp } from './skins.js';
 import * as logger from './log.js';
 
 process.on('uncaughtException', (e) => logger.error('uncaughtException', e));
@@ -93,7 +93,7 @@ function registerAppProtocol() {
 }
 
 // ------------------------------------------------------------------ ventanas
-const wins = { avatar: null, chat: null, settings: null, editor: null };
+const wins = { avatar: null, chat: null, settings: null, editor: null, 'vrm-editor': null };
 let avatarSize = null; // tamaño deseado del avatar (para moverlo sin que cambie)
 let tray = null;
 
@@ -215,7 +215,7 @@ function openWindow(name, opts = {}) {
     if (opts.query) existing.webContents.send('win:query', opts.query);
     return existing;
   }
-  const sizes = { settings: [960, 720], editor: [1180, 800] };
+  const sizes = { settings: [960, 720], editor: [1180, 800], 'vrm-editor': [1180, 820] };
   const [width, height] = sizes[name] || [900, 700];
   const win = new BrowserWindow({
     width,
@@ -224,7 +224,7 @@ function openWindow(name, opts = {}) {
     minHeight: 560,
     backgroundColor: '#15121c',
     autoHideMenuBar: true,
-    title: name === 'settings' ? t('settings.windowTitle') : t('editor.windowTitle'),
+    title: name === 'settings' ? t('settings.windowTitle') : name === 'vrm-editor' ? t('vrmEditor.windowTitle') : t('editor.windowTitle'),
     icon: appIcon(),
     show: false,
     webPreferences: baseWebPrefs,
@@ -339,7 +339,7 @@ function avatarContextMenu() {
     { label: t('menu.stop'), click: stopEverything },
     { type: 'separator' },
     { label: t('menu.model'), submenu: profiles },
-    { label: t('menu.skin'), submenu: [...skins, { type: 'separator' }, { label: t('menu.importImage'), click: () => openWindow('editor') }] },
+    { label: t('menu.skin'), submenu: [...skins, { type: 'separator' }, { label: t('menu.importImage'), click: () => openWindow('editor') }, { label: t('menu.importVrm'), click: () => openWindow('vrm-editor') }] },
     { label: t('menu.size'), submenu: scales },
     { label: t('menu.language'), submenu: languageMenu(cfg) },
     {
@@ -731,6 +731,19 @@ function registerIpc() {
     const ext = path.extname(p).slice(1).toLowerCase().replace('jpg', 'jpeg');
     return { name: path.basename(p, path.extname(p)), dataUrl: `data:image/${ext};base64,${fs.readFileSync(p).toString('base64')}` };
   });
+  ipcMain.handle('skin:open-vrm', async (e) => {
+    const win = BrowserWindow.fromWebContents(e.sender);
+    const r = await dialog.showOpenDialog(win, { title: t('vrmEditor.pickVrm'), filters: [{ name: t('vrmEditor.vrmFiles'), extensions: ['vrm'] }], properties: ['openFile'] });
+    if (r.canceled || !r.filePaths[0]) return null;
+    return stageVrm(r.filePaths[0], path.basename(r.filePaths[0], path.extname(r.filePaths[0])));
+  });
+  ipcMain.handle('skin:fetch-vrm', (_e, url) => downloadVrm(url));
+  ipcMain.handle('skin:save-vrm', (_e, payload) => {
+    const m = saveVrmSkin(payload);
+    broadcast('skin:list-changed', listSkins());
+    if (loadConfig().ui.skinId === m.id) broadcast('skin:changed', m);
+    return m;
+  });
   ipcMain.handle('skin:model-status', () => segmentModelStatus());
   ipcMain.handle('skin:model-download', async (e) => {
     const sender = e.sender;
@@ -836,6 +849,7 @@ app.whenReady().then(async () => {
   const firstRun = !fs.existsSync(path.join(userDir(), 'config.json'));
   if (firstRun) step('config inicial', () => patchConfig({}));
   step('historial', loadHistory);
+  step('temporales 3D', clearVrmTmp);
   step('ipc', registerIpc);
   step('avatar', createAvatarWindow);
   step('bandeja', buildTray);

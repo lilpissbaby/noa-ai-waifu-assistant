@@ -926,7 +926,11 @@ const TABS = {
                       },
                       t('settings.skins.use'),
                     ),
-                s.builtin ? null : h('button', { class: 'btn', onclick: () => wd.invoke('win:open', 'editor', { id: s.id }) }, t('settings.skins.adjust')),
+                s.type === 'vrm'
+                  ? h('button', { class: 'btn', onclick: () => wd.invoke('win:open', 'vrm-editor', { id: s.id }) }, t('settings.skins.adjust'))
+                  : s.builtin
+                    ? null
+                    : h('button', { class: 'btn', onclick: () => wd.invoke('win:open', 'editor', { id: s.id }) }, t('settings.skins.adjust')),
                 s.builtin
                   ? null
                   : h('button', {
@@ -951,6 +955,13 @@ const TABS = {
           h('span', { html: icons.image }),
           h('strong', {}, t('settings.skins.import')),
           h('small', { class: 'muted' }, t('settings.skins.importText')),
+        ),
+        h(
+          'div',
+          { class: 'skin add', onclick: () => wd.invoke('win:open', 'vrm-editor') },
+          h('span', { html: icons.sparkle }),
+          h('strong', {}, t('settings.skins.importVrm')),
+          h('small', { class: 'muted' }, t('settings.skins.importVrmText')),
         ),
       );
     })();

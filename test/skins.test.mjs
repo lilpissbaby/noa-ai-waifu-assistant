@@ -23,3 +23,43 @@ test('un manifiesto sin type es una skin 2D', () => {
   assert.equal(getSkin('vieja').type, '2d');
   assert.equal(getSkin('default').type, '2d');
 });
+
+test('stageVrm + saveVrmSkin: importar, guardar, ajustar y duplicar una de serie', async () => {
+  const { stageVrm, saveVrmSkin, clearVrmTmp } = await import('../src/main/skins.js');
+  const model = path.resolve(import.meta.dirname, '../assets/skins/noa-3d/model.vrm');
+  const bad = path.join(__test.userData, 'bad.vrm');
+  fs.writeFileSync(bad, 'nada');
+  assert.deepEqual(stageVrm(bad), { error: 'notGlb' });
+
+  const st = stageVrm(model, 'Mi chica');
+  assert.ok(st.tmpId && st.url.startsWith('app://local/user/tmp/'));
+  assert.equal(st.name, 'Mi chica');
+  const tmpFile = path.join(__test.userData, 'tmp', `${st.tmpId}.vrm`);
+  assert.ok(fs.existsSync(tmpFile));
+
+  const thumb = 'data:image/png;base64,iVBORw0KGgo=';
+  const m = saveVrmSkin({ tmpId: st.tmpId, name: 'Mi chica', framing: { preset: 'bust', zoom: 9 }, thumb });
+  assert.equal(m.type, 'vrm');
+  assert.equal(m.builtin, false);
+  assert.deepEqual(m.framing, { preset: 'bust', zoom: 1.6, yaw: 0, pitch: 0, offsetY: 0 });
+  assert.equal(m.meta.title, 'VRM1_Constraint_Twist_Sample');
+  assert.ok(fs.existsSync(path.join(__test.userData, 'skins', m.id, 'model.vrm')));
+  assert.ok(fs.existsSync(path.join(__test.userData, 'skins', m.id, 'thumb.png')));
+  assert.equal(fs.existsSync(tmpFile), false, 'el temporal se borra al guardar');
+
+  const m2 = saveVrmSkin({ id: m.id, name: 'Renombrada', framing: { preset: 'full' } });
+  assert.equal(m2.id, m.id);
+  assert.equal(m2.name, 'Renombrada');
+  assert.equal(m2.framing.preset, 'full');
+  assert.ok(m2.urls.model.endsWith(`/skins/${m.id}/model.vrm`));
+
+  const copy = saveVrmSkin({ id: 'noa-3d', copyFrom: 'noa-3d', name: 'Mi Noa', framing: { preset: 'full' } });
+  assert.notEqual(copy.id, 'noa-3d');
+  assert.equal(copy.builtin, false);
+  assert.ok(fs.existsSync(path.join(__test.userData, 'skins', copy.id, 'model.vrm')));
+
+  fs.mkdirSync(path.join(__test.userData, 'tmp'), { recursive: true });
+  fs.writeFileSync(path.join(__test.userData, 'tmp', 'resto.vrm'), 'x');
+  clearVrmTmp();
+  assert.deepEqual(fs.readdirSync(path.join(__test.userData, 'tmp')), []);
+});

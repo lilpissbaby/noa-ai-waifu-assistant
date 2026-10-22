@@ -4,6 +4,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { userDir, uid } from './config.js';
 import { t, getLocale } from '../shared/i18n/index.js';
+import { validateVrmFile, MAX_VRM_BYTES } from './vrm-files.js';
+import { normalizeFraming } from '../renderer/shared/vrm/framing.js';
 
 export const APP_ROOT = path.resolve(import.meta.dirname, '..', '..');
 const BUILTIN_DIR = path.join(APP_ROOT, 'assets', 'skins');
@@ -82,6 +84,99 @@ export function saveSkin({ id, name, width, height, rig, files }) {
     height,
     rig,
     files: { ...(prev.files || {}), ...written },
+    created: prev.created || Date.now(),
+    updated: Date.now(),
+  };
+  fs.writeFileSync(path.join(dir, 'skin.json'), JSON.stringify(manifest, null, 2));
+  return readManifest(dir, false);
+}
+
+// ------------------------------------------------------------------ skins VRM
+const tmpDir = () => path.join(userDir(), 'tmp');
+
+// Copia un .vrm válido a la carpeta temporal para la vista previa del editor.
+export function stageVrm(srcPath, name) {
+  const v = validateVrmFile(srcPath);
+  if (!v.ok) return { error: v.reason };
+  fs.mkdirSync(tmpDir(), { recursive: true });
+  const tmpId = uid();
+  fs.copyFileSync(srcPath, path.join(tmpDir(), `${tmpId}.vrm`));
+  return { tmpId, url: userUrl(path.join('tmp', `${tmpId}.vrm`)), name: name || v.meta.title || path.basename(srcPath, path.extname(srcPath)), version: v.version, meta: v.meta };
+}
+
+// Descarga un .vrm de una URL (límite de tamaño) y lo deja como stageVrm.
+export async function downloadVrm(url) {
+  if (!/^https?:\/\//i.test(url)) throw new Error(t('errors.badUrl'));
+  const res = await net.fetch(url, { headers: { 'user-agent': 'Mozilla/5.0 WaifuDesk' } });
+  if (!res.ok) throw new Error(t('errors.download', { status: res.status }));
+  if (Number(res.headers.get('content-length')) > MAX_VRM_BYTES) return { error: 'tooBig' };
+  fs.mkdirSync(tmpDir(), { recursive: true });
+  const part = path.join(tmpDir(), `${uid()}.part`);
+  const out = fs.createWriteStream(part);
+  let size = 0;
+  try {
+    const reader = res.body.getReader();
+    for (;;) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      size += value.length;
+      if (size > MAX_VRM_BYTES) {
+        await reader.cancel();
+        return { error: 'tooBig' };
+      }
+      if (!out.write(value)) await new Promise((r) => out.once('drain', r));
+    }
+  } finally {
+    await new Promise((r) => out.end(r));
+  }
+  try {
+    const name = decodeURIComponent(new URL(url).pathname.split('/').pop() || '').replace(/\.\w+$/, '');
+    return stageVrm(part, name);
+  } finally {
+    fs.rmSync(part, { force: true });
+  }
+}
+
+export function clearVrmTmp() {
+  fs.rmSync(tmpDir(), { recursive: true, force: true });
+  fs.mkdirSync(tmpDir(), { recursive: true });
+}
+
+// Guarda una skin VRM: nueva desde un temporal (tmpId), copia de otra (copyFrom, p. ej. una de
+// serie) o cambios de nombre/encuadre de una propia (id).
+export function saveVrmSkin({ id, tmpId, copyFrom, name, framing, thumb }) {
+  const existing = id ? listSkins().find((s) => s.id === id) : null;
+  const reuse = existing && !existing.builtin && !copyFrom;
+  const skinId = reuse ? id : `vrm-${uid()}`;
+  const dir = path.join(userSkinsDir(), skinId);
+  fs.mkdirSync(dir, { recursive: true });
+  const model = path.join(dir, 'model.vrm');
+  if (tmpId) {
+    const src = path.join(tmpDir(), `${path.basename(String(tmpId))}.vrm`);
+    fs.copyFileSync(src, model);
+    fs.rmSync(src, { force: true });
+  } else if (copyFrom) {
+    const from = listSkins().find((s) => s.id === copyFrom);
+    const fromDir = path.join(from.builtin ? BUILTIN_DIR : userSkinsDir(), from.id);
+    fs.copyFileSync(path.join(fromDir, from.files.model), model);
+    if (!thumb && from.files.thumb) fs.copyFileSync(path.join(fromDir, from.files.thumb), path.join(dir, 'thumb.png'));
+  }
+  if (!fs.existsSync(model)) throw new Error('No hay modelo VRM para guardar');
+  if (thumb) fs.writeFileSync(path.join(dir, 'thumb.png'), dataUrlToBuffer(thumb));
+  const v = validateVrmFile(model);
+  let prev = {};
+  try {
+    prev = JSON.parse(fs.readFileSync(path.join(dir, 'skin.json'), 'utf8'));
+  } catch {
+    /* nueva */
+  }
+  const manifest = {
+    id: skinId,
+    type: 'vrm',
+    name: name || prev.name || t('vrmEditor.defaultName'),
+    files: { model: 'model.vrm', ...(fs.existsSync(path.join(dir, 'thumb.png')) ? { thumb: 'thumb.png' } : {}) },
+    framing: normalizeFraming(framing || prev.framing),
+    meta: v.ok ? { ...v.meta, version: v.version } : prev.meta || null,
     created: prev.created || Date.now(),
     updated: Date.now(),
   };

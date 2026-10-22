@@ -1,0 +1,81 @@
+/* Editor de skins 3D: reutiliza editor.css (panel, pasos, botones) y añade la vista previa. */
+.vrm-stage {
+  position: relative;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+.vrm-frame {
+  position: relative;
+  border: 1px dashed var(--line-2);
+  border-radius: 14px;
+  background:
+    radial-gradient(circle at 50% 40%, rgba(182, 156, 255, 0.1), transparent 60%),
+    repeating-conic-gradient(rgba(255, 255, 255, 0.025) 0% 25%, transparent 0% 50%) 0 0 / 24px 24px;
+}
+.vrm-frame canvas {
+  display: block;
+}
+.frame-label {
+  position: absolute;
+  left: 10px;
+  top: -22px;
+  font-size: 12px;
+  color: var(--text-2);
+}
+.license {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px 10px;
+  margin: 0;
+  font-size: 12.5px;
+}
+.license dt {
+  color: var(--text-2);
+}
+.license dd {
+  margin: 0;
+  word-break: break-word;
+}
+.license dd.no {
+  color: var(--err);
+}
+.license dd.yes {
+  color: var(--ok);
+}
+.license a {
+  color: var(--accent);
+  cursor: pointer;
+}
+.seg {
+  display: flex;
+  gap: 6px;
+}
+.seg .btn {
+  flex: 1;
+  justify-content: center;
+}
+.seg .btn.on {
+  background: var(--accent);
+  color: var(--accent-ink);
+  border-color: transparent;
+}
+.slider {
+  display: grid;
+  grid-template-columns: 90px 1fr;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  color: var(--text-2);
+}
+.slider input {
+  accent-color: var(--accent);
+}
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.chips .btn.on {
+  outline: 2px solid var(--accent);
+}

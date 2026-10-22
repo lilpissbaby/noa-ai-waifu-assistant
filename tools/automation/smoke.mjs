@@ -2,6 +2,8 @@
 // una conversación completa (modelo -> herramienta -> respuesta) contra el servidor simulado.
 // Falla si hay errores de consola, claves sin traducir o la conversación no termina.
 // Uso: npm run smoke   (lo lanza tools/smoke.mjs)
+import fs from 'node:fs';
+import path from 'node:path';
 import { CATALOGS, SUPPORTED, tIn } from '../../src/shared/i18n/index.js';
 import { startMockServer, mockConfigPatch } from './mock-server.mjs';
 import { sleep, waitForWindow, waitForChat, setLanguage } from './common.mjs';
@@ -58,6 +60,10 @@ export default async function smoke(api) {
     if (!editor.__watched) watch('editor', editor), (editor.__watched = true);
     await waitForWindow(editor, 'document.querySelector("#btnOpen").textContent.trim().length > 0');
     await check('editor', editor, locale);
+    const vrmEditor = api.openWindow('vrm-editor');
+    if (!vrmEditor.__watched) watch('editor 3D', vrmEditor), (vrmEditor.__watched = true);
+    await waitForWindow(vrmEditor, 'document.querySelector("#btnOpen").textContent.trim().length > 0');
+    await check('editor 3D', vrmEditor, locale);
     api.toggleChat(true);
     await sleep(300);
     const chat = api.wins.chat;
@@ -67,9 +73,38 @@ export default async function smoke(api) {
     await check('avatar', api.wins.avatar, locale);
   }
 
-  // Skin 3D: carga y dibuja; ida y vuelta 2D <-> 3D dos veces sin duplicar el bucle de animación.
+  // Editor 3D con la skin de serie: carga el modelo y enseña su licencia.
   const av = api.wins.avatar;
-  if (!(await av.webContents.executeJavaScript("!!document.createElement('canvas').getContext('webgl2')"))) api.logger.warn('3D omitido: sin WebGL2');
+  const hasGl = await av.webContents.executeJavaScript("!!document.createElement('canvas').getContext('webgl2')");
+  if (hasGl) {
+    api.openWindow('vrm-editor', { query: { id: 'noa-3d' } });
+    const ed = api.wins['vrm-editor'];
+    await sleep(500);
+    await waitForWindow(ed, '!!window.__wdVrmEditor?.renderer?.vrm && document.querySelectorAll("#license dt").length >= 4', 30000);
+    await check('editor 3D (noa-3d)', ed, SUPPORTED.at(-1));
+    ed.close();
+    await sleep(300);
+
+    // Importar un VRM de principio a fin: preparar, ver, guardar y usar.
+    const { stageVrm } = await import('../../src/main/skins.js');
+    const staged = stageVrm(path.join(api.app.getAppPath(), 'assets/skins/noa-3d/model.vrm'), 'Importada');
+    const ed2 = api.openWindow('vrm-editor');
+    await waitForWindow(ed2, '!!window.__wdVrmEditor');
+    await ed2.webContents.executeJavaScript(`window.__wdVrmEditor.fromStaged(${JSON.stringify(staged)})`);
+    await waitForWindow(ed2, '!!window.__wdVrmEditor.renderer?.vrm', 30000);
+    await ed2.webContents.executeJavaScript(`document.querySelector('[data-preset="bust"]').click(); document.getElementById('btnSave').click()`);
+    await waitForWindow(ed2, 'document.getElementById("saveStatus").classList.contains("ok")', 30000);
+    const used = api.loadConfig().ui.skinId;
+    if (!/^vrm-/.test(used)) problems.push(`editor 3D: no se usó la skin importada (${used})`);
+    await waitForWindow(av, `window.__wd.renderer?.kind === 'vrm' && window.__wd.renderer.skin?.id === ${JSON.stringify(used)}`, 30000);
+    if (fs.existsSync(path.join(api.userDir(), 'tmp', `${staged.tmpId}.vrm`))) problems.push('editor 3D: quedó el archivo temporal');
+    ed2.close();
+    api.useSkin('default');
+    await waitForWindow(av, "window.__wd.renderer?.kind === '2d'", 15000);
+  }
+
+  // Skin 3D: carga y dibuja; ida y vuelta 2D <-> 3D dos veces sin duplicar el bucle de animación.
+  if (!hasGl) api.logger.warn('3D omitido: sin WebGL2');
   else {
     for (let round = 0; round < 2; round++) {
       api.useSkin('noa-3d');

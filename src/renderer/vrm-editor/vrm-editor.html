@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-9LzM/tE1mJBplH2VQ4xCe4f3L3pBgRdMskMLZf5Am0w='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' data: blob:" />
+    <script type="importmap">{"imports":{"three":"/bundle/node_modules/three/build/three.module.js","three/addons/":"/bundle/node_modules/three/examples/jsm/","@pixiv/three-vrm":"/bundle/node_modules/@pixiv/three-vrm/lib/three-vrm.module.min.js","@pixiv/three-vrm-animation":"/bundle/node_modules/@pixiv/three-vrm-animation/lib/three-vrm-animation.module.min.js"}}</script>
+    <title>Waifu Desk</title>
+    <link rel="stylesheet" href="../shared/base.css" />
+    <link rel="stylesheet" href="../editor/editor.css" />
+    <link rel="stylesheet" href="vrm-editor.css" />
+  </head>
+  <body>
+    <aside class="panel">
+      <header>
+        <h1 id="title" data-i18n="vrmEditor.titleNew"></h1>
+        <p class="muted" data-i18n="vrmEditor.subtitle"></p>
+      </header>
+
+      <section class="step" id="step1">
+        <h2><span class="n">1</span> <span data-i18n="vrmEditor.step1"></span></h2>
+        <div class="row">
+          <button class="btn" id="btnOpen"></button>
+        </div>
+        <div class="inline">
+          <input type="url" id="url" data-i18n-placeholder="vrmEditor.urlPlaceholder" />
+          <button class="btn" id="btnUrl" data-i18n="vrmEditor.load"></button>
+        </div>
+        <p class="status" id="loadStatus"></p>
+        <small class="muted" data-i18n="vrmEditor.step1Help"></small>
+      </section>
+
+      <section class="step" id="step2" data-disabled>
+        <h2><span class="n">2</span> <span data-i18n="vrmEditor.step2"></span></h2>
+        <dl class="license" id="license"></dl>
+        <small class="muted" data-i18n="vrmEditor.license.note"></small>
+      </section>
+
+      <section class="step" id="step3" data-disabled>
+        <h2><span class="n">3</span> <span data-i18n="vrmEditor.step3"></span></h2>
+        <div class="seg" id="presets">
+          <button class="btn tiny" data-preset="full" data-i18n="vrmEditor.preset.full"></button>
+          <button class="btn tiny" data-preset="half" data-i18n="vrmEditor.preset.half"></button>
+          <button class="btn tiny" data-preset="bust" data-i18n="vrmEditor.preset.bust"></button>
+        </div>
+        <label class="slider"><span data-i18n="vrmEditor.zoom"></span><input type="range" id="zoom" min="0.6" max="1.6" step="0.02" /></label>
+        <label class="slider"><span data-i18n="vrmEditor.yaw"></span><input type="range" id="yaw" min="-45" max="45" step="1" /></label>
+        <label class="slider"><span data-i18n="vrmEditor.pitch"></span><input type="range" id="pitch" min="-15" max="15" step="0.5" /></label>
+        <label class="slider"><span data-i18n="vrmEditor.offsetY"></span><input type="range" id="offsetY" min="-0.2" max="0.2" step="0.01" /></label>
+      </section>
+
+      <section class="step" id="step4" data-disabled>
+        <h2><span class="n">4</span> <span data-i18n="vrmEditor.step4"></span></h2>
+        <small class="muted" data-i18n="vrmEditor.states"></small>
+        <div class="chips" id="states"></div>
+        <small class="muted" data-i18n="vrmEditor.emotions"></small>
+        <div class="chips" id="emotions"></div>
+        <small class="muted" data-i18n="vrmEditor.gestures"></small>
+        <div class="chips" id="gestures"></div>
+      </section>
+
+      <section class="step" id="step5" data-disabled>
+        <h2><span class="n">5</span> <span data-i18n="vrmEditor.step5"></span></h2>
+        <p class="status hidden" id="builtinNote" data-i18n="vrmEditor.builtinNote"></p>
+        <label class="field"><span data-i18n="vrmEditor.name"></span><input type="text" id="name" data-i18n-placeholder="vrmEditor.defaultName" /></label>
+        <div class="row">
+          <button class="btn primary" id="btnSave" data-i18n="vrmEditor.saveUse"></button>
+          <button class="btn" id="btnSaveOnly" data-i18n="vrmEditor.saveOnly"></button>
+        </div>
+        <p class="status" id="saveStatus"></p>
+      </section>
+    </aside>
+
+    <main class="stage vrm-stage" id="stage">
+      <div class="drop" id="empty">
+        <div class="drop-inner">
+          <div class="drop-icon" id="emptyIcon"></div>
+          <strong data-i18n="vrmEditor.empty"></strong>
+          <span class="muted" data-i18n="vrmEditor.emptyText"></span>
+        </div>
+      </div>
+      <div class="vrm-frame hidden" id="frame">
+        <canvas id="preview"></canvas>
+        <span class="frame-label" data-i18n="vrmEditor.preview"></span>
+      </div>
+    </main>
+    <script type="module" src="vrm-editor.js"></script>
+  </body>
+</html>
