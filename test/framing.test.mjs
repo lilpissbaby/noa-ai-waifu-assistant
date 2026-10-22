@@ -20,7 +20,7 @@ test('half: de la cadera a la cabeza', () => {
   const low = 0.85 - 0.08 * (1.55 - 0.85);
   near(r.height, (1.55 - low) * 1.08);
   near(r.target[1], (low + 1.55) / 2);
-  near(r.aspect, (0.34 * 2.4) / (1.55 - low));
+  near(r.aspect, Math.min(1.1, (0.34 * 2.8) / (1.55 - low)));
 });
 
 test('bust: del pecho a la cabeza, proporción recortada a 1,1', () => {

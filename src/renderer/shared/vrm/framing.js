@@ -4,7 +4,7 @@
 export const DEFAULT_FRAMING = { preset: 'half', zoom: 1, yaw: 0, pitch: 0, offsetY: 0 };
 export const PRESETS = ['full', 'half', 'bust'];
 const RANGES = { zoom: [0.6, 1.6], yaw: [-45, 45], pitch: [-15, 15], offsetY: [-0.2, 0.2] };
-const WIDTH_K = { full: 2.0, half: 2.4, bust: 2.6 };
+const WIDTH_K = { full: 2.0, half: 2.8, bust: 2.6 };
 const MARGIN = 1.08;
 
 const clamp = (v, [a, b]) => Math.max(a, Math.min(b, v));

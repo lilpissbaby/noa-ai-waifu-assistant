@@ -6,26 +6,19 @@ import { VRMLoaderPlugin, VRMUtils } from '@pixiv/three-vrm';
 import { computeFraming, normalizeFraming } from './framing.js';
 import { applyToVrm } from './drive-vrm.js';
 import { HitMask } from './hit-mask.js';
+import { BASE_POSE, baseQuat } from './pose.js';
+import { MotionPlayer, motionFromDef } from './motion.js';
+import { CLIPS, DEFAULT_ASSIGN } from './clips/index.js';
 
 const DEG = Math.PI / 180;
 const FOV = 20;
 const STEP = 1 / 60;
-// Pose base: los VRM vienen en T; bajamos los brazos a una pose A relajada.
-export const BASE_POSE = {
-  leftUpperArm: [0, 0, -68],
-  rightUpperArm: [0, 0, 68],
-  leftLowerArm: [0, -12, 0],
-  rightLowerArm: [0, 12, 0],
-};
-
-const _e = new THREE.Euler();
-const _q = new THREE.Quaternion();
 const _v = new THREE.Vector3();
 
-export function rotateBone(node, [x, y, z]) {
-  if (!node) return;
-  _q.setFromEuler(_e.set(x * DEG, y * DEG, z * DEG));
-  node.quaternion.multiply(_q);
+// Biblioteca de animaciones propias: { estado o gesto: Motion[] }.
+export function defaultLibrary() {
+  const motions = Object.fromEntries(Object.entries(CLIPS).map(([k, d]) => [k, motionFromDef(d)]));
+  return Object.fromEntries(Object.entries(DEFAULT_ASSIGN).map(([k, names]) => [k, names.map((n) => motions[n])]));
 }
 
 export class VrmRenderer {
@@ -50,7 +43,8 @@ export class VrmRenderer {
     this.signals = null;
     this.busy = false;
     this.head = null;
-    this.motion = null; // capa de animación (Task 7): (vrm, dt, signals) -> { busy }
+    this.player = new MotionPlayer();
+    this.player.setLibrary(defaultLibrary());
     this.renderMs = [];
   }
 
@@ -141,8 +135,12 @@ export class VrmRenderer {
       return;
     }
     vrm.humanoid.resetNormalizedPose();
-    for (const [bone, rot] of Object.entries(BASE_POSE)) rotateBone(vrm.humanoid.getNormalizedBoneNode(bone), rot);
-    this.busy = this.motion ? !!this.motion(vrm, dt, this.signals)?.busy : false;
+    const out = this.player.update(dt, this.signals);
+    for (const bone of Object.keys(BASE_POSE)) if (!out.pose.has(bone)) vrm.humanoid.getNormalizedBoneNode(bone)?.quaternion.copy(baseQuat(bone));
+    for (const [bone, q] of out.pose) vrm.humanoid.getNormalizedBoneNode(bone)?.quaternion.copy(q);
+    const hips = vrm.humanoid.getNormalizedBoneNode('hips');
+    if (hips) hips.position.y += out.hipsY;
+    this.busy = out.busy;
     applyToVrm(vrm, this.signals, { hipsRestY: this.hipsRestY });
     // Física de pelo y ropa a paso fijo (máx. 3 subpasos por fotograma).
     const steps = Math.max(1, Math.min(3, Math.round(dt / STEP)));
