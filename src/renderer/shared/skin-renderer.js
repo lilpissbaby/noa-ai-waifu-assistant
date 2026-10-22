@@ -212,7 +212,7 @@ export class SkinRenderer {
       ['base', 'eyesClosed', 'mouthHalf', 'mouthOpen'].map(async (k) => [k, urls[k] ? await loadImage(urls[k]) : null]),
     );
     const imgs = Object.fromEntries(entries);
-    if (!imgs.base) throw new Error('La skin no tiene imagen base');
+    if (!imgs.base) throw new Error('Skin has no base image');
     const W = skin.width || imgs.base.naturalWidth;
     const H = skin.height || imgs.base.naturalHeight;
     if (this.mode === '2d') {

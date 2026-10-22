@@ -526,3 +526,7 @@ body[data-state='error'] .dot {
   padding-left: 4px;
   min-height: 14px;
 }
+/* cada «tecla + acción» va junta: si no cabe en una línea, se parte entre ellas */
+.hint .hint-item {
+  white-space: nowrap;
+}

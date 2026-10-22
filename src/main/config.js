@@ -3,6 +3,7 @@ import { app, safeStorage } from 'electron';
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
+import { resolveLocale, tIn, t } from '../shared/i18n/index.js';
 
 export const userDir = () => app.getPath('userData');
 const configPath = () => path.join(userDir(), 'config.json');
@@ -10,38 +11,55 @@ const secretsPath = () => path.join(userDir(), 'secrets.json');
 
 export const uid = () => crypto.randomBytes(5).toString('hex');
 
-// Presets de proveedor que aparecen al crear un perfil.
-export const PROVIDER_PRESETS = {
-  anthropic: { kind: 'anthropic', name: 'Claude (Anthropic)', baseUrl: 'https://api.anthropic.com', model: 'claude-sonnet-5-5', toolsEnabled: true },
-  openai: { kind: 'openai', name: 'OpenAI', baseUrl: 'https://api.openai.com/v1', model: '', toolsEnabled: true },
-  openrouter: { kind: 'openai', name: 'OpenRouter', baseUrl: 'https://openrouter.ai/api/v1', model: '', toolsEnabled: true },
-  groq: { kind: 'openai', name: 'Groq', baseUrl: 'https://api.groq.com/openai/v1', model: '', toolsEnabled: true },
-  gemini: { kind: 'openai', name: 'Google Gemini', baseUrl: 'https://generativelanguage.googleapis.com/v1beta/openai', model: '', toolsEnabled: true },
-  ollama: { kind: 'openai', name: 'Ollama (local)', baseUrl: 'http://localhost:11434/v1', model: '', toolsEnabled: true },
-  lmstudio: { kind: 'openai', name: 'LM Studio (local)', baseUrl: 'http://localhost:1234/v1', model: '', toolsEnabled: true },
-  hermes: { kind: 'openai', name: 'Hermes Agent (VPS)', baseUrl: 'http://TU-VPS:8642/v1', model: 'hermes-agent', toolsEnabled: false },
-  custom: { kind: 'openai', name: 'Personalizado (OpenAI-compatible)', baseUrl: 'http://localhost:8000/v1', model: '', toolsEnabled: true },
-};
+// Idiomas del sistema por orden de preferencia (p. ej. ['es-ES', 'en-US']).
+export function systemLocales() {
+  try {
+    const list = app.getPreferredSystemLanguages?.() || [];
+    return list.length ? list : [app.getLocale()];
+  } catch {
+    return [];
+  }
+}
 
-export function defaultConfig() {
+// Idioma de la interfaz: el elegido en Ajustes o, en «auto», el del sistema.
+export const effectiveLocale = (cfg = loadConfig()) => resolveLocale(cfg.ui?.language, systemLocales());
+
+// Presets de proveedor que aparecen al crear un perfil.
+export function providerPresets() {
+  const local = t('presets.local');
+  return {
+    anthropic: { kind: 'anthropic', name: 'Claude (Anthropic)', baseUrl: 'https://api.anthropic.com', model: 'claude-sonnet-5-5', toolsEnabled: true },
+    openai: { kind: 'openai', name: 'OpenAI', baseUrl: 'https://api.openai.com/v1', model: '', toolsEnabled: true },
+    openrouter: { kind: 'openai', name: 'OpenRouter', baseUrl: 'https://openrouter.ai/api/v1', model: '', toolsEnabled: true },
+    groq: { kind: 'openai', name: 'Groq', baseUrl: 'https://api.groq.com/openai/v1', model: '', toolsEnabled: true },
+    gemini: { kind: 'openai', name: 'Google Gemini', baseUrl: 'https://generativelanguage.googleapis.com/v1beta/openai', model: '', toolsEnabled: true },
+    ollama: { kind: 'openai', name: `Ollama (${local})`, baseUrl: 'http://localhost:11434/v1', model: '', toolsEnabled: true },
+    lmstudio: { kind: 'openai', name: `LM Studio (${local})`, baseUrl: 'http://localhost:1234/v1', model: '', toolsEnabled: true },
+    hermes: { kind: 'openai', name: 'Hermes Agent (VPS)', baseUrl: 'http://your-vps:8642/v1', model: 'hermes-agent', toolsEnabled: false },
+    custom: { kind: 'openai', name: t('presets.custom'), baseUrl: 'http://localhost:8000/v1', model: '', toolsEnabled: true },
+  };
+}
+
+// Los textos por defecto (personalidad, idioma del dictado) salen del idioma del sistema la primera vez.
+export function defaultConfig(locale = resolveLocale('auto', systemLocales())) {
   const claudeId = 'claude';
+  const presets = providerPresets();
   return {
     version: 1,
     assistant: {
       name: 'Noa',
       userName: '',
-      language: 'español',
-      personality:
-        'Alegre, ingeniosa y un pelín sarcástica, pero siempre útil y directa. Nada de relleno ni de frases de cortesía vacías.',
+      language: '', // vacío = el idioma de la interfaz
+      personality: tIn(locale, 'defaults.personality'),
       extraInstructions: '',
     },
     profiles: [
-      { id: claudeId, ...PROVIDER_PRESETS.anthropic, name: 'Claude Sonnet', maxTokens: 4096, temperature: null },
-      { id: 'hermes', ...PROVIDER_PRESETS.hermes, maxTokens: 4096, temperature: null },
+      { id: claudeId, ...presets.anthropic, name: 'Claude Sonnet', maxTokens: 4096, temperature: null },
+      { id: 'hermes', ...presets.hermes, maxTokens: 4096, temperature: null },
     ],
     activeProfileId: claudeId,
     voice: {
-      stt: { provider: 'groq', baseUrl: 'https://api.groq.com/openai/v1', model: 'whisper-large-v3-turbo', language: 'es' },
+      stt: { provider: 'groq', baseUrl: 'https://api.groq.com/openai/v1', model: 'whisper-large-v3-turbo', language: locale },
       tts: {
         mode: 'system', // system | openai | elevenlabs | off
         baseUrl: 'https://api.openai.com/v1',
@@ -57,7 +75,7 @@ export function defaultConfig() {
       autoStopOnSilence: true,
     },
     connectors: {
-      hermes: { enabled: false, baseUrl: 'http://TU-VPS:8642/v1', model: 'hermes-agent', timeoutSec: 900 },
+      hermes: { enabled: false, baseUrl: 'http://your-vps:8642/v1', model: 'hermes-agent', timeoutSec: 900 },
       paperclip: { enabled: false, baseUrl: 'http://localhost:3100', companyId: '' },
       shell: { enabled: false },
       webhooks: [],
@@ -65,6 +83,7 @@ export function defaultConfig() {
     },
     tools: { autoApprove: {} },
     ui: {
+      language: 'auto', // auto | es | en | ru | uk | zh
       skinId: 'default',
       scale: 1,
       position: null,

@@ -1,5 +1,7 @@
 import { renderMarkdown, escapeHtml } from '../shared/md.js';
 import { icons } from '../shared/icons.js';
+import { t, tHtml, setLocale, getLocale } from '../../shared/i18n/index.js';
+import { applyDom } from '../../shared/i18n/dom.js';
 
 const wd = window.wd;
 const $ = (id) => document.getElementById(id);
@@ -20,24 +22,25 @@ let cfg = null;
 let busy = false;
 let current = null; // mensaje del asistente en curso
 
-const TOOL_LABEL = {
-  get_current_time: 'Mirar la hora',
-  open_url: 'Abrir enlace',
-  clipboard_read: 'Leer portapapeles',
-  clipboard_write: 'Copiar al portapapeles',
-  show_notification: 'Notificación',
-  run_command: 'Ejecutar comando',
-  hermes_task: 'Hermes',
-  paperclip_list_agents: 'Paperclip · agentes',
-  paperclip_list_projects: 'Paperclip · proyectos',
-  paperclip_list_issues: 'Paperclip · tareas',
-  paperclip_get_issue: 'Paperclip · ver tarea',
-  paperclip_create_issue: 'Paperclip · crear tarea',
-  paperclip_update_issue: 'Paperclip · actualizar tarea',
-  paperclip_add_comment: 'Paperclip · comentar',
-  paperclip_wakeup_agent: 'Paperclip · despertar agente',
-};
-const toolLabel = (n) => TOOL_LABEL[n] || n.replace(/^webhook_/, 'Webhook · ').replace(/^mcp_/, 'MCP · ');
+// Nombre legible de cada herramienta en los chips del chat (claves en tools.*).
+const KNOWN_TOOLS = new Set([
+  'get_current_time',
+  'open_url',
+  'clipboard_read',
+  'clipboard_write',
+  'show_notification',
+  'run_command',
+  'hermes_task',
+  'paperclip_list_agents',
+  'paperclip_list_projects',
+  'paperclip_list_issues',
+  'paperclip_get_issue',
+  'paperclip_create_issue',
+  'paperclip_update_issue',
+  'paperclip_add_comment',
+  'paperclip_wakeup_agent',
+]);
+const toolLabel = (n) => (KNOWN_TOOLS.has(n) ? t(`tools.${n}`) : n.replace(/^webhook_/, 'Webhook · ').replace(/^mcp_/, 'MCP · '));
 
 // ---------------------------------------------------------------- utilidades de vista
 const atBottom = () => log.scrollHeight - log.scrollTop - log.clientHeight < 60;
@@ -126,7 +129,8 @@ function addNotice(text, level = 'info') {
 function addError(message) {
   const el = document.createElement('div');
   el.className = 'msg error';
-  el.innerHTML = `${icons.alert}<div><div class="txt"></div><div class="err-actions"><button class="btn">Abrir ajustes</button></div></div>`;
+  el.innerHTML = `${icons.alert}<div><div class="txt"></div><div class="err-actions"><button class="btn"></button></div></div>`;
+  el.querySelector('.err-actions .btn').textContent = t('chat.openSettings');
   el.querySelector('.txt').textContent = message;
   el.querySelector('button').onclick = () => wd.invoke('win:open', 'settings', { tab: 'models' });
   log.append(el);
@@ -138,7 +142,7 @@ function setBusy(v) {
   busy = v;
   btnSend.classList.toggle('stop', v);
   btnSend.innerHTML = v ? icons.stop : icons.send;
-  btnSend.title = v ? 'Detener' : 'Enviar (Enter)';
+  btnSend.title = v ? t('chat.stop') : t('chat.sendTitle');
 }
 
 // ---------------------------------------------------------------- historial
@@ -158,8 +162,8 @@ function renderHistory(history) {
         lastAssistant.body.innerHTML = renderMarkdown(lastAssistant.text);
       }
     } else if (m.role === 'tool' && lastAssistant) {
-      const t = lastAssistant.tools.get(m.toolCallId);
-      if (t) finishTool(t, !m.isError, m.content);
+      const tool = lastAssistant.tools.get(m.toolCallId);
+      if (tool) finishTool(tool, !m.isError, m.content);
     }
   }
   updateEmpty();
@@ -167,12 +171,12 @@ function renderHistory(history) {
   return lastAssistant; // respuesta del último turno (para continuarla si sigue en curso)
 }
 
-function finishTool(t, ok, result) {
-  t.el.classList.remove('run');
-  t.el.querySelector('.sub').textContent = summarizeInput(t.name, t.inp);
-  t.el.classList.add(ok ? 'ok' : 'err');
-  t.el.querySelector('.ico').innerHTML = ok ? icons.check : icons.alert;
-  t.el.querySelector('pre').textContent = `${JSON.stringify(t.inp ?? {}, null, 2)}\n\n→ ${result || ''}`;
+function finishTool(tool, ok, result) {
+  tool.el.classList.remove('run');
+  tool.el.querySelector('.sub').textContent = summarizeInput(tool.name, tool.inp);
+  tool.el.classList.add(ok ? 'ok' : 'err');
+  tool.el.querySelector('.ico').innerHTML = ok ? icons.check : icons.alert;
+  tool.el.querySelector('pre').textContent = `${JSON.stringify(tool.inp ?? {}, null, 2)}\n\n→ ${result || ''}`;
 }
 
 // ---------------------------------------------------------------- eventos del proceso principal
@@ -219,20 +223,20 @@ function handleEvent(e) {
       scrollDown();
       break;
     case 'tool_progress': {
-      const t = current?.tools.get(e.id);
-      if (t) t.el.querySelector('.sub').textContent = e.message;
+      const tool = current?.tools.get(e.id);
+      if (tool) tool.el.querySelector('.sub').textContent = e.message;
       break;
     }
     case 'tool_end': {
-      const t = current?.tools.get(e.id);
-      if (t) finishTool(t, e.ok, e.result);
+      const tool = current?.tools.get(e.id);
+      if (tool) finishTool(tool, e.ok, e.result);
       break;
     }
     case 'done':
       if (current) {
         if (!current.text && !current.tools.size) current.el.remove();
         else renderCurrent(true);
-        if (e.aborted) addNotice('Detenido');
+        if (e.aborted) addNotice(t('chat.stopped'));
       }
       current = null;
       setBusy(false);
@@ -253,28 +257,42 @@ function handleEvent(e) {
   }
 }
 
-const STATE_LABEL = { idle: 'lista', thinking: 'pensando…', talking: 'respondiendo…', listening: 'escuchando…', working: 'trabajando…', error: 'error' };
-wd.on('avatar:state', ({ state, label }) => {
+const STATES = ['idle', 'thinking', 'talking', 'listening', 'working', 'error'];
+const stateLabel = (s) => (STATES.includes(s) ? t(`chat.state.${s}`) : s);
+let lastState = { state: 'idle', label: '' };
+function showState({ state, label }) {
+  lastState = { state, label };
   document.body.dataset.state = state;
-  $('stateText').textContent = label || STATE_LABEL[state] || state;
-});
+  $('stateText').textContent = label || stateLabel(state);
+}
+wd.on('avatar:state', showState);
 wd.on('voice:status', ({ recording }) => btnMic.classList.toggle('active', !!recording));
 
 // ---------------------------------------------------------------- configuración
 function applyConfig(pc) {
   cfg = pc.config;
+  const localeChanged = pc.locale !== getLocale();
+  setLocale(pc.locale);
+  applyDom();
   $('assistantName').textContent = cfg.assistant.name;
-  document.title = `${cfg.assistant.name} — chat`;
-  $('hello').innerHTML = `Hola${cfg.assistant.userName ? `, ${escapeHtml(cfg.assistant.userName)}` : ''}. Soy <em>${escapeHtml(cfg.assistant.name)}</em>.`;
+  document.title = t('chat.windowTitle', { name: cfg.assistant.name });
+  $('hello').innerHTML = cfg.assistant.userName
+    ? tHtml('chat.helloUser', { user: cfg.assistant.userName, name: cfg.assistant.name })
+    : tHtml('chat.hello', { name: cfg.assistant.name });
+  setBusy(busy);
+  if (localeChanged) {
+    showState(lastState);
+    for (const b of log.querySelectorAll('.err-actions .btn')) b.textContent = t('chat.openSettings');
+  }
   profileSel.innerHTML = cfg.profiles
     .map((p) => `<option value="${escapeHtml(p.id)}" ${p.id === cfg.activeProfileId ? 'selected' : ''}>${escapeHtml(p.name)}</option>`)
     .join('');
   const c = cfg.connectors;
   const sugg = [];
-  if (c.paperclip.enabled) sugg.push('¿Qué tareas tienen pendientes mis agentes en Paperclip?');
-  if (c.hermes.enabled) sugg.push('Pídele a Hermes que revise el estado de los contenedores del VPS');
-  sugg.push('Resúmeme lo que tengo en el portapapeles');
-  if (!c.paperclip.enabled && !c.hermes.enabled) sugg.push('¿Qué puedes hacer por mí?');
+  if (c.paperclip.enabled) sugg.push(t('chat.suggest.paperclip'));
+  if (c.hermes.enabled) sugg.push(t('chat.suggest.hermes'));
+  sugg.push(t('chat.suggest.clipboard'));
+  if (!c.paperclip.enabled && !c.hermes.enabled) sugg.push(t('chat.suggest.what'));
   $('suggest').innerHTML = '';
   for (const s of sugg.slice(0, 3)) {
     const b = document.createElement('button');
@@ -282,7 +300,15 @@ function applyConfig(pc) {
     b.onclick = () => send(s);
     $('suggest').append(b);
   }
-  $('hint').innerHTML = `<kbd>Enter</kbd> envía · <kbd>Shift+Enter</kbd> salto · <kbd>${escapeHtml((cfg.ui.hotkeyTalk || '').replace('Control', 'Ctrl'))}</kbd> hablar`;
+  const talkKey = (cfg.ui.hotkeyTalk || '').replace('Control', 'Ctrl');
+  $('hint').innerHTML = [
+    ['Enter', 'chat.hintSend'],
+    ['Shift+Enter', 'chat.hintNewline'],
+    [talkKey, 'chat.hintTalk'],
+  ]
+    .filter(([k]) => k)
+    .map(([k, key]) => `<span class="hint-item"><kbd>${escapeHtml(k)}</kbd> ${escapeHtml(t(key))}</span>`)
+    .join(' · ');
 }
 wd.on('cfg:changed', applyConfig);
 
@@ -296,11 +322,11 @@ function autosize() {
 input.addEventListener('input', autosize);
 
 function send(text) {
-  const t = (text ?? input.value).trim();
-  if (!t) return;
+  const msg = (text ?? input.value).trim();
+  if (!msg) return;
   input.value = '';
   autosize();
-  wd.invoke('chat:send', t, 'text');
+  wd.invoke('chat:send', msg, 'text');
 }
 
 input.addEventListener('keydown', (e) => {
@@ -333,8 +359,8 @@ log.addEventListener('click', (e) => {
   const c = e.target.closest('[data-copy]');
   if (c) {
     navigator.clipboard.writeText(c.closest('.code').querySelector('code').textContent);
-    c.textContent = '¡Copiado!';
-    setTimeout(() => (c.textContent = 'Copiar'), 1200);
+    c.textContent = t('md.copied');
+    setTimeout(() => (c.textContent = t('md.copy')), 1200);
   }
 });
 
@@ -353,8 +379,6 @@ log.addEventListener('click', (e) => {
   ready = true;
   for (const e of early.splice(0)) handleEvent(e);
   for (const evt of await wd.invoke('chat:pending')) addError(evt.message);
-  const st = await wd.invoke('chat:state');
-  document.body.dataset.state = st;
-  $('stateText').textContent = STATE_LABEL[st] || st;
+  showState({ state: await wd.invoke('chat:state'), label: '' });
   input.focus();
 })();

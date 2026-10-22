@@ -3,6 +3,7 @@ import { net } from 'electron';
 import fs from 'node:fs';
 import path from 'node:path';
 import { userDir, uid } from './config.js';
+import { t, getLocale } from '../shared/i18n/index.js';
 
 export const APP_ROOT = path.resolve(import.meta.dirname, '..', '..');
 const BUILTIN_DIR = path.join(APP_ROOT, 'assets', 'skins');
@@ -26,7 +27,9 @@ function readManifest(dir, builtin) {
     const toUrl = (f) => (f ? (builtin ? bundleUrl : userUrl)(path.join(rel, f)) : null);
     const urls = {};
     for (const [k, f] of Object.entries(m.files || {})) urls[k] = toUrl(f);
-    return { ...m, id: m.id || path.basename(dir), builtin, urls, thumb: urls.thumb || urls.base };
+    // `names` permite traducir el nombre de una skin: { "es": "…", "en": "…" }.
+    const name = m.names?.[getLocale()] || m.name;
+    return { ...m, name, id: m.id || path.basename(dir), builtin, urls, thumb: urls.thumb || urls.base };
   } catch {
     return null;
   }
@@ -73,7 +76,7 @@ export function saveSkin({ id, name, width, height, rig, files }) {
   }
   const manifest = {
     id: skinId,
-    name: name || prev.name || 'Mi waifu',
+    name: name || prev.name || t('editor.defaultName'),
     width,
     height,
     rig,
@@ -94,13 +97,13 @@ export function deleteSkin(id) {
 
 // Descarga una imagen de internet (URL pegada por el usuario) y la devuelve como data URL.
 export async function fetchImage(url) {
-  if (!/^https?:\/\//i.test(url)) throw new Error('URL no válida');
+  if (!/^https?:\/\//i.test(url)) throw new Error(t('errors.badUrl'));
   const res = await net.fetch(url, { headers: { 'user-agent': 'Mozilla/5.0 WaifuDesk' } });
-  if (!res.ok) throw new Error(`No se pudo descargar la imagen (HTTP ${res.status})`);
+  if (!res.ok) throw new Error(t('errors.imageDownload', { status: res.status }));
   const type = res.headers.get('content-type') || 'image/png';
-  if (!type.startsWith('image/')) throw new Error(`La URL no es una imagen (${type})`);
+  if (!type.startsWith('image/')) throw new Error(t('errors.notImage', { type }));
   const buf = Buffer.from(await res.arrayBuffer());
-  if (buf.length > 25 * 1024 * 1024) throw new Error('Imagen demasiado grande (máx. 25 MB)');
+  if (buf.length > 25 * 1024 * 1024) throw new Error(t('errors.imageTooBig', { mb: 25 }));
   return `data:${type};base64,${buf.toString('base64')}`;
 }
 
@@ -118,7 +121,7 @@ export function downloadSegmentModel(onProgress) {
     const final = path.join(modelsDir(), SEGMENT_MODEL.file);
     const tmp = `${final}.part`;
     const res = await net.fetch(SEGMENT_MODEL.url);
-    if (!res.ok) throw new Error(`Descarga fallida (HTTP ${res.status})`);
+    if (!res.ok) throw new Error(t('errors.download', { status: res.status }));
     const total = Number(res.headers.get('content-length')) || SEGMENT_MODEL.size;
     const out = fs.createWriteStream(tmp);
     let done = 0;

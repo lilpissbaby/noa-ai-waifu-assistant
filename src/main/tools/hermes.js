@@ -3,6 +3,7 @@
 import { net } from 'electron';
 import { readSSE, httpError } from '../llm/sse.js';
 import { getSecret } from '../config.js';
+import { t } from '../../shared/i18n/index.js';
 
 export function hermesTools(cfg) {
   const h = cfg.connectors.hermes;
@@ -10,14 +11,14 @@ export function hermesTools(cfg) {
   return [
     {
       name: 'hermes_task',
-      group: 'delegar tareas largas al agente Hermes del VPS (tiene terminal, navegador, memoria y skills propias)',
+      group: "delegate long tasks to the Hermes agent on the user's VPS (it has its own terminal, browser, memory and skills)",
       description:
-        'Envía una tarea al agente Hermes que corre en el VPS del usuario y espera su respuesta. Hermes puede ejecutar comandos en el servidor, navegar, programar trabajos y recordar cosas entre sesiones. Úsalo para trabajo que deba hacerse en el servidor o tareas largas de investigación/automatización. Describe la tarea de forma autocontenida.',
+        "Sends a task to the Hermes agent running on the user's VPS and waits for its answer. Hermes can run commands on the server, browse the web, schedule jobs and remember things across sessions. Use it for work that must happen on the server or for long research/automation tasks. Describe the task in a self-contained way.",
       schema: {
         type: 'object',
         properties: {
-          task: { type: 'string', description: 'Instrucción completa y autocontenida para Hermes' },
-          context: { type: 'string', description: 'Contexto adicional opcional (datos, rutas, preferencias)' },
+          task: { type: 'string', description: 'Complete, self-contained instruction for Hermes' },
+          context: { type: 'string', description: 'Optional extra context (data, paths, preferences)' },
         },
         required: ['task'],
       },
@@ -37,9 +38,9 @@ export function hermesTools(cfg) {
               messages: [
                 {
                   role: 'system',
-                  content: `Petición reenviada por ${cfg.assistant.name}, la asistente de escritorio del usuario. Devuelve un resultado claro y conciso.`,
+                  content: `Request forwarded by ${cfg.assistant.name}, the user's desktop assistant. Return a clear, concise result.`,
                 },
-                { role: 'user', content: context ? `${task}\n\nContexto:\n${context}` : task },
+                { role: 'user', content: context ? `${task}\n\nContext:\n${context}` : task },
               ],
             }),
             signal: ctrl.signal,
@@ -67,12 +68,12 @@ export function hermesTools(cfg) {
             const now = Date.now();
             if (now - lastPing > 700) {
               lastPing = now;
-              progress?.(toolNote ? `Hermes: ${toolNote}` : `Hermes trabajando… ${text.length ? `(${text.length} car.)` : ''}`);
+              progress?.(toolNote ? `Hermes: ${toolNote}` : text.length ? t('hermes.workingChars', { count: text.length }) : t('state.tool.hermes'));
             }
           }
-          return text || '(Hermes no devolvió texto)';
+          return text || '(Hermes returned no text)';
         } catch (e) {
-          if (ctrl.signal.aborted && !signal?.aborted) throw new Error('Hermes tardó demasiado (timeout)');
+          if (ctrl.signal.aborted && !signal?.aborted) throw new Error(t('hermes.timeout'), { cause: e });
           throw e;
         } finally {
           clearTimeout(timer);
@@ -88,5 +89,5 @@ export async function testHermes(h) {
   const res = await net.fetch(`${base}/models`, { headers: key ? { authorization: `Bearer ${key}` } : {} });
   if (!res.ok) throw await httpError(res, 'Hermes /models');
   const j = await res.json();
-  return `Conectado. Modelos: ${(j.data || []).map((m) => m.id).join(', ') || '(ninguno)'}`;
+  return t('hermes.connected', { models: (j.data || []).map((m) => m.id).join(', ') || t('common.none') });
 }

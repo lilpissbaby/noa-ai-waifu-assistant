@@ -35,9 +35,9 @@ const SIZE = 1024;
 
 // Devuelve un canvas nuevo con el canal alfa sustituido por la máscara del modelo.
 export async function aiCutout(srcCanvas, modelUrl, onStage) {
-  onStage?.('Cargando modelo…');
+  onStage?.('loadingModel');
   const { ort, session } = await loadSegmenter(modelUrl);
-  onStage?.('Analizando el dibujo…');
+  onStage?.('analyzing');
   const tmp = document.createElement('canvas');
   tmp.width = SIZE;
   tmp.height = SIZE;
@@ -68,7 +68,7 @@ export async function aiCutout(srcCanvas, modelUrl, onStage) {
     if (v < lo) lo = v;
     if (v > hi) hi = v;
   }
-  onStage?.('Aplicando recorte…');
+  onStage?.('applying');
   const mask = document.createElement('canvas');
   mask.width = SIZE;
   mask.height = SIZE;

@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="es">
+<html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:" />
@@ -13,32 +13,32 @@
         <span class="dot" id="stateDot"></span>
         <div class="who-text">
           <strong id="assistantName">Noa</strong>
-          <span id="stateText" class="muted">lista</span>
+          <span id="stateText" class="muted"></span>
         </div>
       </div>
-      <label class="profile" title="Modelo activo">
+      <label class="profile" data-i18n-title="chat.activeModel">
         <select id="profile"></select>
       </label>
       <div class="actions">
-        <button class="icon-btn" id="btnNew" title="Nueva conversación (Ctrl+N)"></button>
-        <button class="icon-btn" id="btnSettings" title="Ajustes"></button>
-        <button class="icon-btn" id="btnClose" title="Ocultar (Esc)"></button>
+        <button class="icon-btn" id="btnNew" data-i18n-title="chat.newTitle"></button>
+        <button class="icon-btn" id="btnSettings" data-i18n-title="chat.settings"></button>
+        <button class="icon-btn" id="btnClose" data-i18n-title="chat.hideTitle"></button>
       </div>
     </header>
 
     <main id="log" class="log" aria-live="polite"></main>
 
     <section id="empty" class="empty hidden">
-      <div class="hello" id="hello">¿En qué te ayudo?</div>
-      <p class="muted">Escribe, pulsa el micro o haz doble clic en mí para hablar.</p>
+      <div class="hello" id="hello"></div>
+      <p class="muted" data-i18n="chat.emptyHelp"></p>
       <div class="suggest" id="suggest"></div>
     </section>
 
     <footer class="composer">
       <div class="box">
-        <textarea id="input" rows="1" placeholder="Escribe un mensaje…" spellcheck="true"></textarea>
-        <button class="icon-btn mic" id="btnMic" title="Hablar"></button>
-        <button class="send" id="btnSend" title="Enviar (Enter)"></button>
+        <textarea id="input" rows="1" data-i18n-placeholder="chat.placeholder" spellcheck="true"></textarea>
+        <button class="icon-btn mic" id="btnMic" data-i18n-title="chat.talk"></button>
+        <button class="send" id="btnSend"></button>
       </div>
       <div class="hint muted" id="hint"></div>
     </footer>

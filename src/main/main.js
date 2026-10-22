@@ -3,7 +3,8 @@ import { app, BrowserWindow, ipcMain, protocol, net, screen, Tray, Menu, nativeI
 import path from 'node:path';
 import fs from 'node:fs';
 import { pathToFileURL } from 'node:url';
-import { loadConfig, patchConfig, saveConfig, getSecret, setSecret, hasSecret, secureStorageAvailable, userDir, uid, PROVIDER_PRESETS } from './config.js';
+import { loadConfig, patchConfig, saveConfig, getSecret, setSecret, hasSecret, secureStorageAvailable, userDir, uid, providerPresets, effectiveLocale } from './config.js';
+import { t, tIn, setLocale, getLocale, localeTag, languageFromName, SUPPORTED, LANGUAGES } from '../shared/i18n/index.js';
 import { runTurn } from './llm/agent.js';
 import { listAnthropicModels } from './llm/anthropic.js';
 import { listOpenAIModels } from './llm/openai.js';
@@ -26,6 +27,9 @@ const pageUrl = (name) => `app://local/bundle/src/renderer/${name}/${name}.html`
 if (isLinux) {
   app.commandLine.appendSwitch('enable-transparent-visuals');
 }
+// Solo en desarrollo (npm run smoke / screenshots): carpeta de datos aparte y un script que maneja la app.
+const AUTOMATION = !app.isPackaged ? process.env.WAIFU_DESK_AUTOMATION : null;
+if (!app.isPackaged && process.env.WAIFU_DESK_USER_DATA) app.setPath('userData', path.resolve(process.env.WAIFU_DESK_USER_DATA));
 // La voz debe sonar sin que haya un clic previo en la ventana del avatar.
 app.commandLine.appendSwitch('autoplay-policy', 'no-user-gesture-required');
 app.setAppUserModelId('desk.waifu.app');
@@ -54,7 +58,7 @@ const MIME = {
   '.onnx': 'application/octet-stream',
   '.woff2': 'font/woff2',
 };
-const BUNDLE_ALLOWED = ['src/renderer/', 'assets/', 'node_modules/onnxruntime-web/dist/'];
+const BUNDLE_ALLOWED = ['src/renderer/', 'src/shared/', 'assets/', 'node_modules/onnxruntime-web/dist/'];
 
 function registerAppProtocol() {
   protocol.handle('app', async (req) => {
@@ -165,7 +169,7 @@ function createChatWindow() {
     skipTaskbar: false,
     alwaysOnTop: cfg.ui.alwaysOnTop,
     backgroundColor: '#15121c',
-    title: `${cfg.assistant.name} — chat`,
+    title: t('chat.windowTitle', { name: cfg.assistant.name }),
     show: false,
     webPreferences: baseWebPrefs,
   });
@@ -217,7 +221,7 @@ function openWindow(name, opts = {}) {
     minHeight: 560,
     backgroundColor: '#15121c',
     autoHideMenuBar: true,
-    title: name === 'settings' ? 'Waifu Desk — Ajustes' : 'Waifu Desk — Editor de skins',
+    title: name === 'settings' ? t('settings.windowTitle') : t('editor.windowTitle'),
     icon: appIcon(),
     show: false,
     webPreferences: baseWebPrefs,
@@ -263,16 +267,32 @@ function refreshTrayMenu() {
   const cfg = loadConfig();
   tray.setContextMenu(
     Menu.buildFromTemplate([
-      { label: `Mostrar/ocultar a ${cfg.assistant.name}`, click: toggleAvatar },
-      { label: 'Abrir chat', click: () => toggleChat(true) },
-      { label: 'Hablar', click: () => sendTo('avatar', 'voice:record-toggle') },
+      { label: t('tray.toggle', { name: cfg.assistant.name }), click: toggleAvatar },
+      { label: t('tray.openChat'), click: () => toggleChat(true) },
+      { label: t('menu.talk'), click: () => sendTo('avatar', 'voice:record-toggle') },
       { type: 'separator' },
-      { label: 'Skins…', click: () => openWindow('settings', { query: { tab: 'skins' } }) },
-      { label: 'Ajustes…', click: () => openWindow('settings') },
+      { label: t('menu.language'), submenu: languageMenu(cfg) },
+      { label: t('tray.skins'), click: () => openWindow('settings', { query: { tab: 'skins' } }) },
+      { label: t('menu.settings'), click: () => openWindow('settings') },
       { type: 'separator' },
-      { label: 'Salir', click: () => app.quit() },
+      { label: t('menu.quit'), click: () => app.quit() },
     ]),
   );
+}
+
+// Submenú para cambiar el idioma de la interfaz desde la bandeja o el avatar.
+function languageMenu(cfg) {
+  const cur = cfg.ui.language || 'auto';
+  return ['auto', ...SUPPORTED].map((code) => ({
+    label: code === 'auto' ? t('settings.general.languageAuto') : LANGUAGES[code].native,
+    type: 'radio',
+    checked: cur === code,
+    click: () => {
+      patchConfig({ ui: { language: code } });
+      applyUiConfig();
+      broadcast('cfg:changed', publicConfig());
+    },
+  }));
 }
 
 function toggleAvatar() {
@@ -311,15 +331,16 @@ function avatarContextMenu() {
     click: () => useSkin(s.id),
   }));
   Menu.buildFromTemplate([
-    { label: 'Chat', accelerator: cfg.ui.hotkeyChat, click: () => toggleChat(true) },
-    { label: 'Hablar', accelerator: cfg.ui.hotkeyTalk, click: () => sendTo('avatar', 'voice:record-toggle') },
-    { label: 'Callar', click: stopEverything },
+    { label: t('menu.chat'), accelerator: cfg.ui.hotkeyChat, click: () => toggleChat(true) },
+    { label: t('menu.talk'), accelerator: cfg.ui.hotkeyTalk, click: () => sendTo('avatar', 'voice:record-toggle') },
+    { label: t('menu.stop'), click: stopEverything },
     { type: 'separator' },
-    { label: 'Modelo', submenu: profiles },
-    { label: 'Skin', submenu: [...skins, { type: 'separator' }, { label: 'Importar imagen…', click: () => openWindow('editor') }] },
-    { label: 'Tamaño', submenu: scales },
+    { label: t('menu.model'), submenu: profiles },
+    { label: t('menu.skin'), submenu: [...skins, { type: 'separator' }, { label: t('menu.importImage'), click: () => openWindow('editor') }] },
+    { label: t('menu.size'), submenu: scales },
+    { label: t('menu.language'), submenu: languageMenu(cfg) },
     {
-      label: 'Siempre encima',
+      label: t('menu.alwaysOnTop'),
       type: 'checkbox',
       checked: cfg.ui.alwaysOnTop,
       click: (item) => {
@@ -328,10 +349,10 @@ function avatarContextMenu() {
       },
     },
     { type: 'separator' },
-    { label: 'Nueva conversación', click: newConversation },
-    { label: 'Ajustes…', click: () => openWindow('settings') },
-    { label: 'Ocultar', click: toggleAvatar },
-    { label: 'Salir', click: () => app.quit() },
+    { label: t('menu.newChat'), click: newConversation },
+    { label: t('menu.settings'), click: () => openWindow('settings') },
+    { label: t('menu.hide'), click: toggleAvatar },
+    { label: t('menu.quit'), click: () => app.quit() },
   ]).popup({ window: wins.avatar });
 }
 
@@ -351,11 +372,44 @@ function secretFlags(cfg) {
 
 function publicConfig() {
   const cfg = loadConfig();
-  return { config: cfg, secrets: secretFlags(cfg), secureStorage: secureStorageAvailable(), presets: PROVIDER_PRESETS, platform: process.platform };
+  return {
+    config: cfg,
+    locale: getLocale(),
+    secrets: secretFlags(cfg),
+    secureStorage: secureStorageAvailable(),
+    presets: providerPresets(),
+    platform: process.platform,
+    version: app.getVersion(),
+  };
+}
+
+// Aplica el idioma de la interfaz al proceso principal (menús, diálogos, avisos) y a los títulos.
+let localeApplied = false;
+function applyLocale(cfg = loadConfig()) {
+  const prev = getLocale();
+  setLocale(effectiveLocale(cfg));
+  const next = getLocale();
+  const userChange = localeApplied;
+  localeApplied = true;
+  if (prev === next) return;
+  if (userChange) adaptDefaultsToLocale(cfg, prev, next);
+  if (wins.settings && !wins.settings.isDestroyed()) wins.settings.setTitle(t('settings.windowTitle'));
+  if (wins.editor && !wins.editor.isDestroyed()) wins.editor.setTitle(t('editor.windowTitle'));
+  if (wins.chat && !wins.chat.isDestroyed()) wins.chat.setTitle(t('chat.windowTitle', { name: cfg.assistant.name }));
+}
+
+// Al cambiar de idioma, lo que sigue con el valor por defecto del idioma anterior pasa al nuevo:
+// la personalidad (si no la has tocado) y el idioma del dictado.
+function adaptDefaultsToLocale(cfg, prev, next) {
+  const patch = {};
+  if (cfg.assistant.personality === tIn(prev, 'defaults.personality')) patch.assistant = { personality: tIn(next, 'defaults.personality') };
+  if (cfg.voice.stt.language === prev) patch.voice = { stt: { language: next } };
+  if (Object.keys(patch).length) patchConfig(patch);
 }
 
 function applyUiConfig() {
   const cfg = loadConfig();
+  applyLocale(cfg);
   for (const name of ['avatar', 'chat']) {
     const w = wins[name];
     if (w && !w.isDestroyed()) w.setAlwaysOnTop(cfg.ui.alwaysOnTop, 'floating');
@@ -425,9 +479,11 @@ let current = null; // { ctrl, done }
 // de una respuesta, pide una instantánea y descarta los eventos que ya incluye.
 let chatSeq = 0;
 let partialText = ''; // texto del paso que se está generando (aún no está en el historial)
+const chatListeners = new Set(); // solo para tools/automation
 function chatEvent(e) {
   e.seq = ++chatSeq;
   broadcast('chat:event', e);
+  for (const fn of chatListeners) fn(e);
 }
 const pendingChatEvents = []; // avisos para cuando se abra el chat
 let ttsGen = 0;
@@ -454,6 +510,9 @@ function newConversation() {
   chatEvent({ type: 'reset' });
 }
 
+// Idioma en el que habla: el de «Idioma de respuesta» si se reconoce, si no el de la interfaz.
+const speechLang = (cfg) => localeTag(languageFromName(cfg.assistant.language) || getLocale());
+
 function enqueueSpeech(sentence) {
   const cfg = loadConfig();
   const text = speakable(sentence);
@@ -462,12 +521,12 @@ function enqueueSpeech(sentence) {
   const id = uid();
   if (cfg.voice.tts.mode === 'system') {
     ttsChain = ttsChain.then(() => {
-      if (gen === ttsGen) sendTo('avatar', 'tts:say', { id, text, voice: cfg.voice.tts.systemVoice, rate: cfg.voice.tts.rate, pitch: cfg.voice.tts.pitch });
+      if (gen === ttsGen) sendTo('avatar', 'tts:say', { id, text, voice: cfg.voice.tts.systemVoice, rate: cfg.voice.tts.rate, pitch: cfg.voice.tts.pitch, lang: speechLang(cfg) });
     });
     return;
   }
   const audioP = synthesize(cfg, text).catch((e) => {
-    chatEvent({ type: 'notice', level: 'warn', message: `Voz: ${e.message}` });
+    chatEvent({ type: 'notice', level: 'warn', message: t('errors.voice', { message: e.message }) });
     return null;
   });
   ttsChain = ttsChain.then(async () => {
@@ -495,9 +554,9 @@ async function sendMessage(text, via = 'text') {
 
   const apiKey = getSecret(`profile:${profile.id}`);
   if (!profile?.model || (profile.kind === 'anthropic' && !apiKey)) {
-    const msg = !profile?.model ? `El perfil «${profile?.name}» no tiene modelo configurado.` : `Falta la API key de «${profile.name}». Ponla en Ajustes → Modelos.`;
+    const msg = !profile?.model ? t('errors.noModel', { name: profile?.name }) : t('errors.noApiKey', { name: profile.name });
     chatEvent({ type: 'error', message: msg });
-    setState('error', 'Falta configuración');
+    setState('error', t('state.missingConfig'));
     setTimeout(() => assistantState === 'error' && setState('idle'), 4000);
     return;
   }
@@ -537,7 +596,7 @@ async function sendMessage(text, via = 'text') {
       if (!aborted) logger.error('turno', e);
       chatEvent(aborted ? { type: 'done', aborted: true } : { type: 'error', message: e.message || String(e) });
       if (!aborted) {
-        setState('error', 'Algo ha fallado');
+        setState('error', t('state.failed'));
         setTimeout(() => assistantState === 'error' && setState('idle'), 4000);
       }
     } finally {
@@ -549,12 +608,12 @@ async function sendMessage(text, via = 'text') {
 }
 
 function prettyTool(name) {
-  if (name.startsWith('paperclip_')) return 'Paperclip…';
-  if (name.startsWith('hermes_')) return 'Hermes trabajando…';
-  if (name.startsWith('webhook_')) return 'Lanzando automatización…';
-  if (name.startsWith('mcp_')) return 'Usando herramientas…';
-  if (name === 'run_command') return 'Ejecutando comando…';
-  return 'Un momento…';
+  if (name.startsWith('paperclip_')) return t('state.tool.paperclip');
+  if (name.startsWith('hermes_')) return t('state.tool.hermes');
+  if (name.startsWith('webhook_')) return t('state.tool.webhook');
+  if (name.startsWith('mcp_')) return t('state.tool.mcp');
+  if (name === 'run_command') return t('state.tool.command');
+  return t('state.tool.other');
 }
 
 // ------------------------------------------------------------------ IPC
@@ -591,7 +650,7 @@ function registerIpc() {
     return mcpStatus();
   });
   ipcMain.handle('mcp:status', () => mcpStatus());
-  ipcMain.handle('tools:list', () => buildToolbox(loadConfig()).list.map((t) => ({ name: t.name, group: t.group, description: t.description })));
+  ipcMain.handle('tools:list', () => buildToolbox(loadConfig()).list.map((tool) => ({ name: tool.name, group: tool.group, description: tool.description })));
 
   ipcMain.handle('chat:history', () => ({ messages: history, seq: chatSeq, busy: !!current, partialText: current ? partialText : '' }));
   ipcMain.handle('chat:pending', () => pendingChatEvents.splice(0));
@@ -601,12 +660,12 @@ function registerIpc() {
   ipcMain.handle('chat:state', () => assistantState);
 
   ipcMain.handle('voice:transcribe', async (_e, bytes, mime) => {
-    setState('thinking', 'Transcribiendo…');
+    setState('thinking', t('state.transcribing'));
     try {
       const text = await transcribe(loadConfig(), bytes, mime);
       if (!text) {
         setState('idle');
-        chatEvent({ type: 'notice', level: 'info', message: 'No he oído nada 🙉' });
+        chatEvent({ type: 'notice', level: 'info', message: t('chat.heardNothing') });
         return '';
       }
       if (!wins.chat || !wins.chat.isVisible()) toggleChat(true);
@@ -614,8 +673,8 @@ function registerIpc() {
       return text;
     } catch (e) {
       logger.error('dictado', e);
-      setState('error', 'Dictado fallido');
-      const evt = { type: 'error', message: `Dictado: ${e.message}` };
+      setState('error', t('state.dictationFailed'));
+      const evt = { type: 'error', message: t('errors.dictation', { message: e.message }) };
       if (!wins.chat || wins.chat.isDestroyed() || !wins.chat.isVisible()) {
         pendingChatEvents.push(evt);
         toggleChat(true);
@@ -635,7 +694,7 @@ function registerIpc() {
   ipcMain.handle('voice:test-tts', (_e, text) => {
     ttsGen++;
     ttsChain = Promise.resolve();
-    enqueueSpeech(text || '¡Hola! Así sueno ahora mismo.');
+    enqueueSpeech(text || t('voice.testDefault'));
   });
 
   ipcMain.handle('skin:get', (_e, id) => getSkin(id || loadConfig().ui.skinId));
@@ -656,8 +715,8 @@ function registerIpc() {
   ipcMain.handle('skin:open-image', async (e) => {
     const win = BrowserWindow.fromWebContents(e.sender);
     const r = await dialog.showOpenDialog(win, {
-      title: 'Elige un dibujo',
-      filters: [{ name: 'Imágenes', extensions: ['png', 'jpg', 'jpeg', 'webp', 'gif', 'bmp'] }],
+      title: t('editor.pickImage'),
+      filters: [{ name: t('editor.images'), extensions: ['png', 'jpg', 'jpeg', 'webp', 'gif', 'bmp'] }],
       properties: ['openFile'],
     });
     if (r.canceled || !r.filePaths[0]) return null;
@@ -759,6 +818,7 @@ app.whenReady().then(async () => {
       return null;
     }
   };
+  step('idioma', () => applyLocale());
   step('protocolo', registerAppProtocol);
   // Micrófono permitido solo para nuestras páginas internas.
   session.defaultSession.setPermissionRequestHandler((wc, permission, cb, details) => {
@@ -774,9 +834,41 @@ app.whenReady().then(async () => {
   step('bandeja', buildTray);
   step('ajustes de ventana', applyUiConfig);
   syncMcp(loadConfig()).catch((e) => logger.error('MCP', e));
-  if (firstRun) setTimeout(() => openWindow('settings', { query: { tab: 'models', welcome: '1' } }), 1200);
+  if (firstRun && !AUTOMATION) setTimeout(() => openWindow('settings', { query: { tab: 'models', welcome: '1' } }), 1200);
   logger.info('listo');
+  if (AUTOMATION) runAutomation(AUTOMATION);
 });
+
+// Pruebas de humo y capturas del README (tools/automation/*.mjs). Nunca en la app empaquetada.
+function runAutomation(file) {
+  const api = {
+    app,
+    wins,
+    logger,
+    userDir,
+    openWindow,
+    toggleChat,
+    sendMessage,
+    newConversation,
+    stopEverything,
+    setState,
+    useSkin,
+    broadcast,
+    publicConfig,
+    loadConfig,
+    patchConfig,
+    setSecret,
+    applyUiConfig,
+    refreshTrayMenu,
+    onChatEvent: (fn) => chatListeners.add(fn),
+  };
+  import(pathToFileURL(path.resolve(file)).href)
+    .then((m) => m.default(api))
+    .catch((e) => {
+      logger.error('automatización', e);
+      app.exit(1);
+    });
+}
 
 app.on('window-all-closed', (e) => e.preventDefault?.());
 app.on('will-quit', () => {

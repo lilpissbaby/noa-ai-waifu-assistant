@@ -2,28 +2,39 @@
 import os from 'node:os';
 import { streamAnthropic } from './anthropic.js';
 import { streamOpenAI } from './openai.js';
+import { getLocale, localeTag, LANGUAGES } from '../../shared/i18n/index.js';
 
 const MAX_STEPS = 10;
 
-export function buildSystemPrompt(cfg, toolList) {
+// Idioma de las respuestas: el que se escribió en Ajustes o, si está vacío, el de la interfaz.
+export function replyLanguage(cfg, locale = getLocale()) {
+  const custom = cfg.assistant?.language?.trim();
+  if (custom) return custom;
+  const l = LANGUAGES[locale] || LANGUAGES.en;
+  return `${l.english} (${l.native})`;
+}
+
+// El prompt de sistema va en inglés (lo entienden igual todos los modelos); la respuesta sale
+// en el idioma elegido.
+export function buildSystemPrompt(cfg, toolList, locale = getLocale()) {
   const a = cfg.assistant;
   const now = new Date();
-  const fecha = now.toLocaleString('es-ES', { dateStyle: 'full', timeStyle: 'short' });
+  const date = now.toLocaleString(localeTag(locale), { dateStyle: 'full', timeStyle: 'short' });
   const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
   const groups = [...new Set(toolList.map((t) => t.group).filter(Boolean))];
   const lines = [
-    `Eres ${a.name}, una asistente con forma de personaje anime que vive flotando en el escritorio del PC de ${a.userName || 'tu usuario'}.`,
-    `Personalidad: ${a.personality}`,
-    `Responde siempre en ${a.language} salvo que te pidan otro idioma.`,
-    'Muchas de tus respuestas se leen en voz alta: sé breve y natural (1-4 frases) salvo que te pidan detalle.',
-    'Cuando entregues código, comandos, listas largas o datos, ponlos en markdown; en voz solo se leerá el texto normal.',
-    `Fecha y hora local: ${fecha} (${tz}). Sistema: ${os.type()} ${os.release()}.`,
+    `You are ${a.name}, an assistant shaped like an anime character who lives floating on the desktop of ${a.userName || 'your user'}'s computer.`,
+    `Personality: ${a.personality}`,
+    `Always reply in ${replyLanguage(cfg, locale)} unless you are asked to use another language.`,
+    'Many of your replies are read aloud: keep them short and natural (1-4 sentences) unless asked for detail.',
+    'When you give code, commands, long lists or data, use markdown; only the plain text is spoken.',
+    `Local date and time: ${date} (${tz}). System: ${os.type()} ${os.release()}.`,
   ];
   if (groups.length) {
     lines.push(
-      `Tienes herramientas para: ${groups.join(', ')}. Úsalas cuando ayuden de verdad, sin pedir permiso para consultas de solo lectura.`,
-      'Antes de acciones con efectos (crear o cambiar tareas, despertar agentes, ejecutar comandos, llamar webhooks) asegúrate de que la petición es clara; si es ambigua, pregunta una sola cosa.',
-      'Tras usar herramientas, resume el resultado en una o dos frases; no vuelques JSON en crudo.',
+      `You have tools to: ${groups.join('; ')}. Use them when they really help, without asking permission for read-only lookups.`,
+      'Before actions with side effects (creating or changing tasks, waking agents, running commands, calling webhooks) make sure the request is clear; if it is ambiguous, ask one single question.',
+      'After using tools, summarise the result in one or two sentences; never dump raw JSON.',
     );
   }
   if (a.extraInstructions?.trim()) lines.push(a.extraInstructions.trim());
@@ -69,7 +80,7 @@ export async function runTurn({ cfg, profile, apiKey, history, toolbox, emit, si
     if (!result.toolCalls.length) break;
 
     for (const call of result.toolCalls) {
-      if (signal?.aborted) throw new DOMException('Cancelado', 'AbortError');
+      if (signal?.aborted) throw new DOMException('Cancelled', 'AbortError');
       emit({ type: 'tool_start', id: call.id, name: call.name, input: call.input });
       let content;
       let isError = false;
@@ -83,7 +94,7 @@ export async function runTurn({ cfg, profile, apiKey, history, toolbox, emit, si
         isError = true;
         content = `Error: ${e.message || e}`;
       }
-      if (content.length > 16000) content = `${content.slice(0, 16000)}\n…(recortado)`;
+      if (content.length > 16000) content = `${content.slice(0, 16000)}\n…(truncated)`;
       history.push({ role: 'tool', toolCallId: call.id, name: call.name, content, isError, ts: Date.now() });
       emit({ type: 'tool_end', id: call.id, name: call.name, ok: !isError, result: content.slice(0, 1200) });
     }
@@ -104,7 +115,7 @@ export function repairHistory(history) {
     let j = i + 1;
     while (j < history.length && history[j].role === 'tool') missing.delete(history[j++].toolCallId);
     if (!missing.size) continue;
-    const fill = [...missing].map(([id, name]) => ({ role: 'tool', toolCallId: id, name, content: '(cancelado por el usuario)', isError: true }));
+    const fill = [...missing].map(([id, name]) => ({ role: 'tool', toolCallId: id, name, content: '(cancelled by the user)', isError: true }));
     history.splice(j, 0, ...fill);
     i = j + fill.length - 1;
   }

@@ -1,4 +1,5 @@
 import { net } from 'electron';
+import { t } from '../../shared/i18n/index.js';
 
 // Recorta objetos grandes para no saturar el contexto del modelo.
 export function compact(value, depth = 0) {
@@ -8,7 +9,7 @@ export function compact(value, depth = 0) {
   if (depth > 4) return '…';
   if (Array.isArray(value)) {
     const arr = value.slice(0, 50).map((v) => compact(v, depth + 1));
-    if (value.length > 50) arr.push(`…(${value.length - 50} más)`);
+    if (value.length > 50) arr.push(`…(${value.length - 50} more)`);
     return arr;
   }
   const out = {};
@@ -53,7 +54,7 @@ export async function jsonRequest(url, { method = 'GET', headers = {}, body, sig
     }
     return data;
   } catch (e) {
-    if (ctrl.signal.aborted && !signal?.aborted) throw new Error(`${label}: tiempo de espera agotado`);
+    if (ctrl.signal.aborted && !signal?.aborted) throw new Error(t('errors.timeout', { label }), { cause: e });
     throw e;
   } finally {
     clearTimeout(timer);

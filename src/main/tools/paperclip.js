@@ -1,6 +1,7 @@
 // Conector para Paperclip (orquestación de agentes de IA). Docs: https://docs.paperclip.ing
 import { getSecret } from '../config.js';
 import { compact, jsonRequest, pick } from './util.js';
+import { t } from '../../shared/i18n/index.js';
 
 const STATUSES = ['backlog', 'todo', 'in_progress', 'in_review', 'blocked', 'done', 'cancelled'];
 const PRIORITIES = ['critical', 'high', 'medium', 'low'];
@@ -22,21 +23,21 @@ export function paperclipTools(cfg) {
   const pc = cfg.connectors.paperclip;
   if (!pc?.enabled || !pc.baseUrl || !pc.companyId) return [];
   const { call, companyPath } = paperclipApi(pc);
-  const group = 'gestionar tareas y agentes de IA en Paperclip';
+  const group = 'manage tasks and AI agents in Paperclip';
   const listOf = (r) => (Array.isArray(r) ? r : r?.items || r?.data || r?.issues || r?.agents || r?.projects || []);
 
   return [
     {
       name: 'paperclip_list_agents',
       group,
-      description: 'Lista los agentes de IA de la empresa en Paperclip (id, nombre, rol, estado). Úsalo para saber a quién asignar trabajo.',
+      description: "Lists the company's AI agents in Paperclip (id, name, role, status). Use it to find out who to assign work to.",
       schema: { type: 'object', properties: {} },
       run: async (_, { signal }) => listOf(await call('GET', companyPath('/agents'), undefined, signal)).map(agentSummary),
     },
     {
       name: 'paperclip_list_projects',
       group,
-      description: 'Lista los proyectos de la empresa en Paperclip.',
+      description: "Lists the company's projects in Paperclip.",
       schema: { type: 'object', properties: {} },
       run: async (_, { signal }) =>
         listOf(await call('GET', companyPath('/projects'), undefined, signal)).map((p) => pick(p, ['id', 'name', 'status', 'description'])),
@@ -44,14 +45,14 @@ export function paperclipTools(cfg) {
     {
       name: 'paperclip_list_issues',
       group,
-      description: 'Lista tareas (issues) de Paperclip, filtrando opcionalmente por estado, agente asignado o proyecto.',
+      description: 'Lists Paperclip tasks (issues), optionally filtered by status, assigned agent or project.',
       schema: {
         type: 'object',
         properties: {
-          status: { type: 'string', description: `Estados separados por coma: ${STATUSES.join(', ')}` },
+          status: { type: 'string', description: `Comma-separated statuses: ${STATUSES.join(', ')}` },
           assigneeAgentId: { type: 'string' },
           projectId: { type: 'string' },
-          limit: { type: 'number', description: 'Máximo de resultados (por defecto 25)' },
+          limit: { type: 'number', description: 'Maximum number of results (default 25)' },
         },
       },
       run: async ({ status, assigneeAgentId, projectId, limit }, { signal }) => {
@@ -66,7 +67,7 @@ export function paperclipTools(cfg) {
     {
       name: 'paperclip_get_issue',
       group,
-      description: 'Obtiene el detalle de una tarea de Paperclip y sus últimos comentarios.',
+      description: 'Gets the details of a Paperclip task and its latest comments.',
       schema: { type: 'object', properties: { issueId: { type: 'string' } }, required: ['issueId'] },
       run: async ({ issueId }, { signal }) => {
         const issue = await call('GET', `/issues/${encodeURIComponent(issueId)}`, undefined, signal);
@@ -83,23 +84,23 @@ export function paperclipTools(cfg) {
       name: 'paperclip_create_issue',
       group,
       description:
-        'Crea una tarea en Paperclip y opcionalmente la asigna a un agente. Para delegar trabajo a los agentes de IA del usuario. Consulta antes paperclip_list_agents si no sabes el id del agente.',
+        "Creates a task in Paperclip and optionally assigns it to an agent, to delegate work to the user's AI agents. Call paperclip_list_agents first if you don't know the agent id.",
       schema: {
         type: 'object',
         properties: {
           title: { type: 'string' },
-          description: { type: 'string', description: 'Descripción en markdown con criterios de aceptación' },
+          description: { type: 'string', description: 'Markdown description with acceptance criteria' },
           priority: { type: 'string', enum: PRIORITIES },
-          status: { type: 'string', enum: ['backlog', 'todo'], description: 'todo para que se trabaje ya; backlog para más adelante' },
+          status: { type: 'string', enum: ['backlog', 'todo'], description: 'todo to start right away; backlog for later' },
           assigneeAgentId: { type: 'string' },
           projectId: { type: 'string' },
-          parentId: { type: 'string', description: 'Id de la tarea padre si es una subtarea' },
+          parentId: { type: 'string', description: 'Parent task id if this is a subtask' },
         },
         required: ['title'],
       },
       confirm: (i) => ({
-        title: 'Crear tarea en Paperclip',
-        message: `¿Crear la tarea «${i.title}»${i.assigneeAgentId ? ' y asignarla a un agente' : ''}?`,
+        title: t('confirm.paperclip.createTitle'),
+        message: t(i.assigneeAgentId ? 'confirm.paperclip.createAssign' : 'confirm.paperclip.create', { title: i.title }),
         detail: (i.description || '').slice(0, 600),
         allowAlways: true,
       }),
@@ -112,7 +113,7 @@ export function paperclipTools(cfg) {
     {
       name: 'paperclip_update_issue',
       group,
-      description: 'Actualiza una tarea de Paperclip: estado, prioridad, asignación, título o descripción, y opcionalmente añade un comentario.',
+      description: 'Updates a Paperclip task: status, priority, assignee, title or description, and optionally adds a comment.',
       schema: {
         type: 'object',
         properties: {
@@ -122,13 +123,13 @@ export function paperclipTools(cfg) {
           assigneeAgentId: { type: 'string' },
           title: { type: 'string' },
           description: { type: 'string' },
-          comment: { type: 'string', description: 'Comentario a añadir en la misma llamada' },
+          comment: { type: 'string', description: 'Comment to add in the same call' },
         },
         required: ['issueId'],
       },
       confirm: (i) => ({
-        title: 'Actualizar tarea en Paperclip',
-        message: `¿Modificar la tarea ${i.issueId}?`,
+        title: t('confirm.paperclip.updateTitle'),
+        message: t('confirm.paperclip.update', { id: i.issueId }),
         detail: JSON.stringify(pick(i, ['status', 'priority', 'assigneeAgentId', 'title', 'comment']), null, 1),
         allowAlways: true,
       }),
@@ -140,34 +141,34 @@ export function paperclipTools(cfg) {
     {
       name: 'paperclip_add_comment',
       group,
-      description: 'Añade un comentario (markdown) a una tarea de Paperclip, por ejemplo para dar instrucciones a un agente.',
+      description: 'Adds a (markdown) comment to a Paperclip task, for example to give an agent instructions.',
       schema: {
         type: 'object',
         properties: {
           issueId: { type: 'string' },
           body: { type: 'string' },
-          reopen: { type: 'boolean', description: 'Reabrir si estaba done/cancelled' },
+          reopen: { type: 'boolean', description: 'Reopen it if it was done/cancelled' },
         },
         required: ['issueId', 'body'],
       },
-      confirm: (i) => ({ title: 'Comentar en Paperclip', message: `¿Comentar en ${i.issueId}?`, detail: i.body.slice(0, 600), allowAlways: true }),
+      confirm: (i) => ({ title: t('confirm.paperclip.commentTitle'), message: t('confirm.paperclip.comment', { id: i.issueId }), detail: String(i.body || '').slice(0, 600), allowAlways: true }),
       run: async ({ issueId, body, reopen }, { signal }) =>
         compact(await call('POST', `/issues/${encodeURIComponent(issueId)}/comments`, { body, ...(reopen ? { reopen: true } : {}) }, signal)),
     },
     {
       name: 'paperclip_wakeup_agent',
       group,
-      description: 'Despierta a un agente de Paperclip para que ejecute un heartbeat ahora (por ejemplo tras asignarle una tarea).',
+      description: 'Wakes a Paperclip agent up so it runs a heartbeat now (for example after assigning it a task).',
       schema: {
         type: 'object',
         properties: {
           agentId: { type: 'string' },
           reason: { type: 'string' },
-          issueId: { type: 'string', description: 'Tarea en la que debe centrarse (opcional)' },
+          issueId: { type: 'string', description: 'Task it should focus on (optional)' },
         },
         required: ['agentId'],
       },
-      confirm: (i) => ({ title: 'Despertar agente', message: `¿Despertar al agente ${i.agentId}?`, detail: i.reason || '', allowAlways: true }),
+      confirm: (i) => ({ title: t('confirm.paperclip.wakeTitle'), message: t('confirm.paperclip.wake', { id: i.agentId }), detail: i.reason || '', allowAlways: true }),
       run: async ({ agentId, reason, issueId }, { signal }) =>
         compact(
           await call(
@@ -176,7 +177,7 @@ export function paperclipTools(cfg) {
             {
               source: 'on_demand',
               triggerDetail: 'manual',
-              reason: reason || `Solicitado desde ${cfg.assistant.name}`,
+              reason: reason || `Requested from ${cfg.assistant.name}`,
               ...(issueId ? { payload: { issueId } } : {}),
             },
             signal,
@@ -191,7 +192,7 @@ export async function testPaperclip(pc) {
   const companies = await call('GET', '/companies');
   const list = Array.isArray(companies) ? companies : companies?.items || companies?.data || [];
   return {
-    message: `Conectado. ${list.length} empresa(s).`,
+    message: t('paperclip.connected', { count: list.length }),
     companies: list.map((c) => ({ id: c.id, name: c.name })),
   };
 }

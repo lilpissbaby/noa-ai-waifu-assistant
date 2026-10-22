@@ -1,5 +1,7 @@
 import { SkinRenderer } from '../shared/skin-renderer.js';
 import { Animator } from '../shared/animator.js';
+import { t, setLocale } from '../../shared/i18n/index.js';
+import { applyDom } from '../../shared/i18n/dom.js';
 
 const wd = window.wd;
 const canvas = document.getElementById('stage');
@@ -52,9 +54,10 @@ canvas.addEventListener('webglcontextlost', (e) => {
 });
 
 // ---------------------------------------------------------------- estados
+// Estados que muestran bocadillo (con su texto por defecto, si lo tienen).
 const STATE_TEXT = {
   thinking: '',
-  listening: 'Te escucho',
+  listening: 'avatar.listening',
   working: '',
   error: '',
 };
@@ -66,7 +69,7 @@ function setState({ state, label }) {
   const show = state in STATE_TEXT;
   bubble.classList.toggle('hidden', !show);
   bubble.classList.toggle('static', state === 'error');
-  bubbleText.textContent = label || STATE_TEXT[state] || '';
+  bubbleText.textContent = label || (STATE_TEXT[state] ? t(STATE_TEXT[state]) : '');
   if (state === 'idle' && prevState === 'talking') anim.bounce();
   prevState = state;
   requestAnimationFrame(relayout);
@@ -178,7 +181,7 @@ async function toggleRecording() {
     await startRecording();
   } catch (e) {
     console.error(e);
-    setState({ state: 'error', label: 'Sin micrófono' });
+    setState({ state: 'error', label: t('avatar.noMic') });
     setTimeout(() => currentState === 'error' && setState({ state: 'idle' }), 3000);
   }
 }
@@ -228,7 +231,7 @@ async function startRecording() {
   mr.ondataavailable = (e) => e.data.size && chunks.push(e.data);
   mr.onstop = async () => {
     cancelAnimationFrame(raf);
-    stream.getTracks().forEach((t) => t.stop());
+    stream.getTracks().forEach((track) => track.stop());
     src.disconnect();
     rec = null;
     micEl.classList.add('hidden');
@@ -307,11 +310,13 @@ function sayText(item) {
   const synth = window.speechSynthesis;
   const u = new SpeechSynthesisUtterance(item.text);
   const voices = synth.getVoices();
-  const v = voices.find((x) => x.name === item.voice) || voices.find((x) => /^es/i.test(x.lang)) || null;
+  // Sin voz elegida: la primera del idioma de la respuesta (es, en, ru, uk, zh…).
+  const lang = (item.lang || 'en').toLowerCase();
+  const v = voices.find((x) => x.name === item.voice) || voices.find((x) => x.lang.toLowerCase().startsWith(lang)) || null;
   if (v) {
     u.voice = v;
     u.lang = v.lang;
-  } else u.lang = 'es-ES';
+  } else u.lang = item.lang || 'en';
   u.rate = Number(item.rate) || 1;
   u.pitch = Number(item.pitch) || 1;
   u.onstart = () => {
@@ -367,11 +372,16 @@ wd.on('skin:changed', (s) => loadSkin(s));
 wd.on('cfg:changed', (pc) => {
   const prevScale = cfg?.ui?.scale;
   cfg = pc.config;
+  setLocale(pc.locale);
+  applyDom();
   if (skin && prevScale !== cfg.ui.scale) wd.send('avatar:resize', desiredSize());
 });
 
 (async () => {
-  cfg = (await wd.invoke('cfg:get')).config;
+  const pc = await wd.invoke('cfg:get');
+  cfg = pc.config;
+  setLocale(pc.locale);
+  applyDom();
   document.body.dataset.state = 'idle';
   await loadSkin();
   const st = await wd.invoke('chat:state');

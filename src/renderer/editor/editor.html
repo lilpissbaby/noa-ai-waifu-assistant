@@ -1,66 +1,66 @@
 <!doctype html>
-<html lang="es">
+<html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' data: blob:" />
-    <title>Editor de skins</title>
+    <title>Waifu Desk</title>
     <link rel="stylesheet" href="../shared/base.css" />
     <link rel="stylesheet" href="editor.css" />
   </head>
   <body>
     <aside class="panel">
       <header>
-        <h1 id="title">Nueva skin</h1>
-        <p class="muted">Convierte cualquier dibujo en tu asistente.</p>
+        <h1 id="title" data-i18n="editor.titleNew"></h1>
+        <p class="muted" data-i18n="editor.subtitle"></p>
       </header>
 
       <section class="step" id="step1">
-        <h2><span class="n">1</span> Imagen</h2>
+        <h2><span class="n">1</span> <span data-i18n="editor.step1"></span></h2>
         <div class="row">
           <button class="btn" id="btnOpen"></button>
-          <button class="btn" id="btnPaste">Pegar</button>
+          <button class="btn" id="btnPaste" data-i18n="editor.paste"></button>
         </div>
         <div class="inline">
-          <input type="url" id="url" placeholder="o pega la URL de una imagen" />
-          <button class="btn" id="btnUrl">Cargar</button>
+          <input type="url" id="url" data-i18n-placeholder="editor.urlPlaceholder" />
+          <button class="btn" id="btnUrl" data-i18n="editor.load"></button>
         </div>
-        <small class="muted">También puedes arrastrar un archivo a la ventana. Mejor si el personaje sale de frente y de cintura para arriba.</small>
+        <small class="muted" data-i18n="editor.step1Help"></small>
       </section>
 
       <section class="step" id="step2" data-disabled>
-        <h2><span class="n">2</span> Fondo</h2>
+        <h2><span class="n">2</span> <span data-i18n="editor.step2"></span></h2>
         <p class="status" id="bgStatus"></p>
         <div class="col">
-          <button class="btn primary" id="btnAi">Recorte con IA (anime)</button>
+          <button class="btn primary" id="btnAi" data-i18n="editor.ai"></button>
           <div class="inline tol">
-            <button class="btn" id="btnKey">Quitar color de fondo</button>
-            <input type="range" id="tol" min="6" max="90" value="34" title="Tolerancia" />
+            <button class="btn" id="btnKey" data-i18n="editor.colorKey"></button>
+            <input type="range" id="tol" min="6" max="90" value="34" data-i18n-title="editor.tolerance" />
           </div>
-          <button class="btn ghost" id="btnKeep">Dejar como está</button>
-          <button class="btn ghost" id="btnUndo">Deshacer recorte</button>
+          <button class="btn ghost" id="btnKeep" data-i18n="editor.keep"></button>
+          <button class="btn ghost" id="btnUndo" data-i18n="editor.undo"></button>
         </div>
         <div class="progress hidden" id="progress"><div class="bar" id="bar"></div><span id="progressText"></span></div>
       </section>
 
       <section class="step" id="step3" data-disabled>
-        <h2><span class="n">3</span> Puntos de animación</h2>
-        <p class="muted small">Arrastra los marcadores. Encaja cada óvalo cubriendo el ojo entero, pestañas incluidas. El cuello marca dónde gira la cabeza.</p>
+        <h2><span class="n">3</span> <span data-i18n="editor.step3"></span></h2>
+        <p class="muted small" data-i18n="editor.step3Help"></p>
         <div class="legend">
-          <span><i class="sw eye"></i>Ojos</span><span><i class="sw mouth"></i>Boca</span><span><i class="sw neck"></i>Cuello</span>
+          <span><i class="sw eye"></i><span data-i18n="editor.eyes"></span></span><span><i class="sw mouth"></i><span data-i18n="editor.mouth"></span></span><span><i class="sw neck"></i><span data-i18n="editor.neck"></span></span>
         </div>
         <div class="row">
-          <button class="btn" id="btnGuess">Recolocar automáticamente</button>
+          <button class="btn" id="btnGuess" data-i18n="editor.guess"></button>
         </div>
-        <label class="check"><input type="checkbox" id="lidAuto" checked /> Color del párpado automático</label>
-        <div class="inline hidden" id="lidRow"><input type="color" id="lidColor" value="#ffe3d6" /><small class="muted">Tono de piel para cerrar los ojos</small></div>
+        <label class="check"><input type="checkbox" id="lidAuto" checked /> <span data-i18n="editor.lidAuto"></span></label>
+        <div class="inline hidden" id="lidRow"><input type="color" id="lidColor" value="#ffe3d6" /><small class="muted" data-i18n="editor.lidColor"></small></div>
       </section>
 
       <section class="step" id="step4" data-disabled>
-        <h2><span class="n">4</span> Guardar</h2>
-        <label class="field"><span>Nombre</span><input type="text" id="name" placeholder="Mi waifu" /></label>
+        <h2><span class="n">4</span> <span data-i18n="editor.step4"></span></h2>
+        <label class="field"><span data-i18n="editor.name"></span><input type="text" id="name" data-i18n-placeholder="editor.defaultName" /></label>
         <div class="row">
-          <button class="btn primary" id="btnSave">Guardar y usar</button>
-          <button class="btn" id="btnSaveOnly">Solo guardar</button>
+          <button class="btn primary" id="btnSave" data-i18n="editor.saveUse"></button>
+          <button class="btn" id="btnSaveOnly" data-i18n="editor.saveOnly"></button>
         </div>
         <p class="status" id="saveStatus"></p>
       </section>
@@ -70,8 +70,8 @@
       <div class="drop" id="drop">
         <div class="drop-inner">
           <div class="drop-icon" id="dropIcon"></div>
-          <strong>Suelta aquí un dibujo</strong>
-          <span class="muted">PNG, JPG o WebP · o usa los botones de la izquierda</span>
+          <strong data-i18n="editor.dropTitle"></strong>
+          <span class="muted" data-i18n="editor.dropText"></span>
         </div>
       </div>
       <div class="canvas-wrap hidden" id="wrap">
@@ -80,10 +80,10 @@
       </div>
       <div class="preview hidden" id="previewBox">
         <div class="preview-head">
-          <strong>Vista previa</strong>
+          <strong data-i18n="editor.preview"></strong>
           <div class="row">
-            <button class="btn tiny" id="pvBlink">Parpadear</button>
-            <button class="btn tiny" id="pvTalk">Hablar</button>
+            <button class="btn tiny" id="pvBlink" data-i18n="editor.blink"></button>
+            <button class="btn tiny" id="pvTalk"></button>
           </div>
         </div>
         <canvas id="preview"></canvas>

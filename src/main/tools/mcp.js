@@ -5,6 +5,7 @@ import { StdioClientTransport, getDefaultEnvironment } from '@modelcontextprotoc
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 import { getSecret } from '../config.js';
 import { slug } from './util.js';
+import { t } from '../../shared/i18n/index.js';
 
 const clients = new Map(); // id -> { client, transport, tools, signature, error }
 
@@ -14,15 +15,15 @@ function parseArgs(args) {
   if (Array.isArray(args)) return args;
   if (!args) return [];
   // admite "-y @org/server --flag" o JSON
-  const t = String(args).trim();
-  if (t.startsWith('[')) {
+  const str = String(args).trim();
+  if (str.startsWith('[')) {
     try {
-      return JSON.parse(t);
+      return JSON.parse(str);
     } catch {
       /* cae a split */
     }
   }
-  return t.match(/(?:[^\s"]+|"[^"]*")+/g)?.map((a) => a.replace(/^"|"$/g, '')) || [];
+  return str.match(/(?:[^\s"]+|"[^"]*")+/g)?.map((a) => a.replace(/^"|"$/g, '')) || [];
 }
 
 function parseEnv(env) {
@@ -94,7 +95,7 @@ export function mcpStatus() {
     name: e.server?.name,
     connected: !!e.client && !e.error,
     error: e.error,
-    tools: (e.tools || []).map((t) => t.name),
+    tools: (e.tools || []).map((tool) => tool.name),
   }));
 }
 
@@ -104,20 +105,20 @@ export function mcpTools(cfg) {
   for (const s of cfg.connectors.mcpServers || []) {
     const entry = clients.get(s.id);
     if (!entry?.client || entry.error) continue;
-    for (const t of entry.tools) {
-      let name = `mcp_${slug(s.name).slice(0, 16)}_${t.name}`.replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 64);
+    for (const tool of entry.tools) {
+      let name = `mcp_${slug(s.name).slice(0, 16)}_${tool.name}`.replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 64);
       while (used.has(name)) name = `${name.slice(0, 60)}_${used.size}`;
       used.add(name);
       out.push({
         name,
-        group: `herramientas MCP de ${s.name}`,
-        description: (t.description || t.name).slice(0, 1000),
-        schema: t.inputSchema && t.inputSchema.type === 'object' ? t.inputSchema : { type: 'object', properties: {} },
+        group: `MCP tools from ${s.name}`,
+        description: (tool.description || tool.name).slice(0, 1000),
+        schema: tool.inputSchema && tool.inputSchema.type === 'object' ? tool.inputSchema : { type: 'object', properties: {} },
         confirm: s.confirm
-          ? (i) => ({ title: `MCP ${s.name}`, message: `¿Ejecutar ${t.name}?`, detail: JSON.stringify(i, null, 1).slice(0, 800), allowAlways: true })
+          ? (i) => ({ title: `MCP ${s.name}`, message: t('confirm.run', { name: tool.name }), detail: JSON.stringify(i, null, 1).slice(0, 800), allowAlways: true })
           : undefined,
         run: async (input) => {
-          const res = await entry.client.callTool({ name: t.name, arguments: input || {} });
+          const res = await entry.client.callTool({ name: tool.name, arguments: input || {} });
           const parts = (res.content || []).map((c) =>
             c.type === 'text' ? c.text : c.type === 'resource' ? c.resource?.text || c.resource?.uri : `[${c.type}]`,
           );
@@ -137,5 +138,5 @@ export async function closeAllMcp() {
 }
 
 function withTimeout(p, ms, label) {
-  return Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error(`${label}: no respondió en ${ms / 1000}s`)), ms))]);
+  return Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error(t('errors.noResponse', { label, seconds: ms / 1000 }))), ms))]);
 }

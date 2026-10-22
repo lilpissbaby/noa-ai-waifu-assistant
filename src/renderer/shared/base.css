@@ -15,7 +15,7 @@
   --err: #ff6b7d;
   --radius: 14px;
   --radius-sm: 9px;
-  --font: 'Segoe UI Variable Text', 'Segoe UI', 'Inter', system-ui, -apple-system, 'Noto Sans', sans-serif;
+  --font: 'Segoe UI Variable Text', 'Segoe UI', 'Inter', system-ui, -apple-system, 'Noto Sans', 'Microsoft YaHei UI', 'PingFang SC', 'Noto Sans CJK SC', sans-serif;
   --mono: 'Cascadia Code', 'JetBrains Mono', 'Fira Code', ui-monospace, 'Consolas', monospace;
   color-scheme: dark;
 }

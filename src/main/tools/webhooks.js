@@ -1,6 +1,7 @@
 // Webhooks definidos por el usuario (n8n, Make, Home Assistant, scripts propios...). Cada uno es una herramienta.
 import { getSecret } from '../config.js';
 import { jsonRequest, slug, compact } from './util.js';
+import { t } from '../../shared/i18n/index.js';
 
 export function webhookTools(cfg) {
   return (cfg.connectors.webhooks || [])
@@ -16,14 +17,14 @@ export function webhookTools(cfg) {
       if (token) extraHeaders.authorization = token.startsWith('Bearer ') || token.includes(' ') ? token : `Bearer ${token}`;
       return {
         name: `webhook_${slug(w.name)}`.slice(0, 60),
-        group: 'lanzar automatizaciones del usuario (webhooks)',
-        description: `${w.description || `Webhook «${w.name}»`} (${w.method || 'POST'} a una automatización del usuario).`,
+        group: "trigger the user's automations (webhooks)",
+        description: `${w.description || `Webhook "${w.name}"`} (${w.method || 'POST'} to one of the user's automations).`,
         schema: {
           type: 'object',
-          properties: { payload: { type: 'object', description: 'Datos JSON que se envían al webhook', additionalProperties: true } },
+          properties: { payload: { type: 'object', description: 'JSON data sent to the webhook', additionalProperties: true } },
         },
         confirm: w.confirm
-          ? (i) => ({ title: `Webhook ${w.name}`, message: `¿Lanzar «${w.name}»?`, detail: JSON.stringify(i.payload || {}, null, 1).slice(0, 800), allowAlways: true })
+          ? (i) => ({ title: `Webhook ${w.name}`, message: t('confirm.webhook', { name: w.name }), detail: JSON.stringify(i.payload || {}, null, 1).slice(0, 800), allowAlways: true })
           : undefined,
         run: async ({ payload }, { signal }) => {
           const method = (w.method || 'POST').toUpperCase();

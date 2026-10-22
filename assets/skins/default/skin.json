@@ -1,6 +1,13 @@
 {
   "id": "default",
   "name": "Noa (de serie)",
+  "names": {
+    "es": "Noa (de serie)",
+    "en": "Noa (built-in)",
+    "ru": "Ноа (встроенная)",
+    "uk": "Ноа (вбудована)",
+    "zh": "Noa（内置）"
+  },
   "width": 800,
   "height": 1000,
   "files": {

@@ -261,6 +261,7 @@ details.help ol {
 }
 .skin .thumb {
   height: 200px;
+  overflow: hidden;
   background:
     radial-gradient(circle at 50% 80%, rgba(182, 156, 255, 0.16), transparent 70%),
     repeating-conic-gradient(#1a1622 0 25%, #1f1a29 0 50%) 0 0 / 18px 18px;
@@ -269,7 +270,7 @@ details.help ol {
 }
 .skin .thumb img {
   max-width: 92%;
-  max-height: 96%;
+  max-height: 192px; /* en una fila de grid «auto» el % no limita la altura */
   object-fit: contain;
 }
 .skin .meta {
@@ -342,4 +343,9 @@ details.help ol {
 .welcome {
   border-color: color-mix(in srgb, var(--accent) 45%, var(--line));
   background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 10%, var(--bg-2)), var(--bg-2));
+}
+
+.view .version {
+  margin: 18px 4px 4px;
+  font-size: 12px;
 }

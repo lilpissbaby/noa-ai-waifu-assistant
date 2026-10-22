@@ -398,6 +398,13 @@ with open(os.path.join(OUT, 'mouth_open.svg'), 'w') as f:
 manifest = {
     'id': 'default',
     'name': 'Noa (de serie)',
+    'names': {
+        'es': 'Noa (de serie)',
+        'en': 'Noa (built-in)',
+        'ru': 'Ноа (встроенная)',
+        'uk': 'Ноа (вбудована)',
+        'zh': 'Noa（内置）',
+    },
     'width': W,
     'height': H,
     'files': {
@@ -416,5 +423,5 @@ manifest = {
     },
 }
 with open(os.path.join(OUT, 'skin.json'), 'w') as f:
-    json.dump(manifest, f, indent=2)
+    json.dump(manifest, f, indent=2, ensure_ascii=False)
 print('ok', OUT)

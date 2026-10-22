@@ -1,21 +1,21 @@
 <!doctype html>
-<html lang="es">
+<html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:" />
-    <title>Ajustes</title>
+    <title>Waifu Desk</title>
     <link rel="stylesheet" href="../shared/base.css" />
     <link rel="stylesheet" href="settings.css" />
   </head>
   <body>
     <nav class="side">
-      <div class="brand"><span class="logo"></span><div><strong>Waifu Desk</strong><span class="muted">Ajustes</span></div></div>
-      <button data-tab="general">General</button>
-      <button data-tab="models">Modelos de IA</button>
-      <button data-tab="voice">Voz</button>
-      <button data-tab="connectors">Hermes y Paperclip</button>
-      <button data-tab="automations">Automatizaciones</button>
-      <button data-tab="skins">Skins</button>
+      <div class="brand"><span class="logo"></span><div><strong>Waifu Desk</strong><span class="muted" data-i18n="settings.title"></span></div></div>
+      <button data-tab="general" data-i18n="settings.nav.general"></button>
+      <button data-tab="models" data-i18n="settings.nav.models"></button>
+      <button data-tab="voice" data-i18n="settings.nav.voice"></button>
+      <button data-tab="connectors" data-i18n="settings.nav.connectors"></button>
+      <button data-tab="automations" data-i18n="settings.nav.automations"></button>
+      <button data-tab="skins" data-i18n="settings.nav.skins"></button>
       <div class="side-foot muted" id="storageNote"></div>
     </nav>
     <main id="view" class="view"></main>

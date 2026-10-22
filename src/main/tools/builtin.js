@@ -1,56 +1,58 @@
 // Herramientas básicas del PC: hora, abrir URLs, portapapeles, notificaciones y (opcional) comandos.
+// Las descripciones y los resultados van en inglés porque los lee el modelo; los diálogos, traducidos.
 import { shell, clipboard, Notification } from 'electron';
 import { execFile } from 'node:child_process';
 import os from 'node:os';
+import { t, localeTag } from '../../shared/i18n/index.js';
 
 export function builtinTools(cfg) {
   const tools = [
     {
       name: 'get_current_time',
-      group: 'consultar fecha y hora',
-      description: 'Devuelve la fecha y hora local actuales y la zona horaria.',
+      group: 'check the date and time',
+      description: 'Returns the current local date, time and time zone.',
       schema: { type: 'object', properties: {} },
       run: async () => {
         const d = new Date();
         return {
           iso: d.toISOString(),
-          local: d.toLocaleString('es-ES', { dateStyle: 'full', timeStyle: 'medium' }),
+          local: d.toLocaleString(localeTag(), { dateStyle: 'full', timeStyle: 'medium' }),
           timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
         };
       },
     },
     {
       name: 'open_url',
-      group: 'abrir enlaces en el navegador',
-      description: 'Abre una URL http(s) en el navegador predeterminado del usuario.',
-      schema: { type: 'object', properties: { url: { type: 'string', description: 'URL completa con https://' } }, required: ['url'] },
+      group: 'open links in the browser',
+      description: "Opens an http(s) URL in the user's default browser.",
+      schema: { type: 'object', properties: { url: { type: 'string', description: 'Full URL including https://' } }, required: ['url'] },
       run: async ({ url }) => {
-        if (!/^https?:\/\//i.test(url || '')) throw new Error('Solo se permiten URLs http(s)');
+        if (!/^https?:\/\//i.test(url || '')) throw new Error('Only http(s) URLs are allowed');
         await shell.openExternal(url);
-        return `Abierta ${url}`;
+        return `Opened ${url}`;
       },
     },
     {
       name: 'clipboard_read',
-      group: 'leer y escribir el portapapeles',
-      description: 'Lee el texto que el usuario tiene ahora mismo en el portapapeles.',
+      group: 'read and write the clipboard',
+      description: 'Reads the text currently in the user\'s clipboard.',
       schema: { type: 'object', properties: {} },
-      run: async () => clipboard.readText().slice(0, 12000) || '(portapapeles vacío)',
+      run: async () => clipboard.readText().slice(0, 12000) || '(clipboard is empty)',
     },
     {
       name: 'clipboard_write',
-      group: 'leer y escribir el portapapeles',
-      description: 'Copia texto al portapapeles del usuario.',
+      group: 'read and write the clipboard',
+      description: "Copies text to the user's clipboard.",
       schema: { type: 'object', properties: { text: { type: 'string' } }, required: ['text'] },
       run: async ({ text }) => {
         clipboard.writeText(String(text ?? ''));
-        return 'Copiado al portapapeles';
+        return 'Copied to the clipboard';
       },
     },
     {
       name: 'show_notification',
-      group: 'mostrar notificaciones del sistema',
-      description: 'Muestra una notificación del sistema (útil para avisos o resúmenes cortos).',
+      group: 'show system notifications',
+      description: 'Shows a system notification (useful for alerts or short summaries).',
       schema: {
         type: 'object',
         properties: { title: { type: 'string' }, body: { type: 'string' } },
@@ -58,7 +60,7 @@ export function builtinTools(cfg) {
       },
       run: async ({ title, body }) => {
         new Notification({ title: String(title), body: String(body || '') }).show();
-        return 'Notificación mostrada';
+        return 'Notification shown';
       },
     },
   ];
@@ -67,21 +69,21 @@ export function builtinTools(cfg) {
     const isWin = process.platform === 'win32';
     tools.push({
       name: 'run_command',
-      group: `ejecutar comandos en el PC (${isWin ? 'PowerShell' : 'bash'}, siempre con confirmación)`,
-      description: `Ejecuta un comando en el PC del usuario usando ${isWin ? 'PowerShell' : 'bash'} y devuelve stdout/stderr. El usuario debe aprobarlo cada vez. Útil para ssh al VPS, docker, git, scripts.`,
+      group: `run commands on the PC (${isWin ? 'PowerShell' : 'bash'}, always with confirmation)`,
+      description: `Runs a command on the user's PC with ${isWin ? 'PowerShell' : 'bash'} and returns stdout/stderr. The user must approve it every time. Useful for ssh to the VPS, docker, git, scripts.`,
       schema: {
         type: 'object',
         properties: {
-          command: { type: 'string', description: 'Comando a ejecutar' },
-          cwd: { type: 'string', description: 'Carpeta de trabajo (opcional, por defecto la carpeta personal)' },
-          timeout_sec: { type: 'number', description: 'Límite en segundos (por defecto 120)' },
+          command: { type: 'string', description: 'Command to run' },
+          cwd: { type: 'string', description: 'Working directory (optional, defaults to the home folder)' },
+          timeout_sec: { type: 'number', description: 'Time limit in seconds (default 120)' },
         },
         required: ['command'],
       },
       confirm: (input) => ({
-        title: 'Ejecutar comando',
-        message: `${cfg.assistant.name} quiere ejecutar en tu PC:`,
-        detail: `${input.command}${input.cwd ? `\n\nCarpeta: ${input.cwd}` : ''}`,
+        title: t('confirm.command.title'),
+        message: t('confirm.command.message', { name: cfg.assistant.name }),
+        detail: `${input.command}${input.cwd ? `\n\n${t('confirm.command.folder', { path: input.cwd })}` : ''}`,
         allowAlways: false,
       }),
       run: ({ command, cwd, timeout_sec }, { signal }) =>
@@ -110,7 +112,7 @@ export function builtinTools(cfg) {
                 exitCode: err ? (err.code ?? 1) : 0,
                 stdout: cut(String(stdout || '')),
                 stderr: cut(String(stderr || '')),
-                ...(err?.killed ? { note: 'Proceso detenido por tiempo límite' } : {}),
+                ...(err?.killed ? { note: 'Process stopped: time limit reached' } : {}),
               });
             },
           );

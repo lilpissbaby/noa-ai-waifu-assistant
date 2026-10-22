@@ -5,7 +5,7 @@ export async function* readSSE(body, signal) {
   let buf = '';
   try {
     while (true) {
-      if (signal?.aborted) throw new DOMException('Cancelado', 'AbortError');
+      if (signal?.aborted) throw new DOMException('Cancelled', 'AbortError');
       const { value, done } = await reader.read();
       if (done) break;
       buf += decoder.decode(value, { stream: true });

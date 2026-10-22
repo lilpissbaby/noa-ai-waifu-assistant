@@ -1,4 +1,6 @@
 import { icons } from '../shared/icons.js';
+import { t, tHtml, setLocale, getLocale, SUPPORTED, LANGUAGES } from '../../shared/i18n/index.js';
+import { applyDom } from '../../shared/i18n/dom.js';
 
 const wd = window.wd;
 const view = document.getElementById('view');
@@ -24,11 +26,11 @@ function h(tag, attrs = {}, ...kids) {
 }
 
 function toast(msg) {
-  const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.classList.remove('hidden');
+  const box = document.getElementById('toast');
+  box.textContent = msg;
+  box.classList.remove('hidden');
   clearTimeout(toast.timer);
-  toast.timer = setTimeout(() => t.classList.add('hidden'), 2200);
+  toast.timer = setTimeout(() => box.classList.add('hidden'), 2200);
 }
 
 const getPath = (obj, path) => path.split('.').reduce((o, k) => o?.[k], obj);
@@ -58,7 +60,7 @@ function save(path, value, delay = 350) {
       pending.delete(path);
       pc = await wd.invoke('cfg:patch', patchFor(path, value));
       lastLocalEdit = Date.now();
-      toast('Guardado');
+      toast(t('settings.saved'));
     }, delay),
   );
 }
@@ -110,12 +112,12 @@ function check(path, label, onchange) {
     label,
   );
 }
-function secret(ref, placeholder = 'Pega aquí la clave') {
+function secret(ref, placeholder = t('settings.secret.placeholder')) {
   const has = pc.secrets?.[ref];
   let timer;
   return h('input', {
     type: 'password',
-    placeholder: has ? '•••••••••••• (guardada — escribe para cambiarla)' : placeholder,
+    placeholder: has ? t('settings.secret.saved') : placeholder,
     autocomplete: 'off',
     oninput: (e) => {
       clearTimeout(timer);
@@ -123,7 +125,7 @@ function secret(ref, placeholder = 'Pega aquí la clave') {
       timer = setTimeout(async () => {
         await wd.invoke('cfg:set-secret', ref, v);
         lastLocalEdit = Date.now();
-        toast(v ? 'Clave guardada (cifrada)' : 'Clave borrada');
+        toast(v ? t('settings.secret.toastSaved') : t('settings.secret.toastDeleted'));
       }, 500);
     },
   });
@@ -136,7 +138,7 @@ function result() {
 }
 async function runTest(el, fn) {
   el.className = 'result';
-  el.textContent = 'Probando…';
+  el.textContent = t('settings.testing');
   try {
     const r = await fn();
     el.className = 'result ok';
@@ -196,77 +198,87 @@ const TABS = {
   general() {
     const c = pc.config;
     const isLinux = pc.platform === 'linux';
+    const langOptions = [['auto', t('settings.general.languageAuto')], ...SUPPORTED.map((code) => [code, LANGUAGES[code].native])];
     return [
-      h('h1', {}, 'General'),
-      h('p', { class: 'lead' }, 'Quién es tu asistente, cómo se comporta y cómo vive en el escritorio.'),
+      h('h1', {}, t('settings.nav.general')),
+      h('p', { class: 'lead' }, t('settings.general.lead')),
       params.get('welcome')
         ? card(
-            '¡Bienvenida!',
-            'Para empezar: añade tu API key en <b>Modelos de IA</b>. Después, si quieres hablarle, configura el dictado en <b>Voz</b> (Groq tiene un plan gratuito muy rápido).',
-            h('div', { class: 'row' }, h('button', { class: 'btn primary', onclick: () => go('models') }, 'Configurar modelo')),
+            t('settings.general.welcomeTitle'),
+            t('settings.general.welcomeText'),
+            h('div', { class: 'row' }, h('button', { class: 'btn primary', onclick: () => go('models') }, t('settings.general.setupModel'))),
           )
         : null,
       card(
-        'Personaje',
+        t('settings.general.language'),
         null,
         h(
           'div',
           { class: 'grid' },
-          field('Nombre de la asistente', text('assistant.name')),
-          field('Cómo te llama a ti', text('assistant.userName', { placeholder: 'tu nombre o apodo' })),
-          field('Idioma de respuesta', text('assistant.language')),
-          h('div'),
-          h('div', { class: 'full' }, field('Personalidad', area('assistant.personality', 3))),
-          h(
-            'div',
-            { class: 'full' },
-            field(
-              'Instrucciones extra',
-              area('assistant.extraInstructions', 4, 'Ej.: Mi VPS usa Docker Compose detrás de nginx. Cuando te pida código, dame primero el comando y luego la explicación.'),
-              'Se añaden al prompt de sistema en cada conversación.',
-            ),
+          field(t('settings.general.interfaceLanguage'), select('ui.language', langOptions), t('settings.general.languageHelp')),
+          field(
+            t('settings.general.replyLanguage'),
+            text('assistant.language', { placeholder: t('settings.general.replyLanguagePlaceholder', { language: LANGUAGES[getLocale()].native }) }),
+            t('settings.general.replyLanguageHelp'),
           ),
         ),
       ),
       card(
-        'Escritorio',
+        t('settings.general.character'),
+        null,
+        h(
+          'div',
+          { class: 'grid' },
+          field(t('settings.general.assistantName'), text('assistant.name')),
+          field(t('settings.general.userName'), text('assistant.userName', { placeholder: t('settings.general.userNamePlaceholder') })),
+          h('div', { class: 'full' }, field(t('settings.general.personality'), area('assistant.personality', 3))),
+          h(
+            'div',
+            { class: 'full' },
+            field(t('settings.general.extra'), area('assistant.extraInstructions', 4, t('settings.general.extraPlaceholder')), t('settings.general.extraHelp')),
+          ),
+        ),
+      ),
+      card(
+        t('settings.general.desktop'),
         null,
         h(
           'div',
           { class: 'grid' },
           field(
-            'Tamaño',
+            t('settings.general.size'),
             select(
               'ui.scale',
               [0.6, 0.8, 1, 1.25, 1.5, 2].map((s) => [s, `${Math.round(s * 100)} %`]),
             ),
           ),
           h('div'),
-          field('Atajo: abrir chat', text('ui.hotkeyChat'), 'Formato Electron: <kbd>Control+Alt+Space</kbd>, <kbd>Super+J</kbd>…'),
-          field('Atajo: hablar', text('ui.hotkeyTalk'), 'Pulsa para empezar a escucharte; se para sola al callarte.'),
+          field(t('settings.general.hotkeyChat'), text('ui.hotkeyChat'), t('settings.general.hotkeyChatHelp')),
+          field(t('settings.general.hotkeyTalk'), text('ui.hotkeyTalk'), t('settings.general.hotkeyTalkHelp')),
           h(
             'div',
             { class: 'full' },
-            check('ui.alwaysOnTop', 'Siempre por encima de las demás ventanas'),
-            check('ui.followCursor', 'Gira la cabeza siguiendo el ratón'),
-            isLinux ? null : check('ui.startWithSystem', 'Arrancar al iniciar sesión'),
+            check('ui.alwaysOnTop', t('settings.general.alwaysOnTop')),
+            check('ui.followCursor', t('settings.general.followCursor')),
+            isLinux ? null : check('ui.startWithSystem', t('settings.general.startWithSystem')),
           ),
         ),
         h(
           'div',
           { class: 'row', style: 'margin-top:10px' },
-          h('button', { class: 'btn', onclick: () => wd.invoke('app:open-userdata') }, 'Abrir carpeta de datos'),
-          h('button', { class: 'btn', onclick: () => wd.invoke('app:open-log') }, 'Ver registro de errores'),
+          h('button', { class: 'btn', onclick: () => wd.invoke('app:open-userdata') }, t('settings.general.openData')),
+          h('button', { class: 'btn', onclick: () => wd.invoke('app:open-log') }, t('settings.general.openLog')),
         ),
       ),
       card(
-        'Cómo se usa',
+        t('settings.general.howTo'),
         null,
         h('div', {
           class: 'desc',
-          html: `<b>Clic</b> en ${esc(c.assistant.name)}: abre o cierra el chat · <b>Doble clic</b>: hablarle · <b>Arrastrar</b>: moverla · <b>Clic derecho</b>: menú (modelo, skin, tamaño…). También vive en la bandeja del sistema.`,
+          html: tHtml('settings.general.howToText', { name: c.assistant.name }),
         }),
       ),
+      h('p', { class: 'muted small version' }, `Waifu Desk ${pc.version || ''}`),
     ];
   },
 
@@ -286,7 +298,7 @@ const TABS = {
           },
         },
         h('option', { value: 'anthropic', selected: p.kind === 'anthropic' }, 'Anthropic (Claude)'),
-        h('option', { value: 'openai', selected: p.kind === 'openai' }, 'OpenAI-compatible'),
+        h('option', { value: 'openai', selected: p.kind === 'openai' }, t('settings.models.openaiCompatible')),
       );
       return h(
         'div',
@@ -294,8 +306,8 @@ const TABS = {
         h(
           'div',
           { class: 'item-head' },
-          h('strong', {}, p.name || 'Perfil'),
-          p.id === c.activeProfileId ? h('span', { class: 'pill active' }, 'En uso') : null,
+          h('strong', {}, p.name || t('settings.models.profile')),
+          p.id === c.activeProfileId ? h('span', { class: 'pill active' }, t('settings.common.inUse')) : null,
           h('span', { class: 'spacer' }),
           p.id !== c.activeProfileId
             ? h(
@@ -307,16 +319,16 @@ const TABS = {
                     render();
                   },
                 },
-                'Usar este',
+                t('settings.models.useThis'),
               )
             : null,
           h(
             'button',
             {
               class: 'btn ghost danger',
-              title: 'Borrar perfil',
+              title: t('settings.models.deleteProfile'),
               onclick: async () => {
-                if (list.length <= 1) return toast('Necesitas al menos un perfil');
+                if (list.length <= 1) return toast(t('settings.models.needOne'));
                 const next = list.filter((x) => x.id !== p.id);
                 await saveList('profiles', next);
                 if (c.activeProfileId === p.id) pc = await wd.invoke('cfg:patch', { activeProfileId: next[0].id });
@@ -329,41 +341,41 @@ const TABS = {
         h(
           'div',
           { class: 'grid' },
-          field('Nombre', itemText('profiles', i, 'name')),
-          field('Tipo de API', kindSel),
-          h('div', { class: 'full' }, field('URL base', itemText('profiles', i, 'baseUrl'), p.kind === 'anthropic' ? 'Normalmente <code>https://api.anthropic.com</code>' : 'Termina en <code>/v1</code> (o la ruta compatible del proveedor).')),
-          field('API key', secret(`profile:${p.id}`, p.kind === 'openai' ? 'Opcional en servidores locales' : 'sk-ant-…')),
+          field(t('settings.common.name'), itemText('profiles', i, 'name')),
+          field(t('settings.models.apiType'), kindSel),
+          h('div', { class: 'full' }, field(t('settings.common.baseUrl'), itemText('profiles', i, 'baseUrl'), p.kind === 'anthropic' ? t('settings.models.baseUrlAnthropic') : t('settings.models.baseUrlOpenai'))),
+          field('API key', secret(`profile:${p.id}`, p.kind === 'openai' ? t('settings.models.keyOptionalLocal') : 'sk-ant-…')),
           field(
-            'Modelo',
+            t('settings.common.model'),
             h(
               'div',
               { class: 'inline' },
-              itemText('profiles', i, 'model', { list: dl, placeholder: 'id del modelo' }),
+              itemText('profiles', i, 'model', { list: dl, placeholder: t('settings.models.modelPlaceholder') }),
               h(
                 'button',
                 {
                   class: 'btn',
-                  title: 'Pedir la lista de modelos al proveedor',
+                  title: t('settings.models.loadTitle'),
                   onclick: async () => {
                     const models = await runTest(res, async () => {
                       const m = await wd.invoke('models:list', list[i]);
-                      return { message: `${m.length} modelos disponibles`, m };
+                      return { message: t('settings.models.available', { count: m.length }), m };
                     });
                     if (models?.m) document.getElementById(dl).innerHTML = models.m.map((x) => `<option value="${esc(x)}">`).join('');
                   },
                 },
-                'Cargar',
+                t('settings.models.load'),
               ),
             ),
           ),
           h('datalist', { id: dl }),
-          field('Máx. tokens de respuesta', itemText('profiles', i, 'maxTokens', { type: 'number' })),
-          field('Temperatura', itemText('profiles', i, 'temperature', { type: 'number', placeholder: 'por defecto' })),
+          field(t('settings.models.maxTokens'), itemText('profiles', i, 'maxTokens', { type: 'number' })),
+          field(t('settings.models.temperature'), itemText('profiles', i, 'temperature', { type: 'number', placeholder: t('settings.models.default') })),
           h(
             'div',
             { class: 'full' },
-            itemCheck('profiles', i, 'toolsEnabled', 'Permitir herramientas (Paperclip, Hermes, webhooks, MCP…)'),
-            h('small', { class: 'muted' }, 'Desactívalo si el modelo no soporta tool calling o si es el propio Hermes (que ya tiene las suyas).'),
+            itemCheck('profiles', i, 'toolsEnabled', t('settings.models.allowTools')),
+            h('small', { class: 'muted' }, t('settings.models.allowToolsHelp')),
           ),
         ),
         res,
@@ -375,27 +387,20 @@ const TABS = {
       Object.entries(presets).map(([k, v]) => h('option', { value: k }, v.name)),
     );
     return [
-      h('h1', {}, 'Modelos de IA'),
-      h(
-        'p',
-        { class: 'lead' },
-        'Cada perfil es un modelo con su API key. Cambia de uno a otro desde el chat o el menú del avatar. Las claves se guardan cifradas con el almacén seguro del sistema.',
-      ),
+      h('h1', {}, t('settings.nav.models')),
+      h('p', { class: 'lead' }, t('settings.models.lead')),
       params.get('welcome')
         ? h(
             'section',
             { class: 'card welcome' },
-            h('h2', {}, `¡Hola! Soy ${c.assistant.name}`),
-            h('p', {
-              class: 'desc',
-              html: 'Para empezar, pega tu API key en el perfil de Claude (o añade otro proveedor). Luego, si quieres hablarme, configura el dictado en <b>Voz</b>: Groq tiene un plan gratuito muy rápido. Cuando quieras, conecta Hermes y Paperclip.',
-            }),
+            h('h2', {}, t('settings.models.welcomeTitle', { name: c.assistant.name })),
+            h('p', { class: 'desc', html: t('settings.models.welcomeText') }),
           )
         : null,
       ...items,
       card(
-        'Añadir perfil',
-        'Elige un proveedor de partida y ajusta luego la URL, la clave y el modelo.',
+        t('settings.models.addProfile'),
+        t('settings.models.addProfileText'),
         h(
           'div',
           { class: 'inline' },
@@ -411,7 +416,7 @@ const TABS = {
                 render();
               },
             },
-            'Añadir',
+            t('settings.common.add'),
           ),
         ),
       ),
@@ -423,7 +428,7 @@ const TABS = {
     const sttPresets = {
       groq: { baseUrl: 'https://api.groq.com/openai/v1', model: 'whisper-large-v3-turbo' },
       openai: { baseUrl: 'https://api.openai.com/v1', model: 'gpt-4o-mini-transcribe' },
-      custom: { baseUrl: 'http://TU-VPS:8000/v1', model: 'Systran/faster-whisper-small' },
+      custom: { baseUrl: 'http://your-vps:8000/v1', model: 'Systran/faster-whisper-small' },
     };
     const ttsBox = h('div');
     const sttRes = result();
@@ -438,9 +443,11 @@ const TABS = {
         });
         const fill = () => {
           const voices = speechSynthesis.getVoices();
+          const lang = getLocale();
+          const mine = (x) => (x.lang.toLowerCase().startsWith(lang) ? 1 : 0);
           voiceSel.innerHTML = '';
-          voiceSel.append(h('option', { value: '' }, 'Automática (primera en español)'));
-          for (const x of voices.sort((a, b) => (/^es/.test(b.lang) ? 1 : 0) - (/^es/.test(a.lang) ? 1 : 0)))
+          voiceSel.append(h('option', { value: '' }, t('settings.voice.systemAuto', { language: LANGUAGES[lang].native })));
+          for (const x of voices.sort((a, b) => mine(b) - mine(a)))
             voiceSel.append(h('option', { value: x.name, selected: x.name === v.tts.systemVoice }, `${x.name} (${x.lang})`));
         };
         fill();
@@ -449,9 +456,9 @@ const TABS = {
           h(
             'div',
             { class: 'grid' },
-            h('div', { class: 'full' }, field('Voz del sistema', voiceSel, 'Gratis y sin conexión. En Windows puedes instalar más voces en Configuración → Hora e idioma → Voz.')),
-            field('Velocidad', text('voice.tts.rate', { type: 'number' })),
-            field('Tono', text('voice.tts.pitch', { type: 'number' }), 'Un tono algo más agudo (1.2–1.4) le pega al personaje.'),
+            h('div', { class: 'full' }, field(t('settings.voice.systemVoice'), voiceSel, t('settings.voice.systemVoiceHelp'))),
+            field(t('settings.voice.rate'), text('voice.tts.rate', { type: 'number' })),
+            field(t('settings.voice.pitch'), text('voice.tts.pitch', { type: 'number' }), t('settings.voice.pitchHelp')),
           ),
         );
       } else if (mode === 'openai') {
@@ -462,16 +469,12 @@ const TABS = {
             h(
               'div',
               { class: 'full' },
-              field(
-                'URL base',
-                text('voice.tts.baseUrl'),
-                'OpenAI (<code>https://api.openai.com/v1</code>) o un servidor compatible en tu VPS, p. ej. Kokoro-FastAPI (<code>http://TU-VPS:8880/v1</code>, voces <code>ef_dora</code>, <code>jf_alpha</code>…).',
-              ),
+              field(t('settings.common.baseUrl'), text('voice.tts.baseUrl'), t('settings.voice.ttsUrlHelp')),
             ),
-            field('API key', secret('tts', 'Opcional en servidores propios')),
-            field('Modelo', text('voice.tts.model')),
-            field('Voz', text('voice.tts.voice')),
-            field('Velocidad', text('voice.tts.rate', { type: 'number' })),
+            field('API key', secret('tts', t('settings.voice.keyOptionalOwn'))),
+            field(t('settings.common.model'), text('voice.tts.model')),
+            field(t('settings.voice.voice'), text('voice.tts.voice')),
+            field(t('settings.voice.rate'), text('voice.tts.rate', { type: 'number' })),
           ),
         );
       } else if (mode === 'elevenlabs') {
@@ -479,9 +482,9 @@ const TABS = {
           h(
             'div',
             { class: 'grid' },
-            field('API key de ElevenLabs', secret('tts')),
-            field('Voice ID', text('voice.tts.elevenVoiceId', { placeholder: 'id de la voz en tu biblioteca' })),
-            field('Modelo', text('voice.tts.elevenModel')),
+            field(t('settings.voice.elevenKey'), secret('tts')),
+            field('Voice ID', text('voice.tts.elevenVoiceId', { placeholder: t('settings.voice.elevenVoicePlaceholder') })),
+            field(t('settings.common.model'), text('voice.tts.elevenModel')),
           ),
         );
       }
@@ -494,8 +497,12 @@ const TABS = {
               'button',
               {
                 class: 'btn',
-                onclick: () => runTest(ttsRes, async () => (await wd.invoke('voice:test-tts', `¡Hola${pc.config.assistant.userName ? `, ${pc.config.assistant.userName}` : ''}! Soy ${pc.config.assistant.name}. Así sueno ahora mismo.`), 'Reproduciendo en el avatar…')),
-                html: `${icons.play} Probar voz`,
+                onclick: () => {
+                  const a = pc.config.assistant;
+                  const phrase = a.userName ? t('settings.voice.testPhraseUser', { user: a.userName, name: a.name }) : t('settings.voice.testPhrase', { name: a.name });
+                  runTest(ttsRes, async () => (await wd.invoke('voice:test-tts', phrase), t('settings.voice.playing')));
+                },
+                html: `${icons.play} ${esc(t('settings.voice.test'))}`,
               },
             ),
           ),
@@ -505,23 +512,23 @@ const TABS = {
     renderTts();
 
     return [
-      h('h1', {}, 'Voz'),
-      h('p', { class: 'lead' }, 'Dictado (lo que dices → texto) y voz de la asistente (texto → audio, con la boca sincronizada).'),
+      h('h1', {}, t('settings.nav.voice')),
+      h('p', { class: 'lead' }, t('settings.voice.lead')),
       card(
-        'Dictado',
-        'Se graba al hacer doble clic en el avatar o con el atajo, y se para sola cuando dejas de hablar.',
+        t('settings.voice.dictation'),
+        t('settings.voice.dictationText'),
         h(
           'div',
           { class: 'grid' },
           field(
-            'Proveedor',
+            t('settings.voice.provider'),
             select(
               'voice.stt.provider',
               [
-                ['groq', 'Groq Whisper (rápido, plan gratis)'],
+                ['groq', t('settings.voice.sttGroq')],
                 ['openai', 'OpenAI'],
-                ['custom', 'Servidor propio compatible (faster-whisper / speaches)'],
-                ['off', 'Desactivado'],
+                ['custom', t('settings.voice.sttCustom')],
+                ['off', t('settings.voice.off')],
               ],
               async (val) => {
                 if (sttPresets[val]) {
@@ -532,29 +539,29 @@ const TABS = {
               },
             ),
           ),
-          field('Idioma', text('voice.stt.language'), 'Código ISO: <code>es</code>, <code>en</code>… vacío = autodetectar.'),
-          h('div', { class: 'full' }, field('URL base', text('voice.stt.baseUrl'))),
+          field(t('settings.voice.sttLanguage'), text('voice.stt.language'), t('settings.voice.sttLanguageHelp')),
+          h('div', { class: 'full' }, field(t('settings.common.baseUrl'), text('voice.stt.baseUrl'))),
           field('API key', secret('stt')),
-          field('Modelo', text('voice.stt.model')),
-          h('div', { class: 'full' }, check('voice.autoStopOnSilence', 'Parar automáticamente cuando dejo de hablar')),
+          field(t('settings.common.model'), text('voice.stt.model')),
+          h('div', { class: 'full' }, check('voice.autoStopOnSilence', t('settings.voice.autoStop'))),
         ),
         sttRes,
       ),
       card(
-        'Voz de la asistente',
+        t('settings.voice.assistantVoice'),
         null,
         h(
           'div',
           { class: 'grid' },
           field(
-            'Motor',
+            t('settings.voice.engine'),
             select(
               'voice.tts.mode',
               [
-                ['system', 'Voces del sistema (gratis)'],
-                ['openai', 'OpenAI-compatible (OpenAI, Kokoro…)'],
+                ['system', t('settings.voice.ttsSystem')],
+                ['openai', t('settings.voice.ttsOpenai')],
                 ['elevenlabs', 'ElevenLabs'],
-                ['off', 'Sin voz'],
+                ['off', t('settings.voice.ttsOff')],
               ],
               (val) => {
                 v.tts.mode = val;
@@ -563,11 +570,11 @@ const TABS = {
             ),
           ),
           field(
-            'Cuándo habla',
+            t('settings.voice.whenSpeak'),
             select('voice.speakReplies', [
-              ['voice', 'Solo si le hablo por voz'],
-              ['always', 'Siempre'],
-              ['never', 'Nunca (solo texto)'],
+              ['voice', t('settings.voice.speakVoice')],
+              ['always', t('settings.voice.speakAlways')],
+              ['never', t('settings.voice.speakNever')],
             ]),
           ),
         ),
@@ -583,53 +590,45 @@ const TABS = {
     const pRes = result();
     const companySel = h('div');
     return [
-      h('h1', {}, 'Hermes y Paperclip'),
-      h(
-        'p',
-        { class: 'lead' },
-        'Con estos conectores tu asistente puede delegar trabajo a tu agente Hermes del VPS y crear, asignar y revisar tareas de tus agentes en Paperclip, solo con pedírselo.',
-      ),
+      h('h1', {}, t('settings.nav.connectors')),
+      h('p', { class: 'lead' }, t('settings.conn.lead')),
       card(
-        ['Hermes Agent', h('span', { class: `pill ${hm.enabled ? 'on' : ''}` }, hm.enabled ? 'activo' : 'apagado')],
-        'Hermes (Nous Research) expone una API compatible con OpenAI. La asistente lo usa como herramienta <code>hermes_task</code> para tareas que deben hacerse en el servidor.',
-        check('connectors.hermes.enabled', 'Activar herramienta Hermes', () => setTimeout(render, 400)),
+        ['Hermes Agent', h('span', { class: `pill ${hm.enabled ? 'on' : ''}` }, hm.enabled ? t('settings.common.on') : t('settings.common.off'))],
+        t('settings.conn.hermesText'),
+        check('connectors.hermes.enabled', t('settings.conn.hermesEnable'), () => setTimeout(render, 400)),
         h(
           'div',
           { class: 'grid', style: 'margin-top:8px' },
-          h('div', { class: 'full' }, field('URL del API server', text('connectors.hermes.baseUrl'), 'Ej.: <code>https://hermes.tudominio.com/v1</code> detrás de tu nginx con TLS, o <code>http://localhost:8642/v1</code> con un túnel SSH.')),
+          h('div', { class: 'full' }, field(t('settings.conn.hermesUrl'), text('connectors.hermes.baseUrl'), t('settings.conn.hermesUrlHelp'))),
           field('API_SERVER_KEY', secret('hermes')),
-          field('Nombre del modelo', text('connectors.hermes.model'), 'Por defecto <code>hermes-agent</code> (o el nombre del perfil).'),
-          field('Tiempo máximo (s)', text('connectors.hermes.timeoutSec', { type: 'number' })),
+          field(t('settings.conn.hermesModel'), text('connectors.hermes.model'), t('settings.conn.hermesModelHelp')),
+          field(t('settings.conn.hermesTimeout'), text('connectors.hermes.timeoutSec', { type: 'number' })),
         ),
-        h('div', { class: 'row', style: 'margin-top:12px' }, h('button', { class: 'btn', onclick: () => runTest(hRes, () => wd.invoke('test:hermes')) }, 'Probar conexión')),
+        h('div', { class: 'row', style: 'margin-top:12px' }, h('button', { class: 'btn', onclick: () => runTest(hRes, () => wd.invoke('test:hermes')) }, t('settings.conn.test'))),
         hRes,
         h(
           'details',
           { class: 'help' },
-          h('summary', {}, 'Cómo activarlo en el VPS'),
-          h('ol', {
-            html: `<li>En <code>~/.hermes/.env</code> añade:</li>`,
-          }),
-          h('pre', { class: 'snippet' }, 'API_SERVER_ENABLED=true\nAPI_SERVER_KEY=una-clave-larga-y-aleatoria\nAPI_SERVER_HOST=127.0.0.1\nAPI_SERVER_PORT=8642'),
+          h('summary', {}, t('settings.conn.hermesHowTo')),
+          h('ol', { html: `<li>${t('settings.conn.hermesStep1')}</li>` }),
+          h('pre', { class: 'snippet' }, 'API_SERVER_ENABLED=true\nAPI_SERVER_KEY=a-long-random-key\nAPI_SERVER_HOST=127.0.0.1\nAPI_SERVER_PORT=8642'),
           h('ol', {
             start: 2,
-            html: `<li>Arranca <code>hermes gateway</code> (o el contenedor <code>nousresearch/hermes-agent</code>).</li>
-<li>Publica el puerto con tu reverse proxy (subdominio con TLS) o haz un túnel: <code>ssh -N -L 8642:127.0.0.1:8642 usuario@vps</code>.</li>
-<li>Si quieres hablar <i>directamente</i> con Hermes, usa el perfil «Hermes Agent (VPS)» en Modelos con la misma URL y clave.</li>`,
+            html: `<li>${t('settings.conn.hermesStep2')}</li><li>${t('settings.conn.hermesStep3')}</li><li>${t('settings.conn.hermesStep4')}</li>`,
           }),
-          h('div', { class: 'warn-box', html: 'Hermes tiene acceso a la terminal del servidor. No lo expongas sin clave ni sin TLS.' }),
+          h('div', { class: 'warn-box', html: t('settings.conn.hermesWarn') }),
         ),
       ),
       card(
-        ['Paperclip', h('span', { class: `pill ${pp.enabled ? 'on' : ''}` }, pp.enabled ? 'activo' : 'apagado')],
-        'Herramientas para listar agentes y proyectos, crear y actualizar tareas, comentar y despertar agentes. Las acciones que cambian cosas piden confirmación (o «Permitir siempre»).',
-        check('connectors.paperclip.enabled', 'Activar herramientas de Paperclip', () => setTimeout(render, 400)),
+        ['Paperclip', h('span', { class: `pill ${pp.enabled ? 'on' : ''}` }, pp.enabled ? t('settings.common.on') : t('settings.common.off'))],
+        t('settings.conn.paperclipText'),
+        check('connectors.paperclip.enabled', t('settings.conn.paperclipEnable'), () => setTimeout(render, 400)),
         h(
           'div',
           { class: 'grid', style: 'margin-top:8px' },
-          h('div', { class: 'full' }, field('URL de Paperclip', text('connectors.paperclip.baseUrl'), 'La raíz del servidor (por defecto <code>http://localhost:3100</code>); se añade <code>/api</code> sola.')),
-          field('Token (Bearer)', secret('paperclip', 'Vacío si usas modo local_trusted'), 'En modo <i>authenticated</i> usa una API key de board.'),
-          field('ID de la empresa', text('connectors.paperclip.companyId', { placeholder: 'uuid de la company' }), 'Aparece en la URL: <code>/companies/&lt;id&gt;</code>.'),
+          h('div', { class: 'full' }, field(t('settings.conn.paperclipUrl'), text('connectors.paperclip.baseUrl'), t('settings.conn.paperclipUrlHelp'))),
+          field('Token (Bearer)', secret('paperclip', t('settings.conn.paperclipTokenPlaceholder')), t('settings.conn.paperclipTokenHelp')),
+          field(t('settings.conn.companyId'), text('connectors.paperclip.companyId', { placeholder: t('settings.conn.companyIdPlaceholder') }), t('settings.conn.companyIdHelp')),
         ),
         h(
           'div',
@@ -656,7 +655,7 @@ const TABS = {
                               setTimeout(render, 500);
                             },
                           },
-                          `Usar «${co.name}»`,
+                          t('settings.conn.useCompany', { name: co.name }),
                         ),
                       ),
                     ),
@@ -664,7 +663,7 @@ const TABS = {
                 }
               },
             },
-            'Probar y listar empresas',
+            t('settings.conn.testCompanies'),
           ),
         ),
         pRes,
@@ -677,20 +676,27 @@ const TABS = {
     const c = pc.config.connectors;
     const whList = c.webhooks || [];
     const mcpList = c.mcpServers || [];
-    const toolsBox = h('div', { class: 'tool-list' }, h('span', { class: 'muted' }, 'Cargando…'));
+    const toolsBox = h('div', { class: 'tool-list' }, h('span', { class: 'muted' }, t('settings.common.loading')));
     wd.invoke('tools:list').then((tools) => {
       toolsBox.innerHTML = '';
-      for (const t of tools) toolsBox.append(h('code', { title: t.description }, t.name));
+      for (const tool of tools) toolsBox.append(h('code', { title: tool.description }, tool.name));
     });
     const mcpStatusBox = h('div', { class: 'result' });
     const refreshMcp = async (sync) => {
-      mcpStatusBox.textContent = sync ? 'Conectando…' : '';
+      mcpStatusBox.textContent = sync ? t('settings.auto.connecting') : '';
       const st = await wd.invoke(sync ? 'mcp:sync' : 'mcp:status');
       mcpStatusBox.innerHTML = st.length
         ? st
-            .map((s) => `<div><b>${esc(s.name)}</b>: ${s.connected ? `<span style="color:var(--ok)">conectado</span> · ${s.tools.length} herramientas` : `<span style="color:var(--err)">${esc(s.error || 'desconectado')}</span>`}</div>`)
+            .map(
+              (s) =>
+                `<div><b>${esc(s.name)}</b>: ${
+                  s.connected
+                    ? `<span style="color:var(--ok)">${esc(t('settings.auto.connected'))}</span> · ${esc(t('settings.auto.toolCount', { count: s.tools.length }))}`
+                    : `<span style="color:var(--err)">${esc(s.error || t('settings.auto.disconnected'))}</span>`
+                }</div>`,
+            )
             .join('')
-        : '<span class="muted">Ningún servidor activo.</span>';
+        : `<span class="muted">${esc(t('settings.auto.noServers'))}</span>`;
     };
     refreshMcp(false);
 
@@ -715,9 +721,9 @@ const TABS = {
         h(
           'div',
           { class: 'grid' },
-          field('Nombre (será la herramienta webhook_…)', itemText('connectors.webhooks', i, 'name', { placeholder: 'backup vps' })),
+          field(t('settings.auto.webhookName'), itemText('connectors.webhooks', i, 'name', { placeholder: 'backup vps' })),
           field(
-            'Método',
+            t('settings.auto.method'),
             h(
               'select',
               {
@@ -729,11 +735,11 @@ const TABS = {
               ['POST', 'GET', 'PUT', 'PATCH'].map((m) => h('option', { selected: (w.method || 'POST') === m }, m)),
             ),
           ),
-          h('div', { class: 'full' }, field('Qué hace (la IA lo lee para decidir cuándo usarlo)', itemText('connectors.webhooks', i, 'description', { placeholder: 'Lanza la copia de seguridad del VPS en n8n. payload: {"target": "db"|"files"}' }))),
-          h('div', { class: 'full' }, field('URL', itemText('connectors.webhooks', i, 'url', { placeholder: 'https://n8n.tudominio.com/webhook/…' }))),
-          field('Token (Authorization)', secret(`webhook:${w.id}`, 'Opcional')),
-          field('Cabeceras extra (JSON)', itemText('connectors.webhooks', i, 'headersJson', { placeholder: '{"X-Api-Key": "…"}' })),
-          h('div', { class: 'full row' }, itemCheck('connectors.webhooks', i, 'enabled', 'Activo'), itemCheck('connectors.webhooks', i, 'confirm', 'Pedir confirmación antes de lanzarlo', false)),
+          h('div', { class: 'full' }, field(t('settings.auto.webhookDesc'), itemText('connectors.webhooks', i, 'description', { placeholder: t('settings.auto.webhookDescPlaceholder') }))),
+          h('div', { class: 'full' }, field('URL', itemText('connectors.webhooks', i, 'url', { placeholder: 'https://n8n.example.com/webhook/…' }))),
+          field('Token (Authorization)', secret(`webhook:${w.id}`, t('settings.common.optional'))),
+          field(t('settings.auto.headers'), itemText('connectors.webhooks', i, 'headersJson', { placeholder: '{"X-Api-Key": "…"}' })),
+          h('div', { class: 'full row' }, itemCheck('connectors.webhooks', i, 'enabled', t('settings.auto.enabled')), itemCheck('connectors.webhooks', i, 'confirm', t('settings.auto.webhookConfirm'), false)),
         ),
       ),
     );
@@ -745,7 +751,7 @@ const TABS = {
         h(
           'div',
           { class: 'item-head' },
-          h('strong', {}, s.name || 'Servidor MCP'),
+          h('strong', {}, s.name || t('settings.auto.mcpServer')),
           h('span', { class: 'pill' }, s.type === 'http' ? 'HTTP' : 'stdio'),
           h('span', { class: 'spacer' }),
           h('button', {
@@ -760,9 +766,9 @@ const TABS = {
         h(
           'div',
           { class: 'grid' },
-          field('Nombre', itemText('connectors.mcpServers', i, 'name')),
+          field(t('settings.common.name'), itemText('connectors.mcpServers', i, 'name')),
           field(
-            'Transporte',
+            t('settings.auto.transport'),
             h(
               'select',
               {
@@ -772,24 +778,24 @@ const TABS = {
                   render();
                 },
               },
-              h('option', { value: 'stdio', selected: s.type !== 'http' }, 'stdio (comando local)'),
+              h('option', { value: 'stdio', selected: s.type !== 'http' }, t('settings.auto.stdio')),
               h('option', { value: 'http', selected: s.type === 'http' }, 'HTTP (Streamable)'),
             ),
           ),
           ...(s.type === 'http'
             ? [
-                h('div', { class: 'full' }, field('URL', itemText('connectors.mcpServers', i, 'url', { placeholder: 'https://mcp.tudominio.com/mcp' }))),
-                field('Token (Bearer)', secret(`mcp:${s.id}`, 'Opcional')),
-                field('Cabeceras extra (JSON)', itemText('connectors.mcpServers', i, 'headersJson')),
+                h('div', { class: 'full' }, field('URL', itemText('connectors.mcpServers', i, 'url', { placeholder: 'https://mcp.example.com/mcp' }))),
+                field('Token (Bearer)', secret(`mcp:${s.id}`, t('settings.common.optional'))),
+                field(t('settings.auto.headers'), itemText('connectors.mcpServers', i, 'headersJson')),
               ]
             : [
-                field('Comando', itemText('connectors.mcpServers', i, 'command', { placeholder: 'npx | uvx | node | python' })),
-                field('Argumentos', itemText('connectors.mcpServers', i, 'args', { placeholder: '-y @modelcontextprotocol/server-filesystem C:\\Users\\tu\\Documents' })),
+                field(t('settings.auto.command'), itemText('connectors.mcpServers', i, 'command', { placeholder: 'npx | uvx | node | python' })),
+                field(t('settings.auto.args'), itemText('connectors.mcpServers', i, 'args', { placeholder: '-y @modelcontextprotocol/server-filesystem C:\\Users\\you\\Documents' })),
                 h(
                   'div',
                   { class: 'full' },
                   field(
-                    'Variables de entorno (una por línea, CLAVE=valor)',
+                    t('settings.auto.env'),
                     h('textarea', {
                       rows: 2,
                       value: s.env || '',
@@ -801,24 +807,24 @@ const TABS = {
                   ),
                 ),
               ]),
-          h('div', { class: 'full row' }, itemCheck('connectors.mcpServers', i, 'enabled', 'Activo'), itemCheck('connectors.mcpServers', i, 'confirm', 'Pedir confirmación en cada llamada', false)),
+          h('div', { class: 'full row' }, itemCheck('connectors.mcpServers', i, 'enabled', t('settings.auto.enabled')), itemCheck('connectors.mcpServers', i, 'confirm', t('settings.auto.mcpConfirm'), false)),
         ),
       ),
     );
 
     const autoApproved = Object.keys(pc.config.tools.autoApprove || {}).filter((k) => pc.config.tools.autoApprove[k]);
     return [
-      h('h1', {}, 'Automatizaciones'),
-      h('p', { class: 'lead' }, 'Dale manos a tu asistente: webhooks de tus automatizaciones (n8n, Make, Home Assistant…), servidores MCP y, si quieres, comandos en este PC.'),
+      h('h1', {}, t('settings.nav.automations')),
+      h('p', { class: 'lead' }, t('settings.auto.lead')),
       card(
-        'Comandos en este PC',
-        'Permite la herramienta <code>run_command</code> (PowerShell en Windows, bash en Linux). Útil para <code>ssh</code> al VPS, <code>docker</code>, <code>git</code> o tus scripts.',
-        check('connectors.shell.enabled', 'Permitir ejecutar comandos', () => setTimeout(render, 400)),
-        h('div', { class: 'warn-box', html: 'Cada comando se muestra y necesita tu aprobación explícita. Nunca se aprueba solo.' }),
+        t('settings.auto.shellTitle'),
+        t('settings.auto.shellText'),
+        check('connectors.shell.enabled', t('settings.auto.shellEnable'), () => setTimeout(render, 400)),
+        h('div', { class: 'warn-box', html: t('settings.auto.shellWarn') }),
       ),
       card(
         'Webhooks',
-        'Cada webhook se convierte en una herramienta. Escribe bien la descripción: es lo que la IA lee para decidir cuándo y cómo llamarlo.',
+        t('settings.auto.webhooksText'),
         ...wh,
         h(
           'button',
@@ -829,13 +835,13 @@ const TABS = {
               await saveList('connectors.webhooks', [...whList, { id, name: '', description: '', url: '', method: 'POST', enabled: true, confirm: true }]);
               render();
             },
-            html: `${icons.plus} Añadir webhook`,
+            html: `${icons.plus} ${esc(t('settings.auto.addWebhook'))}`,
           },
         ),
       ),
       card(
-        'Servidores MCP',
-        'Conecta cualquier servidor <a href="#" data-ext="https://modelcontextprotocol.io">Model Context Protocol</a>: sistema de archivos, GitHub, Home Assistant, <code>paperclip-mcp</code>…',
+        t('settings.auto.mcpTitle'),
+        t('settings.auto.mcpText'),
         ...mcp,
         h(
           'div',
@@ -846,25 +852,25 @@ const TABS = {
               class: 'btn',
               onclick: async () => {
                 const id = await wd.invoke('cfg:new-id');
-                await saveList('connectors.mcpServers', [...mcpList, { id, name: 'nuevo', type: 'stdio', command: 'npx', args: '', env: '', enabled: false }]);
+                await saveList('connectors.mcpServers', [...mcpList, { id, name: t('settings.auto.newServerName'), type: 'stdio', command: 'npx', args: '', env: '', enabled: false }]);
                 render();
               },
-              html: `${icons.plus} Añadir servidor`,
+              html: `${icons.plus} ${esc(t('settings.auto.addServer'))}`,
             },
           ),
-          h('button', { class: 'btn', onclick: () => refreshMcp(true) }, 'Conectar / refrescar'),
+          h('button', { class: 'btn', onclick: () => refreshMcp(true) }, t('settings.auto.refresh')),
         ),
         mcpStatusBox,
       ),
       card(
-        'Herramientas activas',
-        'Lo que tu asistente puede usar ahora mismo.',
+        t('settings.auto.activeTools'),
+        t('settings.auto.activeToolsText'),
         toolsBox,
         autoApproved.length
           ? h(
               'div',
               { style: 'margin-top:14px' },
-              h('small', { class: 'muted' }, `Aprobadas siempre: ${autoApproved.join(', ')}`),
+              h('small', { class: 'muted' }, t('settings.auto.alwaysApproved', { list: autoApproved.join(', ') })),
               h(
                 'div',
                 { class: 'row', style: 'margin-top:8px' },
@@ -877,7 +883,7 @@ const TABS = {
                       render();
                     },
                   },
-                  'Volver a pedir confirmación',
+                  t('settings.auto.resetApprovals'),
                 ),
               ),
             )
@@ -906,7 +912,7 @@ const TABS = {
                 'div',
                 { class: 'row' },
                 cur
-                  ? h('span', { class: 'pill active' }, 'En uso')
+                  ? h('span', { class: 'pill active' }, t('settings.common.inUse'))
                   : h(
                       'button',
                       {
@@ -917,15 +923,15 @@ const TABS = {
                           render();
                         },
                       },
-                      'Usar',
+                      t('settings.skins.use'),
                     ),
-                s.builtin ? null : h('button', { class: 'btn', onclick: () => wd.invoke('win:open', 'editor', { id: s.id }) }, 'Ajustar'),
+                s.builtin ? null : h('button', { class: 'btn', onclick: () => wd.invoke('win:open', 'editor', { id: s.id }) }, t('settings.skins.adjust')),
                 s.builtin
                   ? null
                   : h('button', {
                       class: 'btn ghost danger',
                       html: icons.trash,
-                      title: 'Borrar',
+                      title: t('settings.common.delete'),
                       onclick: async () => {
                         await wd.invoke('skin:delete', s.id);
                         pc = await wd.invoke('cfg:get');
@@ -942,12 +948,12 @@ const TABS = {
           'div',
           { class: 'skin add', onclick: () => wd.invoke('win:open', 'editor') },
           h('span', { html: icons.image }),
-          h('strong', {}, 'Importar un dibujo'),
-          h('small', { class: 'muted' }, 'Desde archivo, portapapeles o URL. Se recorta el fondo y marcas ojos, boca y cuello.'),
+          h('strong', {}, t('settings.skins.import')),
+          h('small', { class: 'muted' }, t('settings.skins.importText')),
         ),
       );
     })();
-    return [h('h1', {}, 'Skins'), h('p', { class: 'lead' }, 'Cambia el aspecto de tu asistente o crea uno nuevo a partir de cualquier dibujo.'), grid];
+    return [h('h1', {}, t('settings.nav.skins')), h('p', { class: 'lead' }, t('settings.skins.lead')), grid];
   },
 };
 
@@ -961,8 +967,8 @@ function render() {
   document.querySelectorAll('.side button').forEach((b) => b.classList.toggle('active', b.dataset.tab === tab));
 }
 
-function go(t) {
-  tab = t;
+function go(next) {
+  tab = next;
   view.scrollTop = 0;
   render();
 }
@@ -976,8 +982,21 @@ view.addEventListener('click', (e) => {
   }
 });
 
+function applyLocale() {
+  setLocale(pc.locale);
+  applyDom();
+  document.title = t('settings.windowTitle');
+  document.getElementById('storageNote').textContent = pc.secureStorage ? t('settings.storage.secure') : t('settings.storage.insecure');
+}
+
 wd.on('cfg:changed', (next) => {
+  const localeChanged = next.locale !== pc?.locale;
   pc = next;
+  if (localeChanged) {
+    applyLocale();
+    render();
+    return;
+  }
   // No repintar mientras se escribe aquí mismo.
   if (Date.now() - lastLocalEdit > 1500 && !view.contains(document.activeElement)) render();
 });
@@ -986,8 +1005,6 @@ wd.on('win:query', (q) => q?.tab && go(q.tab));
 
 (async () => {
   pc = await wd.invoke('cfg:get');
-  document.getElementById('storageNote').textContent = pc.secureStorage
-    ? 'Las claves se guardan cifradas con el almacén del sistema.'
-    : 'Aviso: no hay almacén seguro disponible; las claves se guardan solo ofuscadas.';
+  applyLocale();
   render();
 })();

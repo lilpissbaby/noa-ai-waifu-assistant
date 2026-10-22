@@ -2,13 +2,14 @@ import { icons } from '../shared/icons.js';
 import { SkinRenderer, normalizeRig, loadImage } from '../shared/skin-renderer.js';
 import { Animator } from '../shared/animator.js';
 import { aiCutout, colorKeyCutout, hasTransparency, trimCanvas, guessRig } from './segment.js';
+import { t, setLocale } from '../../shared/i18n/index.js';
+import { applyDom } from '../../shared/i18n/dom.js';
 
 const wd = window.wd;
 const $ = (id) => document.getElementById(id);
 const params = new URLSearchParams(location.search);
 const editId = params.get('id');
 
-$('btnOpen').innerHTML = `${icons.folder} Abrir archivo`;
 $('dropIcon').innerHTML = icons.image;
 
 const imgCanvas = $('img');
@@ -21,6 +22,10 @@ let rig = null;
 let imageDirty = false;
 let view = { x: 0, y: 0, s: 1 };
 let history = [];
+let lastCut = null; // 'ai' | 'key' | null: para repetir el recorte por color al mover la tolerancia
+let editing = false;
+let bgStatusKey = null; // último aviso del paso 2, para retraducirlo si cambia el idioma
+let saveStatusKey = null;
 
 // ---------------------------------------------------------------- vista previa animada
 const pv = new SkinRenderer($('preview'));
@@ -38,10 +43,11 @@ async function refreshPreview(reloadImage = true) {
 }
 $('pvBlink').onclick = () => anim.blink();
 let talking = false;
+const paintTalk = () => ($('pvTalk').textContent = talking ? t('editor.silence') : t('editor.talk'));
 $('pvTalk').onclick = () => {
   talking = !talking;
   anim.fakeTalkUntil = talking ? performance.now() + 1e9 : 0;
-  $('pvTalk').textContent = talking ? 'Callar' : 'Hablar';
+  paintTalk();
 };
 $('preview').addEventListener('mousemove', (e) => {
   const r = e.currentTarget.getBoundingClientRect();
@@ -54,10 +60,16 @@ function enable(step, on = true) {
   if (on) $(step).removeAttribute('data-disabled');
   else $(step).setAttribute('data-disabled', '');
 }
-function status(id, text, kind = '') {
-  $(id).textContent = text;
+// Los avisos se guardan como clave + variables para poder retraducirlos al cambiar de idioma.
+function status(id, key, kind = '', vars) {
+  const msg = key ? (key.startsWith('!') ? key.slice(1) : t(key, vars)) : '';
+  $(id).textContent = msg;
   $(id).className = `status ${kind}`;
+  const memo = key ? { key, kind, vars } : null;
+  if (id === 'bgStatus') bgStatusKey = memo;
+  else saveStatusKey = memo;
 }
+const raw = (text) => `!${text}`;
 function progress(p, text) {
   const box = $('progress');
   if (p == null) {
@@ -87,15 +99,16 @@ async function loadFromDataUrl(dataUrl, suggestedName) {
   srcCanvas = canvasFromImage(img);
   imageDirty = true;
   history = [];
+  lastCut = null;
   if (suggestedName && !$('name').value) $('name').value = suggestedName.slice(0, 40);
   $('drop').classList.add('hidden');
   $('wrap').classList.remove('hidden');
   enable('step2');
   if (hasTransparency(srcCanvas)) {
-    status('bgStatus', 'La imagen ya tiene fondo transparente. 👌', 'ok');
+    status('bgStatus', 'editor.bg.transparent', 'ok');
     setFinal(trimCanvas(srcCanvas));
   } else {
-    status('bgStatus', 'Tiene fondo: recórtalo con IA (mejor) o por color si el fondo es liso.');
+    status('bgStatus', 'editor.bg.hasBackground');
     setFinal(srcCanvas, false);
   }
 }
@@ -133,15 +146,15 @@ $('btnPaste').onclick = async () => {
   try {
     const items = await navigator.clipboard.read();
     for (const it of items) {
-      const type = it.types.find((t) => t.startsWith('image/'));
+      const type = it.types.find((ty) => ty.startsWith('image/'));
       if (type) {
         const blob = await it.getType(type);
-        return loadFromDataUrl(await blobToDataUrl(blob), 'pegada');
+        return loadFromDataUrl(await blobToDataUrl(blob), t('editor.pasted'));
       }
     }
-    alert('No hay ninguna imagen en el portapapeles.');
+    alert(t('editor.noClipboardImage'));
   } catch {
-    alert('Pulsa Ctrl+V con la ventana activa para pegar la imagen.');
+    alert(t('editor.pasteHint'));
   }
 };
 window.addEventListener('paste', async (e) => {
@@ -183,25 +196,26 @@ $('btnAi').onclick = async () => {
   try {
     let st = await wd.invoke('skin:model-status');
     if (!st.ready) {
-      if (!confirm(`El recorte con IA usa un modelo especializado en anime (${st.sizeMB} MB). Se descarga una sola vez. ¿Descargarlo ahora?`)) return;
-      progress(0, 'Descargando modelo… 0 %');
-      const off = wd.on('skin:model-progress', (p) => progress(p, `Descargando modelo… ${Math.round(p * 100)} %`));
+      if (!confirm(t('editor.modelConfirm', { mb: st.sizeMB }))) return;
+      progress(0, t('editor.downloading', { pct: 0 }));
+      const off = wd.on('skin:model-progress', (p) => progress(p, t('editor.downloading', { pct: Math.round(p * 100) })));
       try {
         st = await wd.invoke('skin:model-download');
       } finally {
         off();
       }
     }
-    progress(-1, 'Preparando…');
+    progress(-1, t('editor.preparing'));
     const t0 = performance.now();
-    const out = await aiCutout(srcCanvas, st.url, (s) => progress(-1, s));
+    const out = await aiCutout(srcCanvas, st.url, (stage) => progress(-1, t(`editor.stage.${stage}`)));
     history.push(finalCanvas);
     imageDirty = true;
+    lastCut = 'ai';
     setFinal(trimCanvas(out));
-    status('bgStatus', `Recorte listo en ${((performance.now() - t0) / 1000).toFixed(1)} s. Si algo sobra o falta, prueba por color.`, 'ok');
+    status('bgStatus', 'editor.bg.aiDone', 'ok', { seconds: ((performance.now() - t0) / 1000).toFixed(1) });
   } catch (e) {
     console.error(e);
-    status('bgStatus', `No se pudo recortar: ${cleanErr(e)}`, 'err');
+    status('bgStatus', 'editor.bg.aiFailed', 'err', { error: cleanErr(e) });
   } finally {
     progress(null);
     btns.forEach((b) => (b.disabled = false));
@@ -213,22 +227,27 @@ $('btnKey').onclick = () => {
   history.push(finalCanvas);
   imageDirty = true;
   const out = colorKeyCutout(srcCanvas, Number($('tol').value));
+  lastCut = 'key';
   setFinal(trimCanvas(out));
-  status('bgStatus', 'Fondo por color quitado. Ajusta la tolerancia y repite si hace falta.', 'ok');
+  status('bgStatus', 'editor.bg.keyDone', 'ok');
 };
 $('tol').addEventListener('change', () => {
-  if (history.length && $('bgStatus').textContent.includes('color')) $('btnKey').click();
+  if (history.length && lastCut === 'key') $('btnKey').click();
 });
 $('btnKeep').onclick = () => {
   if (!srcCanvas) return;
   history.push(finalCanvas);
   imageDirty = true;
+  lastCut = null;
   setFinal(hasTransparency(srcCanvas) ? trimCanvas(srcCanvas) : srcCanvas);
-  status('bgStatus', 'Se usa la imagen tal cual (el fondo se verá en el escritorio).');
+  status('bgStatus', 'editor.bg.kept');
 };
 $('btnUndo').onclick = () => {
   const prev = history.pop();
-  if (prev) setFinal(prev);
+  if (prev) {
+    lastCut = null;
+    setFinal(prev);
+  }
 };
 
 // ---------------------------------------------------------------- 3. marcadores
@@ -280,7 +299,7 @@ function drawOverlay() {
   svg('line', { x1: lx, x2: rx, y1: ny, y2: ny, stroke: '#ffc65c', 'stroke-width': 1.5, 'stroke-dasharray': '6 5', opacity: 0.8 }, g);
   svg('line', { x1: lx, x2: rx, y1: ny, y2: ny, stroke: 'transparent', 'stroke-width': 12 }, g);
   svg('circle', { cx: nx, cy: ny, r: 8, fill: '#ffc65c', stroke: '#1a0b14', 'stroke-width': 2 }, g);
-  label('cuello / giro', nx + 12, ny - 8);
+  label(t('editor.neckLabel'), nx + 12, ny - 8);
 
   // ojos
   rig.eyes.forEach((e, i) => {
@@ -293,7 +312,7 @@ function drawOverlay() {
     const hx = cx + rw * 0.7071;
     const hy = cy + rh * 0.7071;
     svg('circle', { cx: hx, cy: hy, r: 6, fill: '#fff', stroke: '#ff4f9a', 'stroke-width': 2, class: 'handle', 'data-kind': `eye${i}`, 'data-part': 'size' }, overlay);
-    label(i === 0 ? 'ojo' : 'ojo', cx - rw, cy - rh - 6);
+    label(t('editor.eyeLabel'), cx - rw, cy - rh - 6);
   });
 
   // boca
@@ -304,11 +323,11 @@ function drawOverlay() {
   svg('line', { x1: mx - mw, x2: mx + mw, y1: my, y2: my, stroke: '#5cdcff', 'stroke-width': 3, 'stroke-linecap': 'round' }, gm);
   svg('circle', { cx: mx, cy: my, r: 6, fill: '#5cdcff', stroke: '#1a0b14', 'stroke-width': 2 }, gm);
   svg('circle', { cx: mx + mw, cy: my, r: 5, fill: '#fff', stroke: '#5cdcff', 'stroke-width': 2, class: 'handle-ew', 'data-kind': 'mouth', 'data-part': 'size' }, overlay);
-  label('boca', mx + mw + 8, my + 4);
+  label(t('editor.mouthLabel'), mx + mw + 8, my + 4);
 }
 function label(text, x, y) {
-  const t = svg('text', { x, y, class: 'mk-label' }, overlay);
-  t.textContent = text;
+  const el = svg('text', { x, y, class: 'mk-label' }, overlay);
+  el.textContent = text;
 }
 
 let dragging = null;
@@ -393,7 +412,7 @@ function thumbnail() {
 
 async function save(use) {
   if (!finalCanvas || !rig) return;
-  status('saveStatus', 'Guardando…');
+  status('saveStatus', 'editor.saving');
   try {
     const files = { thumb: thumbnail() };
     if (imageDirty || !editId) files.base = finalCanvas.toDataURL('image/png');
@@ -406,17 +425,17 @@ async function save(use) {
     };
     const m = await wd.invoke('skin:save', {
       id: editId || undefined,
-      name: $('name').value.trim() || 'Mi waifu',
+      name: $('name').value.trim() || t('editor.defaultName'),
       width: finalCanvas.width,
       height: finalCanvas.height,
       rig: cleanRig,
       files,
     });
     if (use) await wd.invoke('skin:use', m.id);
-    status('saveStatus', use ? '¡Guardada y puesta en el escritorio!' : 'Guardada.', 'ok');
+    status('saveStatus', use ? 'editor.savedUsed' : 'editor.saved', 'ok');
     imageDirty = false;
   } catch (e) {
-    status('saveStatus', cleanErr(e), 'err');
+    status('saveStatus', raw(cleanErr(e)), 'err');
   }
 }
 $('btnSave').onclick = () => save(true);
@@ -425,12 +444,32 @@ $('btnSaveOnly').onclick = () => save(false);
 window.__wdEditor = { load: (d, n) => loadFromDataUrl(d, n), rig: () => rig };
 const cleanErr = (e) => String(e?.message || e).replace(/^Error invoking remote method '[^']+': (Error: )?/, '');
 
-// ---------------------------------------------------------------- editar una existente
+// ---------------------------------------------------------------- idioma
+function applyLocale(locale) {
+  setLocale(locale);
+  applyDom();
+  document.title = t('editor.windowTitle');
+  $('btnOpen').innerHTML = `${icons.folder} `;
+  $('btnOpen').append(t('editor.open'));
+  if (editing) $('title').textContent = t('editor.titleEdit');
+  paintTalk();
+  for (const [id, memo] of [
+    ['bgStatus', bgStatusKey],
+    ['saveStatus', saveStatusKey],
+  ])
+    if (memo) status(id, memo.key, memo.kind, memo.vars);
+  drawOverlay();
+}
+wd.on('cfg:changed', (pc) => applyLocale(pc.locale));
+
+// ---------------------------------------------------------------- arranque / editar una existente
 (async () => {
+  applyLocale((await wd.invoke('cfg:get')).locale);
   if (!editId) return;
   const s = await wd.invoke('skin:get', editId);
   if (!s || s.id !== editId) return;
-  $('title').textContent = 'Ajustar skin';
+  editing = true;
+  $('title').textContent = t('editor.titleEdit');
   $('name').value = s.name;
   const img = await loadImage(s.urls.base);
   srcCanvas = canvasFromImage(img, 4096);
@@ -444,7 +483,7 @@ const cleanErr = (e) => String(e?.message || e).replace(/^Error invoking remote 
   $('drop').classList.add('hidden');
   $('wrap').classList.remove('hidden');
   ['step2', 'step3', 'step4'].forEach((s2) => enable(s2));
-  status('bgStatus', 'Imagen ya recortada.');
+  status('bgStatus', 'editor.bg.alreadyCut');
   draw();
   refreshPreview(true);
 })();

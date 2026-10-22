@@ -19,7 +19,7 @@ export function toAnthropicMessages(history) {
       for (const tc of m.toolCalls || []) blocks.push({ type: 'tool_use', id: tc.id, name: tc.name, input: tc.input || {} });
       if (blocks.length) out.push({ role: 'assistant', content: blocks });
     } else if (m.role === 'tool') {
-      const block = { type: 'tool_result', tool_use_id: m.toolCallId, content: m.content || '(sin salida)', is_error: !!m.isError };
+      const block = { type: 'tool_result', tool_use_id: m.toolCallId, content: m.content || '(no output)', is_error: !!m.isError };
       const last = out[out.length - 1];
       if (last && last.role === 'user' && Array.isArray(last.content) && last.content[0]?.type === 'tool_result') last.content.push(block);
       else out.push({ role: 'user', content: [block] });
@@ -83,7 +83,7 @@ export async function streamAnthropic({ profile, apiKey, system, history, tools,
       case 'content_block_stop': {
         const b = blocks[d.index];
         if (b?.type === 'tool_use') {
-          let input = {};
+          let input;
           try {
             input = b.json ? JSON.parse(b.json) : {};
           } catch {
@@ -98,7 +98,7 @@ export async function streamAnthropic({ profile, apiKey, system, history, tools,
         usage = { ...usage, ...(d.usage || {}) };
         break;
       case 'error':
-        throw new Error(`Anthropic: ${d.error?.message || 'error en el stream'}`);
+        throw new Error(`Anthropic: ${d.error?.message || 'stream error'}`);
       default:
         break;
     }

@@ -1,4 +1,6 @@
 // Markdown mínimo y seguro (se escapa todo el HTML antes de transformar).
+import { t } from '../../shared/i18n/index.js';
+
 const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
 function inline(s) {
@@ -9,11 +11,12 @@ function inline(s) {
     return `\u0000${codes.length - 1}\u0000`;
   });
   s = esc(s);
-  s = s.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, (_, t, u) => `<a href="${u}" data-ext>${t}</a>`);
+  s = s.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, (_, label, u) => `<a href="${u}" data-ext>${label}</a>`);
   s = s.replace(/(^|[\s(])(https?:\/\/[^\s<)]+)/g, (_, pre, u) => `${pre}<a href="${u}" data-ext>${u}</a>`);
   s = s.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
   s = s.replace(/(^|[^*])\*([^*\n]+)\*/g, '$1<em>$2</em>');
   s = s.replace(/~~([^~]+)~~/g, '<del>$1</del>');
+  // eslint-disable-next-line no-control-regex -- \u0000 delimita los trozos de código ya escapados
   s = s.replace(/\u0000(\d+)\u0000/g, (_, i) => `<code>${esc(codes[Number(i)])}</code>`);
   return s;
 }
@@ -38,7 +41,7 @@ export function renderMarkdown(src) {
       while (i < lines.length && !/^\s*```/.test(lines[i])) buf.push(lines[i++]);
       i++;
       out.push(
-        `<div class="code"><div class="code-head"><span>${esc(lang || 'código')}</span><button class="copy" data-copy>Copiar</button></div><pre><code>${esc(buf.join('\n'))}</code></pre></div>`,
+        `<div class="code"><div class="code-head"><span>${esc(lang || t('md.code'))}</span><button class="copy" data-copy>${esc(t('md.copy'))}</button></div><pre><code>${esc(buf.join('\n'))}</code></pre></div>`,
       );
       continue;
     }
@@ -58,7 +61,7 @@ export function renderMarkdown(src) {
         i++;
       }
       const tag = ordered ? 'ol' : 'ul';
-      out.push(`<${tag}>${items.map((t) => `<li>${inline(t)}</li>`).join('')}</${tag}>`);
+      out.push(`<${tag}>${items.map((it) => `<li>${inline(it)}</li>`).join('')}</${tag}>`);
       continue;
     }
     if (/^\s*>\s?/.test(line)) {

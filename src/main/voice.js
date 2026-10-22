@@ -2,22 +2,23 @@
 import { net } from 'electron';
 import { getSecret } from './config.js';
 import { httpError } from './llm/sse.js';
+import { t } from '../shared/i18n/index.js';
 
 export async function transcribe(cfg, bytes, mime = 'audio/webm') {
   const stt = cfg.voice.stt;
-  if (!stt || stt.provider === 'off') throw new Error('El dictado por voz está desactivado en Ajustes → Voz');
+  if (!stt || stt.provider === 'off') throw new Error(t('errors.sttOff'));
   const key = getSecret('stt');
   const base = stt.baseUrl.replace(/\/+$/, '');
   const ext = mime.includes('ogg') ? 'ogg' : mime.includes('wav') ? 'wav' : mime.includes('mp4') ? 'm4a' : 'webm';
   const fields = { model: stt.model || 'whisper-1', response_format: 'json' };
   if (stt.language) fields.language = stt.language;
-  const { body, contentType } = multipart(fields, { name: 'file', filename: `voz.${ext}`, type: mime.split(';')[0], data: bytes });
+  const { body, contentType } = multipart(fields, { name: 'file', filename: `voice.${ext}`, type: mime.split(';')[0], data: bytes });
   const res = await net.fetch(`${base}/audio/transcriptions`, {
     method: 'POST',
     headers: { 'content-type': contentType, ...(key ? { authorization: `Bearer ${key}` } : {}) },
     body,
   });
-  if (!res.ok) throw await httpError(res, 'Transcripción');
+  if (!res.ok) throw await httpError(res, t('labels.transcription'));
   const j = await res.json();
   return (j.text || '').trim();
 }
@@ -43,7 +44,7 @@ export async function synthesize(cfg, text) {
   if (!text.trim() || tts.mode === 'off' || tts.mode === 'system') return null;
   if (tts.mode === 'elevenlabs') {
     const key = getSecret('tts');
-    if (!tts.elevenVoiceId) throw new Error('Falta el Voice ID de ElevenLabs');
+    if (!tts.elevenVoiceId) throw new Error(t('errors.noElevenVoice'));
     const res = await net.fetch(
       `https://api.elevenlabs.io/v1/text-to-speech/${encodeURIComponent(tts.elevenVoiceId)}?output_format=mp3_44100_128`,
       {
@@ -63,7 +64,7 @@ export async function synthesize(cfg, text) {
     headers: { 'content-type': 'application/json', ...(key ? { authorization: `Bearer ${key}` } : {}) },
     body: JSON.stringify({ model: tts.model, voice: tts.voice, input: text, response_format: 'mp3', speed: Number(tts.rate) || 1 }),
   });
-  if (!res.ok) throw await httpError(res, 'Síntesis de voz');
+  if (!res.ok) throw await httpError(res, t('labels.tts'));
   return new Uint8Array(await res.arrayBuffer());
 }
 
@@ -74,7 +75,7 @@ export function speakable(text) {
     .replace(/`([^`]+)`/g, '$1')
     .replace(/!\[[^\]]*\]\([^)]*\)/g, '')
     .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
-    .replace(/https?:\/\/\S+/g, 'el enlace')
+    .replace(/https?:\/\/\S+/g, t('voice.link'))
     .replace(/^#{1,6}\s*/gm, '')
     .replace(/^\s*[-*+]\s+/gm, '')
     .replace(/^\s*\d+\.\s+/gm, '')
@@ -119,7 +120,8 @@ export class SentenceChunker {
     let last = 0;
     for (let i = 0; i < text.length; i++) {
       const c = text[i];
-      const end = c === '\n' || ('.!?…'.includes(c) && /\s/.test(text[i + 1] || ''));
+      // En chino y japonés la frase acaba en 。！？ sin espacio detrás.
+      const end = c === '\n' || '。！？'.includes(c) || ('.!?…'.includes(c) && /\s/.test(text[i + 1] || ''));
       if (end && i + 1 - last >= 2) {
         this.emit(text.slice(last, i + 1));
         last = i + 1;
@@ -133,8 +135,8 @@ export class SentenceChunker {
     return rest;
   }
   emit(s) {
-    const t = s.trim();
-    if (t && /[\p{L}\p{N}]/u.test(t)) this.onSentence(t);
+    const sentence = s.trim();
+    if (sentence && /[\p{L}\p{N}]/u.test(sentence)) this.onSentence(sentence);
   }
   flush() {
     if (!this.inFence) this.emit(this.buf);

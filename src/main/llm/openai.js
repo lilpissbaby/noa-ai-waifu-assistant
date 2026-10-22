@@ -19,7 +19,7 @@ export function toOpenAIMessages(system, history) {
       }
       out.push(msg);
     } else if (m.role === 'tool') {
-      out.push({ role: 'tool', tool_call_id: m.toolCallId, content: m.content || '(sin salida)' });
+      out.push({ role: 'tool', tool_call_id: m.toolCallId, content: m.content || '(no output)' });
     }
   }
   return out;
@@ -48,7 +48,7 @@ export async function streamOpenAI({ profile, apiKey, system, history, tools, si
     headers: {
       'content-type': 'application/json',
       ...authHeaders(apiKey),
-      'HTTP-Referer': 'https://github.com/waifu-desk',
+      'HTTP-Referer': 'https://github.com/lilpissbaby/noa-ai-waifu-assistant',
       'X-Title': 'Waifu Desk',
       ...(extraHeaders || {}),
     },
