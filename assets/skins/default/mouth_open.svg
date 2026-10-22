@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="1000" viewBox="0 0 800 1000">
+  <defs>
+    <linearGradient id="hairBack" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#231a31"/>
+      <stop offset="0.55" stop-color="#33264a"/>
+      <stop offset="0.78" stop-color="#5a2a62"/>
+      <stop offset="1" stop-color="#d0468a"/>
+    </linearGradient>
+    <linearGradient id="lock" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#231a31"/>
+      <stop offset="0.6" stop-color="#33264a"/>
+      <stop offset="1" stop-color="#d0468a"/>
+    </linearGradient>
+    <linearGradient id="bangs" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#2b2140"/>
+      <stop offset="1" stop-color="#231a31"/>
+    </linearGradient>
+    <linearGradient id="iris" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#3a1e6e"/>
+      <stop offset="0.45" stop-color="#8f45d6"/>
+      <stop offset="0.8" stop-color="#e46cc8"/>
+      <stop offset="1" stop-color="#ffa3d6"/>
+    </linearGradient>
+    <linearGradient id="hood" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#3a3348"/>
+      <stop offset="0.35" stop-color="#2a2434"/>
+      <stop offset="1" stop-color="#211c2a"/>
+    </linearGradient>
+    <radialGradient id="blush" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#ff8fb3" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="#ff8fb3" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="neckShade" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#eeb7a8"/>
+      <stop offset="0.45" stop-color="#f7cdbf"/>
+      <stop offset="1" stop-color="#ffe8de"/>
+    </linearGradient>
+    <filter id="soft" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="5"/></filter>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="3"/></filter>
+    <clipPath id="faceClip"><path d="M 238 384 C 236 252 306 186 400 186 C 494 186 564 252 562 384 C 560 458 528 518 470 552 C 442 568 421 574 400 574 C 379 574 358 568 330 552 C 272 518 240 458 238 384 Z"/></clipPath>
+  </defs>
+  <g id="mouth-open">
+    <clipPath id="mclip-open"><path d="M 380 506 Q 400 509 420 505 C 419 528 408 534 400 534 C 392 534 381 528 380 506 Z"/></clipPath>
+    <path d="M 380 506 Q 400 509 420 505 C 419 528 408 534 400 534 C 392 534 381 528 380 506 Z" fill="#5a1a2c"/>
+    <g clip-path="url(#mclip-open)">
+      <ellipse cx="400" cy="536" rx="16" ry="11" fill="#e2788c"/>
+      <rect x="382" y="503" width="36" height="6" fill="#fff6fa" opacity="0.95"/>
+    </g>
+    <path d="M 380 506 Q 400 509 420 505 C 419 528 408 534 400 534 C 392 534 381 528 380 506 Z" fill="none" stroke="#7a2d3e" stroke-width="2.6" stroke-linejoin="round"/>
+  </g>
+</svg>

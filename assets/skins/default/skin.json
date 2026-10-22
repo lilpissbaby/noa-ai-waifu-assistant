@@ -1,0 +1,37 @@
+{
+  "id": "default",
+  "name": "Noa (de serie)",
+  "width": 800,
+  "height": 1000,
+  "files": {
+    "base": "base.svg",
+    "eyesClosed": "eyes_closed.svg",
+    "mouthHalf": "mouth_half.svg",
+    "mouthOpen": "mouth_open.svg"
+  },
+  "rig": {
+    "eyes": [
+      {
+        "x": 326,
+        "y": 404,
+        "w": 118,
+        "h": 124
+      },
+      {
+        "x": 474,
+        "y": 404,
+        "w": 118,
+        "h": 124
+      }
+    ],
+    "mouth": {
+      "x": 400,
+      "y": 512,
+      "w": 40
+    },
+    "neck": {
+      "x": 400,
+      "y": 575
+    }
+  }
+}
