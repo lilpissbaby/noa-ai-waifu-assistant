@@ -1,6 +1,7 @@
 import { icons } from '../shared/icons.js';
 import { SkinRenderer, normalizeRig, loadImage } from '../shared/skin-renderer.js';
-import { Animator } from '../shared/animator.js';
+import { Behaviour } from '../shared/behaviour.js';
+import { Stage } from '../shared/stage.js';
 import { aiCutout, colorKeyCutout, hasTransparency, trimCanvas, guessRig } from './segment.js';
 import { t, setLocale } from '../../shared/i18n/index.js';
 import { applyDom } from '../../shared/i18n/dom.js';
@@ -29,7 +30,8 @@ let saveStatusKey = null;
 
 // ---------------------------------------------------------------- vista previa animada
 const pv = new SkinRenderer($('preview'));
-const anim = new Animator(pv);
+const behaviour = new Behaviour();
+const pvStage = new Stage(pv, behaviour);
 async function refreshPreview(reloadImage = true) {
   if (!finalCanvas || !rig) return;
   if (reloadImage || !pv.skin) {
@@ -38,22 +40,22 @@ async function refreshPreview(reloadImage = true) {
     pv.skin.rig = normalizeRig(rig, finalCanvas.width, finalCanvas.height);
   }
   pv.layout({ x: 10, y: 10, w: 230, h: 290 });
-  anim.start();
+  pvStage.start();
   $('previewBox').classList.remove('hidden');
 }
-$('pvBlink').onclick = () => anim.blink();
+$('pvBlink').onclick = () => behaviour.blink();
 let talking = false;
 const paintTalk = () => ($('pvTalk').textContent = talking ? t('editor.silence') : t('editor.talk'));
 $('pvTalk').onclick = () => {
   talking = !talking;
-  anim.fakeTalkUntil = talking ? performance.now() + 1e9 : 0;
+  behaviour.fakeTalkUntil = talking ? performance.now() + 1e9 : 0;
   paintTalk();
 };
 $('preview').addEventListener('mousemove', (e) => {
   const r = e.currentTarget.getBoundingClientRect();
-  anim.cursor = { x: e.clientX - r.left, y: e.clientY - r.top };
+  behaviour.cursor = { x: e.clientX - r.left, y: e.clientY - r.top };
 });
-$('preview').addEventListener('mouseleave', () => (anim.cursor = null));
+$('preview').addEventListener('mouseleave', () => (behaviour.cursor = null));
 
 // ---------------------------------------------------------------- utilidades
 function enable(step, on = true) {

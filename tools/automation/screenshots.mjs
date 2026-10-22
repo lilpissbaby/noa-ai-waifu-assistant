@@ -104,11 +104,11 @@ export default async function screenshots(api) {
   await conversation(api, PROMPTS.es.hermes);
   await chat.webContents.executeJavaScript('document.activeElement?.blur(); const l = document.getElementById("log"); l.scrollTop = l.scrollHeight;');
   api.setState('talking');
-  await avatar.webContents.executeJavaScript('window.__wd.anim.fakeTalkUntil = performance.now() + 60000; window.__wd.anim.cursor = { x: 30, y: 80 };');
+  await avatar.webContents.executeJavaScript('window.__wd.behaviour.fakeTalkUntil = performance.now() + 60000; window.__wd.behaviour.cursor = { x: 30, y: 80 };');
   await sleep(800);
   const avatarPng = await png(avatar);
   const chatPng = await png(chat);
-  await avatar.webContents.executeJavaScript('window.__wd.anim.fakeTalkUntil = 0');
+  await avatar.webContents.executeJavaScript('window.__wd.behaviour.fakeTalkUntil = 0');
   api.setState('idle');
   const a = imageSize(avatarPng);
   const c = imageSize(chatPng);
@@ -145,10 +145,10 @@ export default async function screenshots(api) {
     api.setState(st, label);
     if (st === 'listening') await avatar.webContents.executeJavaScript(`(() => { const m = document.getElementById('mic'); m.classList.remove('hidden'); m.style.setProperty('--lvl', '0.6'); })()`);
     else await avatar.webContents.executeJavaScript(`document.getElementById('mic').classList.add('hidden')`);
-    if (st === 'talking') await avatar.webContents.executeJavaScript('window.__wd.anim.fakeTalkUntil = performance.now() + 60000');
+    if (st === 'talking') await avatar.webContents.executeJavaScript('window.__wd.behaviour.fakeTalkUntil = performance.now() + 60000');
     await sleep(st === 'talking' ? 900 : 600);
     statePngs.push(await png(avatar));
-    await avatar.webContents.executeJavaScript('window.__wd.anim.fakeTalkUntil = 0');
+    await avatar.webContents.executeJavaScript('window.__wd.behaviour.fakeTalkUntil = 0');
   }
   api.setState('idle');
   await avatar.webContents.executeJavaScript(`document.getElementById('mic').classList.add('hidden')`);

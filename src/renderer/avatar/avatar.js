@@ -1,5 +1,6 @@
 import { SkinRenderer } from '../shared/skin-renderer.js';
-import { Animator } from '../shared/animator.js';
+import { Behaviour } from '../shared/behaviour.js';
+import { Stage } from '../shared/stage.js';
 import { t, setLocale } from '../../shared/i18n/index.js';
 import { applyDom } from '../../shared/i18n/dom.js';
 
@@ -14,8 +15,15 @@ const BASE_H = 330;
 const isLinux = wd.platform === 'linux';
 
 const renderer = new SkinRenderer(canvas);
-const anim = new Animator(renderer);
-window.__wd = { renderer, anim };
+const behaviour = new Behaviour();
+const stage = new Stage(renderer, behaviour);
+window.__wd = {
+  get renderer() {
+    return stage.renderer;
+  },
+  behaviour,
+  stage,
+};
 let cfg = null;
 let skin = null;
 
@@ -23,7 +31,7 @@ let skin = null;
 function desiredSize() {
   const scale = cfg?.ui?.scale || 1;
   const h = Math.round(BASE_H * scale);
-  const aspect = skin ? skin.width / skin.height : 0.75;
+  const aspect = skin ? renderer.aspect : 0.75;
   const w = Math.max(Math.round(h * aspect) + 16, 210);
   return { width: w, height: h + TOP };
 }
@@ -31,8 +39,9 @@ function desiredSize() {
 function relayout() {
   renderer.layout({ x: 8, y: TOP, w: window.innerWidth - 16, h: window.innerHeight - TOP });
   // cola del bocadillo apuntando a la cabeza
-  if (skin) {
-    const [hx] = renderer.imageToCss(renderer.skin.rig.neck.x, 0);
+  const head = skin && renderer.headAnchorCss();
+  if (head) {
+    const [hx] = head;
     bubble.style.setProperty('--tail-x', `${Math.max(16, Math.min(hx - bubble.offsetLeft, bubble.offsetWidth - 16))}px`);
   }
   updateShape();
@@ -43,7 +52,7 @@ async function loadSkin(s) {
   const size = desiredSize();
   wd.send('avatar:resize', size);
   setTimeout(relayout, 60);
-  anim.start();
+  stage.start();
 }
 
 window.addEventListener('resize', relayout);
@@ -65,12 +74,12 @@ let currentState = 'idle';
 function setState({ state, label }) {
   currentState = state;
   document.body.dataset.state = state;
-  anim.state = state;
+  behaviour.state = state;
   const show = state in STATE_TEXT;
   bubble.classList.toggle('hidden', !show);
   bubble.classList.toggle('static', state === 'error');
   bubbleText.textContent = label || (STATE_TEXT[state] ? t(STATE_TEXT[state]) : '');
-  if (state === 'idle' && prevState === 'talking') anim.bounce();
+  if (state === 'idle' && prevState === 'talking') behaviour.trigger('done');
   prevState = state;
   requestAnimationFrame(relayout);
 }
@@ -140,7 +149,7 @@ canvas.addEventListener('pointerup', (e) => {
   }
   clickTimer = setTimeout(() => {
     clickTimer = null;
-    anim.bounce();
+    behaviour.trigger('greet');
     wd.send('avatar:click');
   }, 240);
 });
@@ -169,7 +178,7 @@ function updateShape() {
 
 // ---------------------------------------------------------------- cursor
 wd.on('avatar:cursor', (p) => {
-  anim.cursor = p;
+  behaviour.cursor = p;
 });
 
 // ---------------------------------------------------------------- voz: grabación
@@ -268,7 +277,7 @@ let playing = null;
 let analyser = null;
 const levelBuf = new Float32Array(512);
 
-anim.levelFn = () => {
+behaviour.levelFn = () => {
   if (!analyser || !playing || playing.type !== 'audio') return 0;
   analyser.getFloatTimeDomainData(levelBuf);
   let sum = 0;
@@ -320,17 +329,17 @@ function sayText(item) {
   u.rate = Number(item.rate) || 1;
   u.pitch = Number(item.pitch) || 1;
   u.onstart = () => {
-    anim.fakeTalkUntil = performance.now() + 60000;
+    behaviour.fakeTalkUntil = performance.now() + 60000;
   };
   u.onend = u.onerror = () => {
-    anim.fakeTalkUntil = 0;
+    behaviour.fakeTalkUntil = 0;
     finish(item);
   };
   synth.speak(u);
   // Si no hay voces instaladas onstart nunca llega: no bloquear la cola.
   setTimeout(() => {
     if (playing === item && !synth.speaking) {
-      anim.fakeTalkUntil = 0;
+      behaviour.fakeTalkUntil = 0;
       finish(item);
     }
   }, 4000);
@@ -339,7 +348,7 @@ function sayText(item) {
 function finish(item) {
   if (playing !== item) return;
   playing = null;
-  if (!queue.length) anim.bounce();
+  if (!queue.length) behaviour.trigger('done');
   pump();
 }
 
@@ -354,7 +363,7 @@ function stopPlayback() {
   }
   playing = null;
   window.speechSynthesis.cancel();
-  anim.fakeTalkUntil = 0;
+  behaviour.fakeTalkUntil = 0;
 }
 
 wd.on('tts:play', ({ id, audio }) => {

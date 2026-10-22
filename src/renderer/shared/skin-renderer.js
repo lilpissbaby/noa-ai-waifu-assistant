@@ -176,6 +176,7 @@ const hexToRgb = (hex) => {
 
 export class SkinRenderer {
   constructor(canvas) {
+    this.kind = '2d';
     this.canvas = canvas;
     this.textures = {};
     this.params = { blink: 0, mouth: 0, headAngle: 0, headX: 0, headY: 0, breath: 0, bounce: 0, tint: 0, tintColor: [1, 1, 1] };
@@ -328,6 +329,33 @@ export class SkinRenderer {
     const x = box.x + (box.w - W * s) / 2;
     const y = box.y + box.h - H * s; // apoyada abajo
     this.view = { x, y, s, dpr };
+  }
+
+  get aspect() {
+    return this.skin ? this.skin.width / this.skin.height : 0.75;
+  }
+
+  // Punto de la cabeza en px CSS: cola del bocadillo y origen de la mirada.
+  headAnchorCss() {
+    if (!this.skin) return null;
+    return this.imageToCss(this.skin.rig.neck.x, this.skin.rig.neck.y * 0.6);
+  }
+
+  // 0 = dibujar en cada fotograma.
+  frameInterval() {
+    return 0;
+  }
+
+  dispose() {
+    const gl = this.gl;
+    if (!gl) return;
+    for (const t of Object.values(this.textures)) gl.deleteTexture(t);
+    this.textures = {};
+    if (this.vao) gl.deleteVertexArray(this.vao);
+    if (this.vbo) gl.deleteBuffer(this.vbo);
+    if (this.ibo) gl.deleteBuffer(this.ibo);
+    gl.deleteProgram(this.prog);
+    this.skin = null;
   }
 
   // Señales de Behaviour -> parámetros de la malla.

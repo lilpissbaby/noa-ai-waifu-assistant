@@ -106,3 +106,48 @@ test('talking: con boca abierta o con charla simulada', () => {
   b.fakeTalkUntil = 5000;
   assert.equal(b.tick(20, null).talking, true);
 });
+
+// requestAnimationFrame falso: se ejecuta a mano con flush().
+function fakeRaf() {
+  let queue = [];
+  globalThis.requestAnimationFrame = (cb) => queue.push(cb);
+  return (now) => {
+    const q = queue;
+    queue = [];
+    q.forEach((cb) => cb(now));
+  };
+}
+function fakeRenderer(interval = 0) {
+  return { renders: 0, applied: 0, headAnchorCss: () => [0, 0], frameInterval: () => interval, apply() { this.applied++; }, render() { this.renders++; } };
+}
+
+test('Stage: un solo bucle aunque se llame start() dos veces', async () => {
+  const { Stage } = await import('../src/renderer/shared/stage.js');
+  const flush = fakeRaf();
+  const r = fakeRenderer();
+  const stage = new Stage(r, new Behaviour({ now: 0 }));
+  stage.start();
+  stage.start();
+  flush(16);
+  flush(33);
+  assert.equal(r.renders, 2);
+  stage.stop();
+  stage.start();
+  flush(50);
+  flush(66);
+  assert.equal(r.renders, 4, 'stop()+start() no debe dejar dos bucles');
+  stage.stop();
+  flush(83);
+  assert.equal(r.renders, 4);
+});
+
+test('Stage: respeta frameInterval del renderizador', async () => {
+  const { Stage } = await import('../src/renderer/shared/stage.js');
+  const flush = fakeRaf();
+  const r = fakeRenderer(1000 / 30);
+  const stage = new Stage(r, new Behaviour({ now: 0 }));
+  stage.start();
+  for (let i = 1; i <= 60; i++) flush(i * (1000 / 60));
+  stage.stop();
+  assert.ok(r.renders >= 29 && r.renders <= 31, `renders=${r.renders}`);
+});
