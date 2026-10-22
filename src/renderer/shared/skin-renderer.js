@@ -3,6 +3,7 @@
 //  - parpadeo: capa "ojos cerrados" o párpado procedural dentro de los óvalos de los ojos
 //  - boca: capas "boca media/abierta" o boca procedural sobre el punto de la boca
 // Rig (en píxeles de la imagen): { eyes:[{x,y,w,h},{...}], mouth:{x,y,w}, neck:{x,y} }
+import { drive2d } from './drive-2d.js';
 
 const VS = `#version 300 es
 precision highp float;
@@ -327,6 +328,11 @@ export class SkinRenderer {
     const x = box.x + (box.w - W * s) / 2;
     const y = box.y + box.h - H * s; // apoyada abajo
     this.view = { x, y, s, dpr };
+  }
+
+  // Señales de Behaviour -> parámetros de la malla.
+  apply(signals) {
+    if (this.skin) Object.assign(this.params, drive2d(signals, this.skin.height));
   }
 
   cssToImage(x, y) {
