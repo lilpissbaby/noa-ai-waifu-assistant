@@ -64,13 +64,15 @@ export function lookOffsets(s) {
 
 const _e = new Euler();
 const _q = new Quaternion();
-function rotate(node, x, y, z) {
+// vrm0: el modelo mira a −Z en su espacio local, así que los giros en X y Z cambian de signo.
+function rotate(node, x, y, z, vrm0) {
   if (!node) return;
-  _q.setFromEuler(_e.set(x, y, z));
+  _q.setFromEuler(vrm0 ? _e.set(-x, y, -z) : _e.set(x, y, z));
   node.quaternion.multiply(_q);
 }
 
-// ctx.hipsRestY: altura de la cadera en reposo (para el saltito). Todo es opcional en el modelo.
+// ctx.hipsRestY: altura de la cadera en reposo (para el saltito); ctx.vrm0: modelo VRM 0.x.
+// Todo es opcional en el modelo.
 export function applyToVrm(vrm, s, ctx = {}) {
   const em = vrm.expressionManager;
   if (em) {
@@ -84,12 +86,13 @@ export function applyToVrm(vrm, s, ctx = {}) {
     vrm.lookAt.pitch = o.eyes.pitch / DEG;
   }
   const bone = (n) => vrm.humanoid?.getNormalizedBoneNode(n) || null;
-  rotate(bone('neck'), o.neck.x, o.neck.y, o.neck.z);
-  rotate(bone('head'), o.head.x, o.head.y, o.head.z);
+  const v0 = !!ctx.vrm0;
+  rotate(bone('neck'), o.neck.x, o.neck.y, o.neck.z, v0);
+  rotate(bone('head'), o.head.x, o.head.y, o.head.z, v0);
   // respiración: pecho y hombros
-  rotate(bone('chest') || bone('spine'), -s.breath * 0.012, 0, 0);
-  rotate(bone('leftShoulder'), 0, 0, s.breath * 0.015);
-  rotate(bone('rightShoulder'), 0, 0, -s.breath * 0.015);
+  rotate(bone('chest') || bone('spine'), -s.breath * 0.012, 0, 0, v0);
+  rotate(bone('leftShoulder'), 0, 0, s.breath * 0.015, v0);
+  rotate(bone('rightShoulder'), 0, 0, -s.breath * 0.015, v0);
   // saltito
   const hips = bone('hips');
   if (hips && s.hop > 0 && ctx.hipsRestY != null) hips.position.y += Math.abs(Math.sin(s.hop * Math.PI * 1.5)) * 0.035 * s.hop;

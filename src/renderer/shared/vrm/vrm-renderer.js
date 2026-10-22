@@ -15,9 +15,9 @@ const FOV = 20;
 const STEP = 1 / 60;
 const _v = new THREE.Vector3();
 
-// Biblioteca de animaciones propias: { estado o gesto: Motion[] }.
-export function defaultLibrary() {
-  const motions = Object.fromEntries(Object.entries(CLIPS).map(([k, d]) => [k, motionFromDef(d)]));
+// Biblioteca de animaciones propias: { estado o gesto: Motion[] } (vrm0: en el espacio de VRM 0.x).
+export function defaultLibrary(vrm0 = false) {
+  const motions = Object.fromEntries(Object.entries(CLIPS).map(([k, d]) => [k, motionFromDef(d, { vrm0 })]));
   return Object.fromEntries(Object.entries(DEFAULT_ASSIGN).map(([k, names]) => [k, names.map((n) => motions[n])]));
 }
 
@@ -67,6 +67,9 @@ export class VrmRenderer {
       VRMUtils.deepDispose(this.vrm.scene);
     }
     this.vrm = vrm;
+    this.vrm0 = vrm.meta?.metaVersion === '0';
+    this.player.vrm0 = this.vrm0;
+    this.player.setLibrary(defaultLibrary(this.vrm0));
     this.baseYaw = vrm.scene.rotation.y;
     this.scene.add(vrm.scene);
     this.dims = this.measure();
@@ -136,12 +139,12 @@ export class VrmRenderer {
     }
     vrm.humanoid.resetNormalizedPose();
     const out = this.player.update(dt, this.signals);
-    for (const bone of Object.keys(BASE_POSE)) if (!out.pose.has(bone)) vrm.humanoid.getNormalizedBoneNode(bone)?.quaternion.copy(baseQuat(bone));
+    for (const bone of Object.keys(BASE_POSE)) if (!out.pose.has(bone)) vrm.humanoid.getNormalizedBoneNode(bone)?.quaternion.copy(baseQuat(bone, this.vrm0));
     for (const [bone, q] of out.pose) vrm.humanoid.getNormalizedBoneNode(bone)?.quaternion.copy(q);
     const hips = vrm.humanoid.getNormalizedBoneNode('hips');
     if (hips) hips.position.y += out.hipsY;
     this.busy = out.busy;
-    applyToVrm(vrm, this.signals, { hipsRestY: this.hipsRestY });
+    applyToVrm(vrm, this.signals, { hipsRestY: this.hipsRestY, vrm0: this.vrm0 });
     // Física de pelo y ropa a paso fijo (máx. 3 subpasos por fotograma).
     const steps = Math.max(1, Math.min(3, Math.round(dt / STEP)));
     for (let i = 0; i < steps; i++) vrm.update(STEP);
@@ -195,7 +198,7 @@ export class VrmRenderer {
   // Sustituye clips propios por movimientos importados según la asignación de la configuración.
   // assign = { idle: id|null, …, talkGesture: [id…] }; motions = lista de skin:motions-list.
   async setMotionAssign(assign = {}, motions = []) {
-    const lib = defaultLibrary();
+    const lib = defaultLibrary(this.vrm0);
     if (this.vrm) {
       const { loadMotionFile } = await import('./import-clip.js');
       const byId = new Map(motions.map((m) => [m.id, m]));

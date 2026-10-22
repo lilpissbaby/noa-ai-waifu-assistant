@@ -2,7 +2,7 @@
 // con fundidos, y gestos sueltos encima. Devuelve rotaciones locales absolutas de los huesos
 // normalizados; el renderizador las aplica y luego suma la capa procedural (mirada, respiración).
 import { Quaternion } from 'three';
-import { baseQuat, quatFromDeg } from './pose.js';
+import { baseQuat, quatFromDeg, toVrm0 } from './pose.js';
 
 const STATE_FADE = 0.4;
 const GESTURE_FADE = 0.3;
@@ -41,12 +41,16 @@ function segment(keys, t) {
 }
 
 // Clip propio: { name, duration, loop, bones: { hueso: [[t, x°, y°, z°], …] }, hipsY?: [[t, m], …] }.
-// Las rotaciones son relativas a la pose base.
-export function motionFromDef(def) {
+// Las rotaciones son relativas a la pose base y están pensadas para VRM 1.0; con vrm0 se pasan al
+// espacio de los VRM 0.x.
+export function motionFromDef(def, { vrm0 = false } = {}) {
   const tracks = Object.entries(def.bones).map(([bone, keys]) => ({
     bone,
     times: keys,
-    quats: keys.map((k) => baseQuat(bone).clone().multiply(quatFromDeg([k[1], k[2], k[3]]))),
+    quats: keys.map((k) => {
+      const q = baseQuat(bone).clone().multiply(quatFromDeg([k[1], k[2], k[3]]));
+      return vrm0 ? toVrm0(q) : q;
+    }),
   }));
   const hips = def.hipsY;
   return new Motion({
@@ -106,16 +110,17 @@ export function motionFromClip(clip, vrm, name = clip.name) {
 const asList = (v) => (Array.isArray(v) ? v.filter(Boolean) : v ? [v] : []);
 
 // Mezcla dos poses: b con peso w sobre a (los huesos que faltan en a toman la pose base).
-function blendInto(target, pose, w) {
+function blendInto(target, pose, w, vrm0) {
   for (const [bone, q] of pose) {
-    const from = target.get(bone) || baseQuat(bone).clone();
+    const from = target.get(bone) || baseQuat(bone, vrm0).clone();
     target.set(bone, w >= 1 ? q.clone() : from.slerp(q, w));
   }
 }
 
 export class MotionPlayer {
-  constructor({ random = Math.random } = {}) {
+  constructor({ random = Math.random, vrm0 = false } = {}) {
     this.random = random;
+    this.vrm0 = vrm0; // modelo VRM 0.x: la pose base va en su espacio
     this.lib = {};
     this.time = 0;
     this.base = null; // { key, motion, t }
@@ -203,18 +208,18 @@ export class MotionPlayer {
     const pose = new Map();
     let hipsY = 0;
     if (this.prev?.motion) {
-      blendInto(pose, this.prev.motion.sample(this.prev.t), 1);
+      blendInto(pose, this.prev.motion.sample(this.prev.t), 1, this.vrm0);
       hipsY = this.prev.motion.hipsY(this.prev.t);
     }
     if (this.base.motion) {
       const w = this.prev ? smooth(this.fade) : 1;
-      blendInto(pose, this.base.motion.sample(this.base.t), w);
+      blendInto(pose, this.base.motion.sample(this.base.t), w, this.vrm0);
       hipsY += (this.base.motion.hipsY(this.base.t) - hipsY) * w;
     }
     if (this.gesture) {
       const { motion, t } = this.gesture;
       const w = smooth(Math.max(0, Math.min(1, t / GESTURE_FADE, (motion.duration - t) / GESTURE_FADE)));
-      blendInto(pose, motion.sample(t), w);
+      blendInto(pose, motion.sample(t), w, this.vrm0);
       hipsY += (motion.hipsY(t) - hipsY) * w;
     }
     return { pose, hipsY, busy: !!this.prev || !!this.gesture, started };
