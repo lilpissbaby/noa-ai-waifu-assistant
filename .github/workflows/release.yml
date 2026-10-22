@@ -1,0 +1,108 @@
+# Publica una release de GitHub con los ejecutables cada vez que hay una versión nueva.
+#
+# Cómo se lanza una versión: sube «version» en package.json (y su apartado en CHANGELOG.md) y haz
+# push a main. Cuando el CI de ese commit termina en verde, este workflow crea el tag vX.Y.Z y la
+# release con los ejecutables que ya compiló el CI. También vale empujar tú el tag vX.Y.Z.
+#   - X.Y.Z             -> release normal (versión definitiva)
+#   - X.Y.Z-beta.1, -rc -> marcada como prerelease
+# Si la release de esa versión ya existe, no hace nada.
+name: Release
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: ID de una ejecución correcta del CI en main (vacío = la última)
+        required: false
+
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: Publicar release
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.event == 'push' &&
+       (github.event.workflow_run.head_branch == 'main' || startsWith(github.event.workflow_run.head_branch, 'v')))
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Elegir la ejecución del CI
+        id: run
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_run" ]; then
+            echo "id=${{ github.event.workflow_run.id }}" >> "$GITHUB_OUTPUT"
+            echo "sha=${{ github.event.workflow_run.head_sha }}" >> "$GITHUB_OUTPUT"
+            echo "ref=${{ github.event.workflow_run.head_branch }}" >> "$GITHUB_OUTPUT"
+          else
+            ID="${{ inputs.run_id }}"
+            if [ -z "$ID" ]; then
+              ID=$(gh run list -R "$GITHUB_REPOSITORY" --workflow ci.yml --branch main --event push --status success --limit 1 --json databaseId --jq '.[0].databaseId')
+            fi
+            [ -n "$ID" ] || { echo "::error::No hay ninguna ejecución correcta del CI en main"; exit 1; }
+            SHA=$(gh run view "$ID" -R "$GITHUB_REPOSITORY" --json headSha --jq .headSha)
+            echo "id=$ID" >> "$GITHUB_OUTPUT"; echo "sha=$SHA" >> "$GITHUB_OUTPUT"; echo "ref=main" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ steps.run.outputs.sha }}
+
+      - name: Versión y tag
+        id: meta
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          TAG="v$VERSION"
+          REF="${{ steps.run.outputs.ref }}"
+          if [[ "$REF" == v* && "$REF" != "$TAG" ]]; then
+            echo "::error::El tag $REF no coincide con la versión de package.json ($VERSION)"; exit 1
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          if gh release view "$TAG" -R "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+            echo "::notice::La release $TAG ya existe; no hay nada que publicar."
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+          if [[ "$VERSION" == *-* ]]; then echo "prerelease=true" >> "$GITHUB_OUTPUT"; else echo "prerelease=false" >> "$GITHUB_OUTPUT"; fi
+
+      - name: Descargar los ejecutables del CI
+        if: steps.meta.outputs.exists == 'false'
+        uses: actions/download-artifact@v7
+        with:
+          name: waifu-desk-${{ steps.meta.outputs.version }}
+          path: dist
+          run-id: ${{ steps.run.outputs.id }}
+          github-token: ${{ github.token }}
+
+      - name: Notas de la versión (CHANGELOG.md)
+        if: steps.meta.outputs.exists == 'false'
+        run: |
+          node tools/release-notes.mjs "${{ steps.meta.outputs.version }}" > notes.md
+          cat notes.md
+
+      - name: Crear la release
+        if: steps.meta.outputs.exists == 'false'
+        run: |
+          ls -la dist
+          FLAGS=""
+          if [ "${{ steps.meta.outputs.prerelease }}" = "true" ]; then FLAGS="--prerelease"; else FLAGS="--latest"; fi
+          gh release create "${{ steps.meta.outputs.tag }}" dist/* \
+            -R "$GITHUB_REPOSITORY" \
+            --target "${{ steps.run.outputs.sha }}" \
+            --title "Waifu Desk ${{ steps.meta.outputs.version }}" \
+            --notes-file notes.md $FLAGS
+          echo "::notice::Publicada ${{ steps.meta.outputs.tag }}"

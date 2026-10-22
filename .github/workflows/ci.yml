@@ -1,0 +1,89 @@
+# Integración continua: en cada push y en cada pull request.
+#   checks   -> lint, tests unitarios y prueba de humo de la app real (Linux, con Xvfb)
+#   windows  -> tests y prueba de humo en Windows de verdad
+#   build    -> ejecutables de Linux (AppImage, .deb) y Windows (instalador, .zip) como artefacto
+# El workflow «Release» reutiliza el artefacto de este cuando sube la versión de package.json.
+name: CI
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  checks:
+    name: Lint, tests y prueba de humo (Linux)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm test
+      - name: Dependencias para Electron sin pantalla
+        run: sudo apt-get update -q && sudo apt-get install -y -q xvfb
+      - name: Prueba de humo (5 idiomas + conversación con herramientas)
+        run: xvfb-run -a -s "-screen 0 1920x1080x24" npm run smoke
+
+  windows:
+    name: Tests y prueba de humo (Windows)
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: npm run smoke
+
+  build:
+    name: Ejecutables
+    needs: checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+      - name: makensis (instalador de Windows sin Wine)
+        run: sudo apt-get update -q && sudo apt-get install -y -q nsis
+      - run: npm ci
+      - name: Versión
+        id: version
+        run: echo "version=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
+      - name: Linux (AppImage + .deb)
+        run: npm run dist:linux
+      - name: Windows (instalador NSIS + .zip)
+        run: npm run dist:win
+      - name: Sumas SHA-256
+        working-directory: dist
+        run: sha256sum *.AppImage *.deb *.exe *.zip | tee SHA256SUMS.txt
+      - uses: actions/upload-artifact@v6
+        with:
+          name: waifu-desk-${{ steps.version.outputs.version }}
+          path: |
+            dist/*.AppImage
+            dist/*.deb
+            dist/*.exe
+            dist/*.zip
+            dist/SHA256SUMS.txt
+          if-no-files-found: error
+          retention-days: 14
