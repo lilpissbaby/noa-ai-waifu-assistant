@@ -1,0 +1,254 @@
+// Genera las capturas del README en docs/screenshots/ con la app real y el servidor simulado.
+// Uso (en Linux sin pantalla):
+//   xvfb-run -a -s "-screen 0 3840x2400x24" npm run screenshots
+import fs from 'node:fs';
+import path from 'node:path';
+import { BrowserWindow } from 'electron';
+import { SUPPORTED, tIn } from '../../src/shared/i18n/index.js';
+import { startMockServer, mockConfigPatch } from './mock-server.mjs';
+import { sleep, waitForWindow, waitForChat, setLanguage } from './common.mjs';
+
+const OUT = path.resolve(import.meta.dirname, '..', '..', 'docs', 'screenshots');
+
+// Mensajes de ejemplo en cada idioma (las palabras clave activan las respuestas del simulador).
+const PROMPTS = {
+  es: { paperclip: 'Crea una tarea en Paperclip para el CTO: migrar Postgres a la 17, prioridad alta, y despiértalo.', hermes: 'Pídele a Hermes que revise los contenedores del VPS' },
+  en: { paperclip: 'Create a Paperclip task for the CTO: migrate Postgres to 17, high priority, and wake them up.', hermes: 'Ask Hermes to check the containers on the VPS' },
+  ru: { paperclip: 'Создай задачу в Paperclip для CTO: перевести Postgres на 17, высокий приоритет, и разбуди его.', hermes: 'Попроси Hermes проверить контейнеры на VPS' },
+  uk: { paperclip: 'Створи задачу в Paperclip для CTO: перевести Postgres на 17, високий пріоритет, і розбуди його.', hermes: 'Попроси Hermes перевірити контейнери на VPS' },
+  zh: { paperclip: '在 Paperclip 里给 CTO 建个任务：把 Postgres 升级到 17，高优先级，然后唤醒它。', hermes: '让 Hermes 检查一下 VPS 上的容器' },
+};
+
+const png = async (win) => (await win.webContents.capturePage()).toPNG();
+const dataUrl = (buf) => `data:image/png;base64,${buf.toString('base64')}`;
+const save = (name, buf) => fs.writeFileSync(path.join(OUT, name), buf);
+
+// Monta una imagen en un <canvas> (sin límite de tamaño de ventana y a resolución completa).
+// Por defecto en JPEG: los degradados del fondo pesan mucho en PNG.
+// layers: { wallpaper: true } | { img, x, y, w, h, radius, shadow } | { rect, x, y, w, h, radius, fill }
+//         | { text, x, y, font, fill, align }
+async function compose(width, height, layers, type = 'image/jpeg') {
+  const w = new BrowserWindow({ width: 200, height: 200, show: false, webPreferences: { offscreen: true } });
+  await w.loadURL('data:text/html,<body></body>');
+  const prepared = layers.map((l) => (l.img ? { ...l, img: dataUrl(l.img) } : l));
+  const out = await w.webContents.executeJavaScript(`(async () => {
+    const W = ${width}, H = ${height};
+    const c = document.createElement('canvas');
+    c.width = W; c.height = H;
+    const ctx = c.getContext('2d');
+    const rr = (x, y, w, h, r) => { ctx.beginPath(); ctx.roundRect(x, y, w, h, r || 0); };
+    for (const l of ${JSON.stringify(prepared)}) {
+      ctx.save();
+      if (l.wallpaper) {
+        const g = ctx.createLinearGradient(0, 0, W * 0.6, H);
+        g.addColorStop(0, '#141026'); g.addColorStop(0.45, '#1c1438'); g.addColorStop(1, '#26123a');
+        ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+        for (const [x, y, r, col] of [[0.78, 1.08, 0.62, 'rgba(255,79,154,0.36)'], [0.08, -0.1, 0.5, 'rgba(120,110,255,0.38)'], [0.45, 0.4, 0.4, 'rgba(60,200,255,0.09)']]) {
+          const rg = ctx.createRadialGradient(x * W, y * H, 0, x * W, y * H, r * Math.max(W, H));
+          rg.addColorStop(0, col); rg.addColorStop(1, 'rgba(0,0,0,0)');
+          ctx.fillStyle = rg; ctx.fillRect(0, 0, W, H);
+        }
+      } else if (l.img) {
+        const im = new Image(); im.src = l.img; await im.decode();
+        const w = l.w ?? im.naturalWidth, h = l.h ?? im.naturalHeight;
+        if (l.shadow) { ctx.shadowColor = 'rgba(0,0,0,0.55)'; ctx.shadowBlur = l.shadow; ctx.shadowOffsetY = l.shadow / 3; rr(l.x, l.y, w, h, l.radius); ctx.fillStyle = '#15121c'; ctx.fill(); ctx.shadowColor = 'transparent'; }
+        if (l.radius) { rr(l.x, l.y, w, h, l.radius); ctx.clip(); }
+        ctx.drawImage(im, l.x, l.y, w, h);
+      } else if (l.rect) {
+        rr(l.x, l.y, l.w, l.h, l.radius); ctx.fillStyle = l.fill; ctx.fill();
+      } else if (l.text) {
+        ctx.font = l.font; ctx.fillStyle = l.fill; ctx.textAlign = l.align || 'left'; ctx.fillText(l.text, l.x, l.y);
+      }
+      ctx.restore();
+    }
+    return c.toDataURL(${JSON.stringify(type)}, 0.9);
+  })()`);
+  w.destroy();
+  return Buffer.from(out.split(',')[1], 'base64');
+}
+
+async function conversation(api, text) {
+  const done = waitForChat(api, (e) => e.type === 'done' || e.type === 'error', 30000);
+  await api.sendMessage(text);
+  const end = await done;
+  if (end.type === 'error') throw new Error(end.message);
+  await sleep(500);
+}
+
+export default async function screenshots(api) {
+  fs.mkdirSync(OUT, { recursive: true });
+  const mock = await startMockServer();
+  api.patchConfig(mockConfigPatch(mock.base));
+  api.patchConfig({ ui: { alwaysOnTop: false }, assistant: { personality: tIn('es', 'defaults.personality') }, voice: { stt: { language: 'es' } } });
+  api.applyUiConfig();
+  api.broadcast('cfg:changed', api.publicConfig());
+  const avatar = api.wins.avatar;
+  await waitForWindow(avatar, 'window.__wd?.renderer?.skin');
+  const dpr = await avatar.webContents.executeJavaScript('devicePixelRatio');
+  const px = (n) => Math.round(n * dpr);
+  const written = [];
+  const shot = (name, buf) => {
+    save(name, buf);
+    written.push(name);
+  };
+
+  // ------------------------------------------------ 1. escritorio: avatar + chat con Paperclip y Hermes
+  await setLanguage(api, 'es');
+  api.toggleChat(true);
+  await sleep(500);
+  const chat = api.wins.chat;
+  await waitForWindow(chat, 'document.querySelector("#hint").textContent.length > 0');
+  chat.setSize(440, 700);
+  api.newConversation();
+  await conversation(api, PROMPTS.es.paperclip);
+  await conversation(api, PROMPTS.es.hermes);
+  await chat.webContents.executeJavaScript('document.activeElement?.blur(); const l = document.getElementById("log"); l.scrollTop = l.scrollHeight;');
+  api.setState('talking');
+  await avatar.webContents.executeJavaScript('window.__wd.anim.fakeTalkUntil = performance.now() + 60000; window.__wd.anim.cursor = { x: 30, y: 80 };');
+  await sleep(800);
+  const avatarPng = await png(avatar);
+  const chatPng = await png(chat);
+  await avatar.webContents.executeJavaScript('window.__wd.anim.fakeTalkUntil = 0');
+  api.setState('idle');
+  const a = imageSize(avatarPng);
+  const c = imageSize(chatPng);
+  {
+    const W = px(1400);
+    const H = px(860);
+    const bar = px(48);
+    const icons = ['Proyectos', 'VPS', 'Notas'].flatMap((name, i) => [
+      { rect: true, x: px(40), y: px(30 + i * 92), w: px(46), h: px(38), radius: px(9), fill: '#f0b54b' },
+      { text: name, x: px(63), y: px(30 + i * 92 + 58), font: `${px(12)}px "Segoe UI", system-ui, sans-serif`, fill: '#d9d3ea', align: 'center' },
+    ]);
+    shot(
+      'desktop.jpg',
+      await compose(W, H, [
+        { wallpaper: true },
+        ...icons,
+        { img: chatPng, x: W - a.width - c.width - px(16), y: H - bar - c.height - px(18), radius: px(12), shadow: px(40) },
+        { img: avatarPng, x: W - a.width - px(24), y: H - bar - a.height },
+        { rect: true, x: 0, y: H - bar, w: W, h: bar, fill: 'rgba(18,14,30,0.85)' },
+      ]),
+    );
+  }
+
+  // ------------------------------------------------ 2. estados del avatar
+  const states = [
+    ['idle', ''],
+    ['listening', ''],
+    ['thinking', ''],
+    ['working', 'Paperclip…'],
+    ['talking', ''],
+  ];
+  const statePngs = [];
+  for (const [st, label] of states) {
+    api.setState(st, label);
+    if (st === 'listening') await avatar.webContents.executeJavaScript(`(() => { const m = document.getElementById('mic'); m.classList.remove('hidden'); m.style.setProperty('--lvl', '0.6'); })()`);
+    else await avatar.webContents.executeJavaScript(`document.getElementById('mic').classList.add('hidden')`);
+    if (st === 'talking') await avatar.webContents.executeJavaScript('window.__wd.anim.fakeTalkUntil = performance.now() + 60000');
+    await sleep(st === 'talking' ? 900 : 600);
+    statePngs.push(await png(avatar));
+    await avatar.webContents.executeJavaScript('window.__wd.anim.fakeTalkUntil = 0');
+  }
+  api.setState('idle');
+  await avatar.webContents.executeJavaScript(`document.getElementById('mic').classList.add('hidden')`);
+  {
+    const pad = px(20);
+    const W = a.width * states.length + pad * 2;
+    const H = a.height + px(40);
+    shot(
+      'states.jpg',
+      await compose(W, H, [
+        { wallpaper: true },
+        ...statePngs.map((b, i) => ({ img: b, x: pad + i * a.width, y: px(4) })),
+        ...states.map(([st], i) => ({ text: st, x: pad + i * a.width + a.width / 2, y: H - px(12), font: `600 ${px(12)}px ui-monospace, monospace`, fill: '#b7aecb', align: 'center' })),
+      ]),
+    );
+  }
+
+  // ------------------------------------------------ 3. ajustes (con valores de ejemplo en vez de los del simulador)
+  const realistic = mockConfigPatch(mock.base);
+  realistic.profiles[0] = { ...realistic.profiles[0], kind: 'anthropic', baseUrl: 'https://api.anthropic.com' };
+  realistic.profiles[1] = { ...realistic.profiles[1], baseUrl: 'https://hermes.example.com/v1' };
+  realistic.connectors.hermes = { ...realistic.connectors.hermes, baseUrl: 'https://hermes.example.com/v1', timeoutSec: 900 };
+  realistic.connectors.paperclip = { ...realistic.connectors.paperclip, baseUrl: 'http://localhost:3100', companyId: '3f6c2a9e-8d41-4b7a-9c35-1e2f7a6b0d54' };
+  realistic.voice = { stt: { provider: 'groq', baseUrl: 'https://api.groq.com/openai/v1', model: 'whisper-large-v3-turbo', language: 'es' }, tts: { mode: 'system' } };
+  api.patchConfig(realistic);
+  for (const ref of ['profile:mock', 'hermes', 'stt']) api.setSecret(ref, 'example-secret');
+  api.broadcast('cfg:changed', api.publicConfig());
+  const settings = api.openWindow('settings');
+  await waitForWindow(settings, 'document.querySelector("#view h1")');
+  settings.setSize(1000, 760);
+  // La ventana tiene que estar delante: Chromium no repinta las ventanas tapadas.
+  const settingsShot = async (tab, name, wait = 300) => {
+    settings.show();
+    settings.focus();
+    // El aviso de «sin almacén seguro» solo sale aquí porque Xvfb no tiene llavero; en Windows no aparece.
+    await settings.webContents.executeJavaScript(
+      `document.querySelector('[data-tab="${tab}"]').click(); document.getElementById('view').scrollTop = 0; document.getElementById('storageNote').style.visibility = 'hidden'`,
+    );
+    await sleep(wait);
+    shot(name, await png(settings));
+  };
+  for (const tab of ['general', 'models', 'voice', 'connectors']) await settingsShot(tab, `settings-${tab}.png`);
+  await settingsShot('automations', 'settings-automations.png', 700);
+
+  // ------------------------------------------------ 4. editor de skins con un dibujo de fondo liso
+  const editor = api.openWindow('editor');
+  await waitForWindow(editor, 'document.querySelector("#btnOpen").textContent.trim().length > 0');
+  editor.setSize(1180, 800);
+  await editor.webContents.executeJavaScript(`(async () => {
+    const img = new Image();
+    img.src = 'app://local/bundle/assets/skins/default/base.svg';
+    await img.decode();
+    const c = document.createElement('canvas');
+    c.width = 900; c.height = 1100;
+    const ctx = c.getContext('2d');
+    ctx.fillStyle = '#cfe8ff';
+    ctx.fillRect(0, 0, c.width, c.height);
+    ctx.drawImage(img, 50, 60, 800, 1000);
+    await window.__wdEditor.load(c.toDataURL('image/png'), 'Noa');
+    document.getElementById('btnKey').click();
+  })()`);
+  await sleep(1500);
+  shot('skin-editor.png', await png(editor));
+  await editor.webContents.executeJavaScript(`document.getElementById('name').value = 'Noa (azul)'; document.getElementById('btnSaveOnly').click()`);
+  await sleep(800);
+  editor.close();
+  await sleep(300);
+  await settingsShot('skins', 'settings-skins.png', 900);
+  settings.close();
+
+  // ------------------------------------------------ 5. la misma conversación en los cinco idiomas
+  api.patchConfig(mockConfigPatch(mock.base));
+  api.broadcast('cfg:changed', api.publicConfig());
+  chat.setSize(400, 600);
+  chat.show();
+  const chats = [];
+  for (const locale of SUPPORTED) {
+    await setLanguage(api, locale);
+    api.newConversation();
+    await sleep(300);
+    await conversation(api, PROMPTS[locale].paperclip);
+    await chat.webContents.executeJavaScript('document.activeElement?.blur()');
+    await sleep(300);
+    chats.push(await png(chat));
+  }
+  {
+    const ci = imageSize(chats[0]);
+    const gap = px(20);
+    const W = ci.width * chats.length + gap * (chats.length + 1);
+    const H = ci.height + gap * 2;
+    shot('languages.jpg', await compose(W, H, [{ wallpaper: true }, ...chats.map((b, i) => ({ img: b, x: gap + i * (ci.width + gap), y: gap, radius: px(12), shadow: px(30) }))]));
+  }
+
+  await setLanguage(api, 'es');
+  await mock.close();
+  console.log(`SMOKE_RESULT ${JSON.stringify({ ok: true, message: `✓ ${written.length} capturas en docs/screenshots: ${written.join(', ')}`, problems: [], locales: SUPPORTED })}`);
+  api.app.exit(0);
+}
+
+// Tamaño de un PNG leyendo su cabecera IHDR.
+function imageSize(buf) {
+  return { width: buf.readUInt32BE(16), height: buf.readUInt32BE(20) };
+}

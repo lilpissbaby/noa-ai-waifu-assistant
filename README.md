@@ -1,103 +1,170 @@
-# Waifu Desk
+<div align="center">
 
-Una asistente de IA con forma de personaje anime que vive **flotando encima de tu escritorio**
-(Windows y Linux). Haces clic en ella y le hablas por texto o por voz. Te responde el modelo
-que elijas (Claude, OpenAI, OpenRouter, Gemini, Groq, Ollama, LM Studio o tu propio Hermes Agent)
-usando **tu API key**.
+# Noa · Waifu Desk
 
-No es un juguete: tiene herramientas para **delegar trabajo a tu agente Hermes del VPS**,
-**crear y asignar tareas a tus agentes de Paperclip**, lanzar **webhooks** de tus automatizaciones
-(n8n, Make, Home Assistant…), conectar cualquier **servidor MCP** y, si lo activas, **ejecutar
-comandos** en tu PC (siempre con tu aprobación).
+**Una asistente de IA con forma de personaje anime que vive flotando encima de tu escritorio.**
+Le hablas por texto o por voz y te responde Claude (o el modelo que elijas). Delega trabajo a tu agente
+Hermes del VPS, crea y asigna tareas a tus agentes de Paperclip y lanza tus automatizaciones.
 
-Y puedes **cambiarle la skin**: le das cualquier dibujo (archivo, portapapeles o URL), la app
-**recorta el fondo con un modelo de IA entrenado para anime**, detecta ojos, boca y cuello, y la
-anima (respira, parpadea, mueve la boca al hablar y gira la cabeza siguiendo el ratón).
+[![CI](https://github.com/lilpissbaby/noa-ai-waifu-assistant/actions/workflows/ci.yml/badge.svg)](https://github.com/lilpissbaby/noa-ai-waifu-assistant/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/lilpissbaby/noa-ai-waifu-assistant?sort=semver&label=descargar)](https://github.com/lilpissbaby/noa-ai-waifu-assistant/releases/latest)
+[![Licencia MIT](https://img.shields.io/badge/licencia-MIT-ff4f9a)](LICENSE)
+![Windows y Linux](https://img.shields.io/badge/Windows%20%C2%B7%20Linux-b69cff)
 
----
+Español · [English](README.en.md) — la app está en español, inglés, ruso, ucraniano y chino.
 
-## Instalar en Windows
+![Noa en el escritorio: chat con Paperclip y Hermes](docs/screenshots/desktop.jpg)
 
-1. Ejecuta `WaifuDesk-Setup-0.1.0.exe`. Se instala solo para tu usuario, sin permisos de
-   administrador, y crea accesos en el Escritorio y en el menú Inicio.
-2. El instalador no está firmado, así que Windows SmartScreen avisará: **Más información →
-   Ejecutar de todos modos**.
-3. La primera vez se abren los Ajustes: pega tu API key de Anthropic en **Modelos de IA** y listo.
+</div>
 
-Se desinstala desde Configuración → Aplicaciones. Tus ajustes, claves y skins se conservan en
-`%APPDATA%\Waifu Desk` por si vuelves a instalar.
+## Qué hace
 
-## Ejecutar desde el código
+- **Vive en el escritorio**: transparente, siempre encima y sin ventana que abrir. Respira, parpadea, mueve la
+  boca al hablar y gira la cabeza siguiendo el ratón. Clic para el chat, doble clic para hablarle.
+- **Cualquier modelo**: Claude con tu API key o cualquier API compatible con OpenAI (OpenAI, OpenRouter, Groq,
+  Gemini, Ollama, LM Studio o el propio Hermes). Streaming y herramientas. Las claves se guardan cifradas.
+- **Voz**: dictado con Whisper (Groq tiene plan gratuito) que se para solo cuando te callas, y respuestas
+  habladas con la boca sincronizada (voces del sistema, OpenAI/Kokoro o ElevenLabs).
+- **Hermes Agent**: le encarga a tu agente del VPS lo que deba hacerse en el servidor.
+- **Paperclip**: lista agentes y proyectos, crea, asigna y comenta tareas, y despierta agentes.
+- **Automatizaciones**: webhooks (n8n, Make, Home Assistant…), cualquier servidor **MCP** y comandos en tu PC,
+  estos siempre con tu aprobación.
+- **Skins**: le das cualquier dibujo y recorta el fondo con un modelo de IA para anime, en local. Coloca sola
+  ojos, boca y cuello, y tú los ajustas con la vista previa animada.
+- **Cinco idiomas**: español, English, Русский, Українська y 中文. Coge el del sistema y se cambia al vuelo.
 
-Necesitas **Node.js 20 o superior** (<https://nodejs.org>).
+## Descargar
 
-```bash
-cd waifu-desk
-npm install
-npm start
-```
+En **[Releases](https://github.com/lilpissbaby/noa-ai-waifu-assistant/releases/latest)** están los ejecutables
+de la última versión, compilados por GitHub Actions:
+
+| Sistema | Archivo | Cómo se instala |
+| --- | --- | --- |
+| Windows 10/11 | `WaifuDesk-Setup-X.Y.Z.exe` | Doble clic. Se instala solo para tu usuario, sin admin. |
+| Windows (portable) | `WaifuDesk-X.Y.Z-win-x64.zip` | Descomprime y abre `Waifu Desk.exe`. |
+| Linux | `WaifuDesk-X.Y.Z-linux-x86_64.AppImage` | `chmod +x` y ejecútalo. |
+| Debian / Ubuntu | `WaifuDesk-X.Y.Z-linux-amd64.deb` | `sudo apt install ./WaifuDesk-X.Y.Z-linux-amd64.deb` |
+
+- El instalador de Windows no está firmado, así que SmartScreen avisará: **Más información → Ejecutar de todos modos**.
+- Si tenías la PoC 0.1.0, instala encima: usa la misma carpeta y conserva tus ajustes, claves y skins
+  (`%APPDATA%\Waifu Desk`).
+- Cada release trae `SHA256SUMS.txt` para comprobar las descargas.
+
+## Primeros pasos
+
+Para empezar solo hace falta **la clave de Claude**. Todo se configura en **Ajustes** (clic derecho en Noa →
+Ajustes, o desde el icono de la bandeja). No hay botón de guardar: cada cambio se guarda al momento.
+
+| Para qué | Clave | Dónde se saca | Dónde va |
+| --- | --- | --- | --- |
+| Que responda | API key de Anthropic (`sk-ant-…`) | [platform.claude.com/settings/keys](https://platform.claude.com/settings/keys) | Modelos de IA → Claude Sonnet → API key |
+| Hablarle | API key de Groq | [console.groq.com](https://console.groq.com) → API Keys | Voz → Dictado → API key |
+| Hermes | Una clave que inventas tú | `openssl rand -hex 32` en el VPS | Hermes y Paperclip → API_SERVER_KEY |
+| Paperclip | Token de board, o ninguno | `paperclipai token board create` | Hermes y Paperclip → Token |
+
+La API de Anthropic se paga aparte de la suscripción de claude.ai. Si no quieres recargar saldo, puedes añadir
+un perfil gratuito (Gemini o Groq) en **Modelos de IA → Añadir perfil**.
 
 ### Usarla
 
 | Acción | Resultado |
 | --- | --- |
-| Clic en la waifu | Abre / cierra el chat |
+| Clic en la waifu | Abre o cierra el chat |
 | Doble clic | Te escucha (se para sola cuando te callas) |
-| Arrastrar | Moverla por la pantalla |
-| Clic derecho | Menú: modelo, skin, tamaño, siempre encima, ajustes… |
-| `Ctrl+Alt+Space` | Abrir el chat desde cualquier sitio |
-| `Ctrl+Alt+V` | Hablarle desde cualquier sitio |
+| Arrastrar | La mueves por la pantalla |
+| Clic derecho | Menú: modelo, skin, tamaño, idioma, siempre encima, ajustes… |
+| `Ctrl+Alt+Space` | Abre el chat desde cualquier sitio |
+| `Ctrl+Alt+V` | Le hablas desde cualquier sitio |
 
-También vive en la bandeja del sistema. Los atajos se cambian en Ajustes → General.
+Los atajos se cambian en Ajustes → General.
 
-### Crear el instalador
+## Capturas
 
-```bash
-npm run dist:win         # en Windows: instalador NSIS + .zip (en dist/)
-npm run dist:win:cross   # en Linux/macOS: lo mismo sin Wine (makensis nativo + icono con resedit)
-npm run dist:linux       # en Linux: AppImage + .deb
-```
+**Estados**: en reposo, escuchando, pensando, trabajando con una herramienta y hablando.
+
+![Estados del avatar](docs/screenshots/states.jpg)
+
+**La misma petición en los cinco idiomas.** La interfaz y la respuesta siguen al idioma elegido.
+
+![Chat en español, inglés, ruso, ucraniano y chino](docs/screenshots/languages.jpg)
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/screenshots/settings-general.png" alt="Ajustes: general e idioma" /><br /><sub>General: idioma de la interfaz y de las respuestas, personaje y escritorio.</sub></td>
+    <td width="50%"><img src="docs/screenshots/settings-models.png" alt="Ajustes: modelos de IA" /><br /><sub>Modelos de IA: un perfil por proveedor, con su clave cifrada.</sub></td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/settings-connectors.png" alt="Ajustes: Hermes y Paperclip" /><br /><sub>Hermes y Paperclip, con prueba de conexión.</sub></td>
+    <td><img src="docs/screenshots/settings-voice.png" alt="Ajustes: voz" /><br /><sub>Voz: dictado con Whisper y voz de la asistente.</sub></td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/settings-automations.png" alt="Ajustes: automatizaciones" /><br /><sub>Automatizaciones: comandos, webhooks y servidores MCP.</sub></td>
+    <td><img src="docs/screenshots/settings-skins.png" alt="Ajustes: skins" /><br /><sub>Skins: la de serie y las que importes.</sub></td>
+  </tr>
+</table>
+
+**Editor de skins**: recorte del fondo, marcadores de ojos, boca y cuello, y vista previa animada.
+
+![Editor de skins](docs/screenshots/skin-editor.png)
+
+Las capturas se generan con la app de verdad y un servidor simulado: `npm run screenshots` (ver
+[Desarrollo](#desarrollo)).
 
 ---
 
+## Idiomas
+
+La interfaz está en **español, inglés, ruso, ucraniano y chino simplificado**. Por defecto usa el idioma del
+sistema (inglés si no es ninguno de esos). Se cambia en **Ajustes → General → Idioma de la interfaz** o desde el
+clic derecho en Noa → **Idioma**, y se aplica al momento en todas las ventanas, los menús y los diálogos.
+
+- **Idioma de las respuestas**: vacío = el de la interfaz. Puedes escribir otro (por ejemplo «English») para
+  que te responda en ese idioma con la interfaz en español.
+- Al cambiar de idioma, la personalidad por defecto y el idioma del dictado también cambian, salvo que los hayas
+  editado.
+- El instalador de Windows también sale en el idioma del sistema.
+
+**Añadir un idioma**: copia `src/shared/i18n/locales/en.js`, tradúcelo y regístralo en
+`src/shared/i18n/index.js` (`SUPPORTED` y `LANGUAGES`). `npm test` comprueba que no falte ninguna clave ni
+variable, y `npm run smoke` recorre todas las ventanas buscando textos sin traducir.
+
 ## Modelos de IA
 
-Cada **perfil** es un modelo con su clave. Cámbialos desde el selector del chat o el menú del avatar.
+Cada **perfil** es un modelo con su clave. Se cambian desde el selector del chat o el menú del avatar.
 
 - **Anthropic (Claude)**: tipo «Anthropic», URL `https://api.anthropic.com`, modelo por ejemplo
-  `claude-sonnet-5-5`. El botón **Cargar** pide la lista real de modelos de tu cuenta.
-- **Cualquier API compatible con OpenAI**: OpenAI, OpenRouter, Groq, Gemini (endpoint OpenAI),
-  Ollama, LM Studio, vLLM… Tipo «OpenAI-compatible» y la URL acabada en `/v1`.
-- **Hermes Agent directo**: el perfil «Hermes Agent (VPS)» habla con Hermes como si fuera un
-  modelo. En ese caso desactiva «Permitir herramientas», porque Hermes ya tiene las suyas.
+  `claude-sonnet-5-5`. El botón **Cargar** pide la lista de modelos de tu cuenta.
+- **Cualquier API compatible con OpenAI**: OpenAI, OpenRouter, Groq, Gemini (endpoint OpenAI), Ollama, LM
+  Studio, vLLM… Tipo «Compatible con OpenAI» y la URL acabada en `/v1`.
+- **Hermes Agent directo**: el perfil «Hermes Agent (VPS)» habla con Hermes como si fuera un modelo. Desactiva
+  «Permitir herramientas», porque Hermes ya tiene las suyas.
 
-Las claves se guardan **cifradas** con el almacén seguro del sistema (DPAPI en Windows,
-libsecret/kwallet en Linux). Nunca salen de tu PC salvo hacia el proveedor correspondiente.
+Las claves se guardan **cifradas** con el almacén del sistema (DPAPI en Windows, libsecret o KWallet en Linux)
+y solo salen de tu PC hacia el proveedor correspondiente.
 
 ## Voz
 
-**Dictado** (voz → texto), mediante cualquier endpoint compatible con Whisper:
+**Dictado** (voz → texto), con cualquier endpoint compatible con Whisper:
 
-- **Groq** (recomendado: rápido y con plan gratuito): `https://api.groq.com/openai/v1`, modelo
-  `whisper-large-v3-turbo`.
+- **Groq** (recomendado: rápido y con plan gratuito): `https://api.groq.com/openai/v1`, modelo `whisper-large-v3-turbo`.
 - **OpenAI**: `https://api.openai.com/v1`, modelo `gpt-4o-mini-transcribe` o `whisper-1`.
 - **Tu VPS**: [speaches](https://github.com/speaches-ai/speaches) o faster-whisper-server.
 
 **Voz de la asistente** (texto → audio, con la boca sincronizada):
 
-- **Voces del sistema**: gratis y sin conexión. En Windows puedes añadir voces en
-  Configuración → Hora e idioma → Voz.
-- **OpenAI-compatible**: OpenAI (`gpt-4o-mini-tts`) o [Kokoro-FastAPI](https://github.com/remsky/Kokoro-FastAPI)
-  en tu VPS (`docker run -p 8880:8880 ghcr.io/remsky/kokoro-fastapi-cpu`, voces como `ef_dora`
-  o `jf_alpha`). Gratis y con buena calidad.
-- **ElevenLabs**: pon tu API key y el *Voice ID*.
+- **Voces del sistema**: gratis y sin conexión. Elige sola una voz del idioma de la respuesta. En Windows se
+  añaden voces en Configuración → Hora e idioma → Voz.
+- **Compatible con OpenAI**: OpenAI (`gpt-4o-mini-tts`) o [Kokoro-FastAPI](https://github.com/remsky/Kokoro-FastAPI)
+  en tu VPS (`docker run -p 8880:8880 ghcr.io/remsky/kokoro-fastapi-cpu`, voces como `ef_dora` o `jf_alpha`).
+- **ElevenLabs**: tu API key y el *Voice ID*.
 
-Empieza a hablar por frases mientras el modelo aún está escribiendo, y no lee los bloques de código.
+Empieza a hablar por frases mientras el modelo aún escribe (también con la puntuación china `。！？`) y se salta
+los bloques de código.
 
 ## Hermes Agent (en tu VPS)
 
-La asistente tiene la herramienta `hermes_task`: cuando algo debe hacerse en el servidor (revisar
-contenedores, ejecutar scripts, investigar…), se lo encarga a Hermes y te resume el resultado.
+La herramienta `hermes_task` le encarga a Hermes lo que deba hacerse en el servidor (revisar contenedores,
+ejecutar scripts, investigar…) y te resume el resultado.
 
 1. En el VPS, en `~/.hermes/.env`:
 
@@ -128,63 +195,66 @@ contenedores, ejecutar scripts, investigar…), se lo encarga a Hermes y te resu
 
 ## Paperclip
 
-Herramientas incluidas: listar agentes y proyectos, listar y ver tareas, **crear tareas
-asignadas a un agente**, actualizar estado y prioridad, comentar y **despertar agentes**.
+Herramientas: listar agentes y proyectos, listar y ver tareas, **crear tareas asignadas a un agente**, cambiar
+estado y prioridad, comentar y **despertar agentes**.
 
-1. En Ajustes → Hermes y Paperclip, pon la URL raíz de tu Paperclip (`http://localhost:3100` o tu
-   dominio; la app añade `/api` sola).
-2. Si tu instancia está en modo `authenticated`, pega un token de board (Bearer). En modo
-   `local_trusted` no hace falta.
+1. En Ajustes → Hermes y Paperclip, pon la URL raíz de tu Paperclip (`http://localhost:3100` o tu dominio; la
+   app añade `/api` sola).
+2. En modo `authenticated`, pega un token de board:
+   ```bash
+   paperclipai auth login --api-base https://tu-paperclip
+   paperclipai token board create --name waifu-desk --never-expires
+   ```
+   En modo `local_trusted` no hace falta.
 3. Pulsa **Probar y listar empresas** y elige la tuya.
 
-Ejemplos de cosas que le puedes pedir:
+Cosas que le puedes pedir:
 
 - «¿Qué tareas tienen pendientes mis agentes?»
 - «Crea una tarea para el CTO: migrar Postgres a la 17, prioridad alta, y despiértalo.»
 - «Comenta en PAP-12 que use la rama `feature/cache`.»
 
-Las acciones que cambian cosas piden confirmación. Con «Permitir siempre» dejan de hacerlo, y desde
-Automatizaciones puedes volver a activar las confirmaciones.
+Las acciones que cambian algo piden confirmación. Con «Permitir siempre» dejan de hacerlo, y en
+Automatizaciones puedes volver a activarlas.
 
 ## Automatizaciones
 
 - **Webhooks**: cada uno se convierte en una herramienta (`webhook_<nombre>`). Lo importante es la
   **descripción**: es lo que la IA lee para decidir cuándo usarlo y qué `payload` mandar.
-- **Servidores MCP** (stdio o HTTP): conecta cualquier servidor
-  [Model Context Protocol](https://modelcontextprotocol.io). Por ejemplo:
-  - Archivos: comando `npx`, argumentos `-y @modelcontextprotocol/server-filesystem C:\Users\tu\Documents`
-  - Paperclip vía MCP: `uvx paperclip-mcp --transport stdio` con `PAPERCLIP_BASE_URL` y `PAPERCLIP_API_KEY` en las variables.
-- **Comandos en el PC** (`run_command`): PowerShell en Windows, bash en Linux. Cada comando se
-  enseña y **necesita tu aprobación**; nunca se aprueba solo.
+- **Servidores MCP** (stdio o HTTP): conecta cualquier servidor [Model Context Protocol](https://modelcontextprotocol.io).
+  Por ejemplo:
+  - Archivos: comando `npx`, argumentos `-y @modelcontextprotocol/server-filesystem C:\Users\tu\Documents`.
+  - Paperclip vía MCP: `uvx paperclip-mcp --transport stdio` con `PAPERCLIP_BASE_URL` y `PAPERCLIP_API_KEY`.
+- **Comandos en el PC** (`run_command`): PowerShell en Windows, bash en Linux. Cada comando se enseña y
+  **necesita tu aprobación**; nunca se aprueba solo.
 
 ## Skins
 
-Ajustes → Skins → **Importar un dibujo** (o clic derecho en la waifu → Skin → Importar imagen):
+Ajustes → Skins → **Importar un dibujo** (o clic derecho en Noa → Skin → Importar imagen):
 
 1. **Imagen**: abrir archivo, pegar (`Ctrl+V`), arrastrar o pegar una URL.
 2. **Fondo**: si ya es un PNG transparente no hace falta nada. Si no:
-   - **Recorte con IA**: usa el modelo `isnet-anime` de
-     [SkyTNT/anime-segmentation](https://github.com/SkyTNT/anime-segmentation) (Apache-2.0, en la
-     versión empaquetada por [rembg](https://github.com/danielgatis/rembg)). Se descarga una sola vez
-     (176 MB) y corre **en local** con onnxruntime-web; no sube tu imagen a ningún sitio.
+   - **Recorte con IA**: modelo `isnet-anime` de [SkyTNT/anime-segmentation](https://github.com/SkyTNT/anime-segmentation)
+     (Apache-2.0, empaquetado por [rembg](https://github.com/danielgatis/rembg)). Se descarga una vez (176 MB) y
+     corre **en local** con onnxruntime-web; tu imagen no sale del PC.
    - **Quitar color de fondo**: para fondos lisos, con tolerancia ajustable.
-3. **Puntos de animación**: la app detecta la cara por el tono de piel y los ojos como huecos dentro
-   de ella. Revisa y arrastra los marcadores: óvalos de los ojos (cubriendo pestañas incluidas),
-   boca y cuello (por donde gira la cabeza). `Shift` al arrastrar un ojo mueve los dos en vertical;
-   `Alt` al redimensionar iguala el tamaño.
+3. **Puntos de animación**: detecta la cara por el tono de piel y los ojos como huecos dentro de ella. Arrastra
+   los marcadores: óvalos de los ojos (con las pestañas), boca y cuello (por donde gira la cabeza). `Shift` al
+   arrastrar un ojo mueve los dos en vertical; `Alt` al redimensionar iguala el tamaño.
 4. **Guardar y usar**. La vista previa animada se actualiza en directo.
 
 Funciona mejor con personajes **de frente y de cintura para arriba**.
 
-### Skins con capas (máxima calidad)
+### Skins con capas
 
-Una skin es una carpeta con `skin.json` y sus imágenes, en la carpeta de datos (Ajustes → General →
-Abrir carpeta de datos → `skins/`). Si además de `base` añades capas del mismo tamaño, se usan en
-lugar de los efectos automáticos:
+Una skin es una carpeta con `skin.json` y sus imágenes dentro de la carpeta de datos (Ajustes → General → Abrir
+carpeta de datos → `skins/`). Si además de `base` añades capas del mismo tamaño, se usan en lugar de los
+efectos automáticos. `names` es opcional y traduce el nombre:
 
 ```json
 {
   "name": "Mi waifu",
+  "names": { "en": "My waifu", "zh": "我的老婆" },
   "width": 800, "height": 1000,
   "files": {
     "base": "base.png",
@@ -200,20 +270,60 @@ lugar de los efectos automáticos:
 }
 ```
 
-La skin de serie (Noa) está hecha así y se genera con `python3 tools/draw_default_skin.py`.
+La skin de serie (Noa) está hecha así y se genera con `npm run skin:default`.
 
-## Cómo está hecho
+---
+
+## Desarrollo
+
+Necesitas **Node.js 22.13 o superior**.
+
+```bash
+git clone https://github.com/lilpissbaby/noa-ai-waifu-assistant.git
+cd noa-ai-waifu-assistant
+npm install
+npm start
+```
+
+| Comando | Qué hace |
+| --- | --- |
+| `npm start` | Arranca la app desde el código |
+| `npm test` | Tests unitarios (traducciones, adaptadores de LLM, agente, herramientas, voz, ajustes) |
+| `npm run lint` | ESLint |
+| `npm run smoke` | Arranca la app de verdad, recorre todas las ventanas en los 5 idiomas y hace una conversación con herramientas contra un servidor simulado. En Linux sin pantalla: `xvfb-run -a npm run smoke` |
+| `npm run screenshots` | Regenera las capturas de `docs/screenshots` (en Linux: `xvfb-run -a -s "-screen 0 3840x2400x24" npm run screenshots`) |
+| `npm run dist:win` | Windows: `.zip` + instalador NSIS en `dist/`. Funciona en Windows, Linux o macOS sin Wine (necesita `makensis`) |
+| `npm run dist:linux` | Linux: AppImage + `.deb` |
+
+### CI y releases
+
+- **[CI](.github/workflows/ci.yml)**, en cada push y pull request: lint, tests y prueba de humo en Linux y en
+  Windows, y compilación de todos los ejecutables (se pueden descargar como artefacto de la ejecución).
+- **[Release](.github/workflows/release.yml)**: cuando el CI de `main` termina en verde con una versión nueva
+  en `package.json`, crea el tag `vX.Y.Z` y publica la release con los ejecutables y las notas de
+  `CHANGELOG.md`.
+
+Para sacar una versión:
+
+1. Sube `version` en `package.json` (`npm version 0.3.0 --no-git-tag-version`).
+2. Añade su apartado `## [0.3.0]` en `CHANGELOG.md`.
+3. Commit y push a `main`. En unos minutos está la release.
+
+Las versiones con sufijo (`0.3.0-beta.1`) salen como *prerelease*. También puedes empujar tú el tag `vX.Y.Z`
+(tiene que coincidir con `package.json`).
+
+### Cómo está hecho
 
 ```
 src/
   main/            proceso principal (Electron)
-    main.js        ventanas, bandeja, atajos, protocolo app://, orquestación chat + voz
-    log.js         registro de diagnóstico
-    config.js      ajustes + claves cifradas (safeStorage)
+    main.js        ventanas, bandeja, atajos, protocolo app://, idioma, orquestación chat + voz
+    config.js      ajustes + claves cifradas (safeStorage), valores por defecto según el idioma
     llm/           adaptadores Anthropic y OpenAI-compatible (streaming + tool use) y bucle de agente
     tools/         herramientas: básicas, Hermes, Paperclip, webhooks, cliente MCP
     voice.js       transcripción, síntesis y troceado en frases
-    skins.js       skins, descarga del modelo de recorte
+    skins.js       skins y descarga del modelo de recorte
+    log.js         registro de diagnóstico
   preload/         puente seguro (contextIsolation + sandbox)
   renderer/
     avatar/        ventana transparente con la waifu, micrófono y reproducción con lip-sync
@@ -221,43 +331,61 @@ src/
     settings/      ajustes
     editor/        importador de skins (recorte IA, marcadores, vista previa)
     shared/        renderizador WebGL2 con malla deformable (y respaldo 2D), animador, markdown
+  shared/i18n/     traducciones (es, en, ru, uk, zh), compartidas por el proceso principal y las páginas
 assets/skins/default/   skin de serie en capas SVG
-tools/draw_default_skin.py   genera la skin de serie
-build/                  icono, script del instalador NSIS y hook que pone el icono al .exe
+build/                  icono, instalador NSIS multilingüe y hook que pone icono y versión al .exe
+test/                   tests (node:test) con un stub de Electron
+tools/                  generador de la skin, prueba de humo, capturas y notas de release
+.github/workflows/      CI y releases
 ```
 
-- La ventana del avatar es transparente y deja pasar los clics fuera de la silueta (en Windows con
-  reenvío del ratón; en Linux recortando la forma de la ventana).
-- La animación deforma una malla 40×N en la GPU: respiración, giro de cabeza alrededor del cuello,
-  mandíbula; parpadeo y boca por capas o con shaders.
-- Añadir una herramienta nueva es escribir un objeto `{ name, description, schema, run }` en
-  `src/main/tools/` y registrarlo en `tools/index.js`.
+- La ventana del avatar es transparente y deja pasar los clics fuera de la silueta (en Windows con reenvío del
+  ratón; en Linux recortando la forma de la ventana).
+- La animación deforma una malla 40×N en la GPU: respiración, giro de cabeza alrededor del cuello y mandíbula;
+  parpadeo y boca por capas o con shaders.
+- El prompt de sistema y las descripciones de las herramientas van en inglés (todos los modelos lo entienden
+  igual); la respuesta sale en el idioma elegido.
+- Una herramienta nueva es un objeto `{ name, description, schema, run }` en `src/main/tools/` registrado en
+  `tools/index.js`. Sus textos para el usuario (confirmaciones, avisos) van con `t()` y sus claves en los
+  cinco archivos de `src/shared/i18n/locales/`.
 
 ## Notas por plataforma
 
 - **Windows 10/11**: todo funciona tal cual.
-- **Linux**: necesita un compositor para la transparencia (GNOME, KDE, Hyprland… lo traen). En X11
-  sin compositor se verá un rectángulo negro. «Arrancar con el sistema» no está disponible desde la
-  app: añade `waifu-desk` a tus aplicaciones de inicio.
-- **Android / iOS**: pendiente. Android permite la superposición (permiso «mostrar sobre otras
-  apps») y es el siguiente paso natural. iOS no deja dibujar encima de otras apps, así que allí
-  sería un widget o un atajo.
+- **Linux**: necesita un compositor para la transparencia (GNOME, KDE, Hyprland… lo traen). En X11 sin
+  compositor se ve un rectángulo negro. «Arrancar al iniciar sesión» no está disponible desde la app: añade
+  Waifu Desk a tus aplicaciones de inicio.
+- **Android / iOS**: pendiente (ver hoja de ruta).
 
 ## Solución de problemas
 
-- **Algo no va**: Ajustes → General → **Ver registro de errores** (`%APPDATA%\Waifu Desk\waifu-desk.log`).
-  Ahí quedan los fallos de arranque, de las APIs y de las páginas.
-- **No me oye**: en Windows, Configuración → Privacidad y seguridad → Micrófono → activa «Permitir
-  que las aplicaciones de escritorio accedan al micrófono». Y revisa que el dictado tenga clave en
-  Ajustes → Voz.
-- **No habla**: con «Voces del sistema» necesitas una voz en español instalada (Configuración →
-  Hora e idioma → Voz). Prueba con el botón **Probar voz**.
+- **Algo no va**: Ajustes → General → **Ver registro de errores** (`%APPDATA%\Waifu Desk\waifu-desk.log` en
+  Windows, `~/.config/Waifu Desk/waifu-desk.log` en Linux).
+- **Error de saldo con Claude**: la API de Anthropic se paga aparte de claude.ai; añade crédito en la consola o
+  usa un perfil gratuito.
+- **No me oye**: en Windows, Configuración → Privacidad y seguridad → Micrófono → «Permitir que las aplicaciones
+  de escritorio accedan al micrófono». Y revisa que el dictado tenga clave en Ajustes → Voz.
+- **No habla**: con «Voces del sistema» necesitas una voz instalada del idioma de la respuesta. Prueba con
+  **Probar voz**.
 - **Un atajo no funciona**: otra app lo está usando; el registro lo indica. Cámbialo en Ajustes → General.
-- **No la veo**: clic en el icono de la bandeja para mostrarla u ocultarla. Si la moviste a un
-  monitor que ya no está, vuelve a la esquina inferior derecha al arrancar.
-- **Linux, rectángulo negro alrededor**: falta un compositor (ver Notas por plataforma).
+- **No la veo**: clic en el icono de la bandeja. Si la moviste a un monitor que ya no está, vuelve sola a la
+  esquina inferior derecha al arrancar.
+
+## Hoja de ruta
+
+- Android: superposición sobre otras apps (permiso «mostrar sobre otras apps»), reutilizando el renderizador y
+  los conectores.
+- iOS: no deja dibujar encima de otras apps; widget, Live Activity o atajo de Siri.
+- Proveedor «Claude Code» para usar tu suscripción de Claude a través del Claude Code oficial.
+- Memoria persistente, avisos proactivos (por ejemplo, cuando un agente de Paperclip termina) y palabra de
+  activación.
 
 ## Privacidad
 
-Todo se guarda en tu carpeta de datos local: ajustes, claves cifradas, conversación y skins. La
-app solo se conecta a los servicios que configures, y al modelo de recorte cuando lo descargas.
+Todo se guarda en tu carpeta de datos local: ajustes, claves cifradas, conversación y skins. La app solo se
+conecta a los servicios que configures, y a GitHub para descargar el modelo de recorte si lo pides.
+
+## Licencia
+
+[MIT](LICENSE) © mupsim. La skin de serie Noa es original de este proyecto. El modelo de recorte `isnet-anime`
+es Apache-2.0 y se descarga aparte. El plugin WinShell de NSIS está bajo licencia zlib ([build/nsis](build/nsis/README.md)).
