@@ -578,6 +578,10 @@ async function sendMessage(text, via = 'text') {
       partialText = '';
       return;
     }
+    if (e.type === 'emotion') {
+      sendTo('avatar', 'avatar:emotion', e.name);
+      return;
+    }
     if (e.type === 'text') partialText += e.delta;
     chatEvent(e);
     if (e.type === 'text') {

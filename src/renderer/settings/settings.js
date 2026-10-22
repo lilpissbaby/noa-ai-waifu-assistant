@@ -260,6 +260,7 @@ const TABS = {
             { class: 'full' },
             check('ui.alwaysOnTop', t('settings.general.alwaysOnTop')),
             check('ui.followCursor', t('settings.general.followCursor')),
+            check('ui.emotions', t('settings.general.emotions')),
             isLinux ? null : check('ui.startWithSystem', t('settings.general.startWithSystem')),
           ),
         ),

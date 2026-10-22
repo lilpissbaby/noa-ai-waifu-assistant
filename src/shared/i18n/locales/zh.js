@@ -225,6 +225,7 @@ export default {
       hotkeyTalkHelp: '她会开始聆听，你停下来时会自动结束。',
       alwaysOnTop: '始终显示在其他窗口上方',
       followCursor: '头部跟随鼠标转动',
+      emotions: '根据 AI 的语气做表情（3D 皮肤）',
       startWithSystem: '登录时自动启动',
       openData: '打开数据文件夹',
       openLog: '查看错误日志',

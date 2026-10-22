@@ -53,6 +53,7 @@ export class Behaviour {
     if (e.name === 'neutral') return { name: 'neutral', weight: 0 };
     let w;
     if (e.fading) w = e.from * (1 - (now - e.fadeStart) / EMO_FALL);
+    else if (now < e.start) return { name: e.name, weight: 0 }; // fotograma anterior a la orden
     else if (now < e.start + EMO_RISE) w = (now - e.start) / EMO_RISE;
     else if (now < e.fadeStart) w = 1;
     else w = 1 - (now - e.fadeStart) / EMO_FALL;

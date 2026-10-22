@@ -233,6 +233,7 @@ export default {
       hotkeyTalkHelp: 'Empieza a escucharte y se para sola cuando te callas.',
       alwaysOnTop: 'Siempre por encima de las demás ventanas',
       followCursor: 'Gira la cabeza siguiendo el ratón',
+      emotions: 'Pone caras según el tono de la IA (skins 3D)',
       startWithSystem: 'Arrancar al iniciar sesión',
       openData: 'Abrir carpeta de datos',
       openLog: 'Ver registro de errores',

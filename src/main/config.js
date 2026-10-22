@@ -89,6 +89,7 @@ export function defaultConfig(locale = resolveLocale('auto', systemLocales())) {
       position: null,
       alwaysOnTop: true,
       followCursor: true,
+      emotions: true, // la IA marca el tono con <emo:…> y el avatar 3D pone cara
       hotkeyChat: 'Control+Alt+Space',
       hotkeyTalk: 'Control+Alt+V',
       startWithSystem: false,

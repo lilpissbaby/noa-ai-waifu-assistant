@@ -151,3 +151,11 @@ test('Stage: respeta frameInterval del renderizador', async () => {
   stage.stop();
   assert.ok(r.renders >= 29 && r.renders <= 31, `renders=${r.renders}`);
 });
+
+test('setEmotion: un fotograma con marca de tiempo anterior no la cancela', () => {
+  // requestAnimationFrame da la hora de inicio del fotograma, que puede ser anterior a performance.now().
+  const b = new Behaviour({ now: 0 });
+  b.setEmotion('happy', 1000);
+  assert.equal(b.tick(990, null).emotion.weight, 0);
+  assert.ok(Math.abs(b.tick(1125, null).emotion.weight - 0.5) <= 0.05);
+});

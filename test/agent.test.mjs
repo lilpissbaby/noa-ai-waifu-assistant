@@ -115,3 +115,23 @@ test('runTurn(): un error de la herramienta se le devuelve al modelo', async () 
     await srv.close();
   }
 });
+
+test('buildSystemPrompt(): instrucciones de emociones salvo que estén desactivadas', () => {
+  assert.match(buildSystemPrompt(cfg(), [], 'es'), /<emo:happy>/);
+  assert.doesNotMatch(buildSystemPrompt({ ...cfg(), ui: { emotions: false } }, [], 'es'), /<emo:/);
+});
+
+test('runTurn(): las etiquetas de emoción no llegan al chat ni al historial', async () => {
+  const srv = await serve((req, res) => sendSSE(res, [...['<em', 'o:hap', 'py>Ho', 'la'].map((c) => ({ choices: [{ delta: { content: c } }] })), '[DONE]']));
+  try {
+    const history = [{ role: 'user', content: 'hola' }];
+    const events = [];
+    const text = await runTurn({ cfg: cfg(), profile: { kind: 'openai', baseUrl: srv.url, model: 'm' }, apiKey: '', history, toolbox: { list: [], run: async () => '' }, emit: (e) => events.push(e) });
+    assert.equal(text, 'Hola');
+    assert.equal(events.filter((e) => e.type === 'text').map((e) => e.delta).join(''), 'Hola');
+    assert.deepEqual(events.filter((e) => e.type === 'emotion'), [{ type: 'emotion', name: 'happy' }]);
+    assert.equal(history.at(-1).content, 'Hola');
+  } finally {
+    await srv.close();
+  }
+});

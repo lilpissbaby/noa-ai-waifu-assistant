@@ -232,6 +232,7 @@ export default {
       hotkeyTalkHelp: 'She starts listening and stops on her own when you go quiet.',
       alwaysOnTop: 'Always above other windows',
       followCursor: 'Turn her head to follow the mouse',
+      emotions: "Makes faces to match the AI's tone (3D skins)",
       startWithSystem: 'Start when I sign in',
       openData: 'Open data folder',
       openLog: 'View error log',

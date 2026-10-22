@@ -228,6 +228,7 @@ function scheduleShapeRefresh() {
 }
 
 // ---------------------------------------------------------------- cursor
+wd.on('avatar:emotion', (name) => behaviour.setEmotion(name));
 wd.on('avatar:cursor', (p) => {
   behaviour.cursor = p;
 });

@@ -3,6 +3,7 @@ import os from 'node:os';
 import { streamAnthropic } from './anthropic.js';
 import { streamOpenAI } from './openai.js';
 import { getLocale, localeTag, LANGUAGES } from '../../shared/i18n/index.js';
+import { EmotionTagFilter, EMOTION_PROMPT, stripEmotionTags } from './emotion.js';
 
 const MAX_STEPS = 10;
 
@@ -37,6 +38,7 @@ export function buildSystemPrompt(cfg, toolList, locale = getLocale()) {
       'After using tools, summarise the result in one or two sentences; never dump raw JSON.',
     );
   }
+  if (cfg.ui?.emotions !== false) lines.push(EMOTION_PROMPT);
   if (a.extraInstructions?.trim()) lines.push(a.extraInstructions.trim());
   return lines.join('\n');
 }
@@ -63,6 +65,12 @@ export async function runTurn({ cfg, profile, apiKey, history, toolbox, emit, si
   for (let step = 0; step < MAX_STEPS; step++) {
     emit({ type: 'step', step });
     const window = trimHistory(history);
+    // Las etiquetas de emoción se quitan del texto y se mandan aparte a la cara del avatar.
+    const filter = new EmotionTagFilter();
+    const pass = ({ text, emotions }) => {
+      if (text) emit({ type: 'text', delta: text });
+      for (const name of emotions) emit({ type: 'emotion', name });
+    };
     const result = await stream({
       profile,
       apiKey,
@@ -70,8 +78,10 @@ export async function runTurn({ cfg, profile, apiKey, history, toolbox, emit, si
       history: window,
       tools,
       signal,
-      onText: (delta) => emit({ type: 'text', delta }),
+      onText: (delta) => pass(filter.push(delta)),
     });
+    pass(filter.flush());
+    result.text = stripEmotionTags(result.text);
     const assistantMsg = { role: 'assistant', content: result.text, toolCalls: result.toolCalls, ts: Date.now() };
     history.push(assistantMsg);
     emit({ type: 'step_end' }); // síncrono con el push: el texto parcial ya está en el historial

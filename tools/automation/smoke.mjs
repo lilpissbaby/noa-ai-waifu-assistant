@@ -111,6 +111,10 @@ export default async function smoke(api) {
   );
   if (chatDom.tool !== 'Mirar la hora' || !chatDom.ok) problems.push(`chat: chip de herramienta incorrecto ${JSON.stringify(chatDom)}`);
   if (!/^Son las \d/.test(chatDom.reply || '')) problems.push(`chat: respuesta inesperada ${JSON.stringify(chatDom.reply)}`);
+  // La respuesta simulada empieza con <emo:happy>: no se ve en el chat y la waifu la recibe.
+  if ((chatDom.reply || '').includes('<emo:')) problems.push('emociones: la etiqueta llegó al chat');
+  const emo = await api.wins.avatar.webContents.executeJavaScript('window.__wd.behaviour.emotionAt(performance.now()).name');
+  if (emo !== 'happy') problems.push(`emociones: el avatar no recibió «happy» (${emo})`);
 
   // Paperclip: crear tarea y despertar al agente (aprobación automática configurada).
   const done2 = waitForChat(api, (e) => e.type === 'done' || e.type === 'error');
