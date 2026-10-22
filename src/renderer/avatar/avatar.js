@@ -1,0 +1,379 @@
+import { SkinRenderer } from '../shared/skin-renderer.js';
+import { Animator } from '../shared/animator.js';
+
+const wd = window.wd;
+const canvas = document.getElementById('stage');
+const bubble = document.getElementById('bubble');
+const bubbleText = document.getElementById('bubbleText');
+const micEl = document.getElementById('mic');
+
+const TOP = 58; // espacio para el bocadillo
+const BASE_H = 330;
+const isLinux = wd.platform === 'linux';
+
+const renderer = new SkinRenderer(canvas);
+const anim = new Animator(renderer);
+window.__wd = { renderer, anim };
+let cfg = null;
+let skin = null;
+
+// ---------------------------------------------------------------- tamaño y skin
+function desiredSize() {
+  const scale = cfg?.ui?.scale || 1;
+  const h = Math.round(BASE_H * scale);
+  const aspect = skin ? skin.width / skin.height : 0.75;
+  const w = Math.max(Math.round(h * aspect) + 16, 210);
+  return { width: w, height: h + TOP };
+}
+
+function relayout() {
+  renderer.layout({ x: 8, y: TOP, w: window.innerWidth - 16, h: window.innerHeight - TOP });
+  // cola del bocadillo apuntando a la cabeza
+  if (skin) {
+    const [hx] = renderer.imageToCss(renderer.skin.rig.neck.x, 0);
+    bubble.style.setProperty('--tail-x', `${Math.max(16, Math.min(hx - bubble.offsetLeft, bubble.offsetWidth - 16))}px`);
+  }
+  updateShape();
+}
+
+async function loadSkin(s) {
+  skin = await renderer.load(s || (await wd.invoke('skin:get')));
+  const size = desiredSize();
+  wd.send('avatar:resize', size);
+  setTimeout(relayout, 60);
+  anim.start();
+}
+
+window.addEventListener('resize', relayout);
+// Si la GPU se reinicia (drivers, suspensión) se recarga la ventana para recuperar el WebGL.
+canvas.addEventListener('webglcontextlost', (e) => {
+  e.preventDefault();
+  setTimeout(() => location.reload(), 600);
+});
+
+// ---------------------------------------------------------------- estados
+const STATE_TEXT = {
+  thinking: '',
+  listening: 'Te escucho',
+  working: '',
+  error: '',
+};
+let currentState = 'idle';
+function setState({ state, label }) {
+  currentState = state;
+  document.body.dataset.state = state;
+  anim.state = state;
+  const show = state in STATE_TEXT;
+  bubble.classList.toggle('hidden', !show);
+  bubble.classList.toggle('static', state === 'error');
+  bubbleText.textContent = label || STATE_TEXT[state] || '';
+  if (state === 'idle' && prevState === 'talking') anim.bounce();
+  prevState = state;
+  requestAnimationFrame(relayout);
+}
+let prevState = 'idle';
+wd.on('avatar:state', setState);
+
+// ---------------------------------------------------------------- ratón: arrastrar, clic, menú
+let ignoring = !isLinux;
+let drag = null;
+let clickTimer = null;
+
+function overInteractive(x, y) {
+  if (!bubble.classList.contains('hidden')) {
+    const r = bubble.getBoundingClientRect();
+    if (x >= r.left && x <= r.right && y >= r.top && y <= r.bottom) return true;
+  }
+  if (!micEl.classList.contains('hidden')) {
+    const r = micEl.getBoundingClientRect();
+    if (x >= r.left - 6 && x <= r.right + 6 && y >= r.top - 6 && y <= r.bottom + 6) return true;
+  }
+  return renderer.alphaAtCss(x, y, 1) > 40;
+}
+
+function setIgnore(v) {
+  if (isLinux || v === ignoring) return;
+  ignoring = v;
+  wd.send('avatar:ignore-mouse', v);
+}
+
+window.addEventListener('mousemove', (e) => {
+  if (drag) return;
+  setIgnore(!overInteractive(e.clientX, e.clientY));
+});
+document.addEventListener('mouseleave', () => {
+  if (!drag) setIgnore(true);
+});
+
+canvas.addEventListener('pointerdown', async (e) => {
+  if (e.button !== 0 || !overInteractive(e.clientX, e.clientY)) return;
+  canvas.setPointerCapture(e.pointerId);
+  const b = await wd.invoke('avatar:bounds');
+  drag = { sx: e.screenX, sy: e.screenY, bx: b.x, by: b.y, moved: false };
+});
+canvas.addEventListener('pointermove', (e) => {
+  if (!drag) return;
+  const dx = e.screenX - drag.sx;
+  const dy = e.screenY - drag.sy;
+  if (!drag.moved && Math.hypot(dx, dy) < 5) return;
+  drag.moved = true;
+  wd.send('avatar:move', { x: drag.bx + dx, y: drag.by + dy });
+});
+canvas.addEventListener('pointerup', (e) => {
+  if (!drag) return;
+  const wasDrag = drag.moved;
+  drag = null;
+  canvas.releasePointerCapture(e.pointerId);
+  if (wasDrag) {
+    wd.send('avatar:move-end');
+    return;
+  }
+  // clic simple = chat · doble clic = hablar
+  if (clickTimer) {
+    clearTimeout(clickTimer);
+    clickTimer = null;
+    toggleRecording();
+    return;
+  }
+  clickTimer = setTimeout(() => {
+    clickTimer = null;
+    anim.bounce();
+    wd.send('avatar:click');
+  }, 240);
+});
+window.addEventListener('contextmenu', (e) => {
+  e.preventDefault();
+  wd.send('avatar:context-menu');
+});
+bubble.addEventListener('click', () => wd.send('avatar:click'));
+micEl.addEventListener('click', () => toggleRecording());
+
+// En Linux se recorta la ventana a la silueta (no hay "click-through" con reenvío).
+let shapeTimer = null;
+function updateShape() {
+  if (!isLinux) return;
+  clearTimeout(shapeTimer);
+  shapeTimer = setTimeout(() => {
+    const rects = renderer.shapeRects(6, 4);
+    for (const el of [bubble, micEl]) {
+      if (el.classList.contains('hidden')) continue;
+      const r = el.getBoundingClientRect();
+      rects.push({ x: Math.floor(r.left - 6), y: Math.floor(r.top - 6), width: Math.ceil(r.width + 12), height: Math.ceil(r.height + 14) });
+    }
+    wd.send('avatar:shape', rects);
+  }, 50);
+}
+
+// ---------------------------------------------------------------- cursor
+wd.on('avatar:cursor', (p) => {
+  anim.cursor = p;
+});
+
+// ---------------------------------------------------------------- voz: grabación
+let rec = null;
+
+async function toggleRecording() {
+  if (rec) return rec.stop();
+  try {
+    await startRecording();
+  } catch (e) {
+    console.error(e);
+    setState({ state: 'error', label: 'Sin micrófono' });
+    setTimeout(() => currentState === 'error' && setState({ state: 'idle' }), 3000);
+  }
+}
+
+async function startRecording() {
+  stopPlayback();
+  const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } });
+  const mime = ['audio/webm;codecs=opus', 'audio/webm', 'audio/ogg;codecs=opus'].find((m) => MediaRecorder.isTypeSupported(m)) || '';
+  const mr = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined);
+  const chunks = [];
+  const ctx = getAudioCtx();
+  const src = ctx.createMediaStreamSource(stream);
+  const an = ctx.createAnalyser();
+  an.fftSize = 1024;
+  src.connect(an);
+  const buf = new Float32Array(an.fftSize);
+  const started = performance.now();
+  let speech = false;
+  let lastVoice = performance.now();
+  let raf = 0;
+  let discard = false;
+  const autoStop = cfg?.voice?.autoStopOnSilence !== false;
+
+  const meter = () => {
+    an.getFloatTimeDomainData(buf);
+    let sum = 0;
+    for (const v of buf) sum += v * v;
+    const rms = Math.sqrt(sum / buf.length);
+    micEl.style.setProperty('--lvl', Math.min(1, rms * 9).toFixed(3));
+    const now = performance.now();
+    if (rms > 0.035) {
+      speech = true;
+      lastVoice = now;
+    }
+    if (autoStop && speech && now - lastVoice > 1400) return stop();
+    if (!speech && now - started > 9000) {
+      discard = true;
+      return stop();
+    }
+    if (now - started > 60000) return stop();
+    raf = requestAnimationFrame(meter);
+  };
+
+  const stop = () => {
+    if (mr.state !== 'inactive') mr.stop();
+  };
+  mr.ondataavailable = (e) => e.data.size && chunks.push(e.data);
+  mr.onstop = async () => {
+    cancelAnimationFrame(raf);
+    stream.getTracks().forEach((t) => t.stop());
+    src.disconnect();
+    rec = null;
+    micEl.classList.add('hidden');
+    updateShape();
+    wd.send('voice:status', { recording: false });
+    if (discard || !chunks.length) {
+      setState({ state: 'idle' });
+      return;
+    }
+    const blob = new Blob(chunks, { type: mr.mimeType || 'audio/webm' });
+    const bytes = new Uint8Array(await blob.arrayBuffer());
+    await wd.invoke('voice:transcribe', bytes, blob.type);
+  };
+  mr.start(250);
+  rec = { stop };
+  micEl.classList.remove('hidden');
+  updateShape();
+  wd.send('voice:status', { recording: true });
+  raf = requestAnimationFrame(meter);
+}
+
+wd.on('voice:record-toggle', toggleRecording);
+
+// ---------------------------------------------------------------- voz: reproducción
+let audioCtx = null;
+function getAudioCtx() {
+  if (!audioCtx) audioCtx = new AudioContext();
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  return audioCtx;
+}
+
+const queue = [];
+let playing = null;
+let analyser = null;
+const levelBuf = new Float32Array(512);
+
+anim.levelFn = () => {
+  if (!analyser || !playing || playing.type !== 'audio') return 0;
+  analyser.getFloatTimeDomainData(levelBuf);
+  let sum = 0;
+  for (const v of levelBuf) sum += v * v;
+  const rms = Math.sqrt(sum / levelBuf.length);
+  return Math.min(1, Math.max(0, (rms - 0.012) * 7));
+};
+
+function pump() {
+  if (playing || !queue.length) return;
+  const item = queue.shift();
+  playing = item;
+  if (item.type === 'audio') playAudio(item);
+  else sayText(item);
+}
+
+async function playAudio(item) {
+  try {
+    const ctx = getAudioCtx();
+    const ab = item.audio.buffer.slice(item.audio.byteOffset, item.audio.byteOffset + item.audio.byteLength);
+    const buffer = await ctx.decodeAudioData(ab);
+    if (playing !== item) return;
+    const srcNode = ctx.createBufferSource();
+    srcNode.buffer = buffer;
+    analyser = ctx.createAnalyser();
+    analyser.fftSize = 512;
+    srcNode.connect(analyser);
+    analyser.connect(ctx.destination);
+    item.node = srcNode;
+    srcNode.onended = () => finish(item);
+    srcNode.start();
+  } catch (e) {
+    console.error('audio', e);
+    finish(item);
+  }
+}
+
+function sayText(item) {
+  const synth = window.speechSynthesis;
+  const u = new SpeechSynthesisUtterance(item.text);
+  const voices = synth.getVoices();
+  const v = voices.find((x) => x.name === item.voice) || voices.find((x) => /^es/i.test(x.lang)) || null;
+  if (v) {
+    u.voice = v;
+    u.lang = v.lang;
+  } else u.lang = 'es-ES';
+  u.rate = Number(item.rate) || 1;
+  u.pitch = Number(item.pitch) || 1;
+  u.onstart = () => {
+    anim.fakeTalkUntil = performance.now() + 60000;
+  };
+  u.onend = u.onerror = () => {
+    anim.fakeTalkUntil = 0;
+    finish(item);
+  };
+  synth.speak(u);
+  // Si no hay voces instaladas onstart nunca llega: no bloquear la cola.
+  setTimeout(() => {
+    if (playing === item && !synth.speaking) {
+      anim.fakeTalkUntil = 0;
+      finish(item);
+    }
+  }, 4000);
+}
+
+function finish(item) {
+  if (playing !== item) return;
+  playing = null;
+  if (!queue.length) anim.bounce();
+  pump();
+}
+
+function stopPlayback() {
+  queue.length = 0;
+  if (playing?.node) {
+    try {
+      playing.node.stop();
+    } catch {
+      /* ya parado */
+    }
+  }
+  playing = null;
+  window.speechSynthesis.cancel();
+  anim.fakeTalkUntil = 0;
+}
+
+wd.on('tts:play', ({ id, audio }) => {
+  queue.push({ type: 'audio', id, audio });
+  pump();
+});
+wd.on('tts:say', (item) => {
+  queue.push({ type: 'say', ...item });
+  pump();
+});
+wd.on('tts:stop', stopPlayback);
+
+// ---------------------------------------------------------------- arranque
+wd.on('skin:changed', (s) => loadSkin(s));
+wd.on('cfg:changed', (pc) => {
+  const prevScale = cfg?.ui?.scale;
+  cfg = pc.config;
+  if (skin && prevScale !== cfg.ui.scale) wd.send('avatar:resize', desiredSize());
+});
+
+(async () => {
+  cfg = (await wd.invoke('cfg:get')).config;
+  document.body.dataset.state = 'idle';
+  await loadSkin();
+  const st = await wd.invoke('chat:state');
+  if (st && st !== 'idle') setState({ state: st });
+})();

@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob: data:; connect-src 'self' blob: data:" />
+    <title>Waifu Desk</title>
+    <link rel="stylesheet" href="../shared/base.css" />
+    <link rel="stylesheet" href="avatar.css" />
+  </head>
+  <body>
+    <div id="bubble" class="bubble hidden" role="status" aria-live="polite">
+      <span class="bubble-text" id="bubbleText"></span>
+      <span class="dots" id="dots"><i></i><i></i><i></i></span>
+    </div>
+    <canvas id="stage" aria-label="Asistente"></canvas>
+    <div id="mic" class="mic hidden" aria-hidden="true"><span></span></div>
+    <script type="module" src="avatar.js"></script>
+  </body>
+</html>

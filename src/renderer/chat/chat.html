@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:" />
+    <title>Chat</title>
+    <link rel="stylesheet" href="../shared/base.css" />
+    <link rel="stylesheet" href="chat.css" />
+  </head>
+  <body>
+    <header class="top">
+      <div class="who">
+        <span class="dot" id="stateDot"></span>
+        <div class="who-text">
+          <strong id="assistantName">Noa</strong>
+          <span id="stateText" class="muted">lista</span>
+        </div>
+      </div>
+      <label class="profile" title="Modelo activo">
+        <select id="profile"></select>
+      </label>
+      <div class="actions">
+        <button class="icon-btn" id="btnNew" title="Nueva conversación (Ctrl+N)"></button>
+        <button class="icon-btn" id="btnSettings" title="Ajustes"></button>
+        <button class="icon-btn" id="btnClose" title="Ocultar (Esc)"></button>
+      </div>
+    </header>
+
+    <main id="log" class="log" aria-live="polite"></main>
+
+    <section id="empty" class="empty hidden">
+      <div class="hello" id="hello">¿En qué te ayudo?</div>
+      <p class="muted">Escribe, pulsa el micro o haz doble clic en mí para hablar.</p>
+      <div class="suggest" id="suggest"></div>
+    </section>
+
+    <footer class="composer">
+      <div class="box">
+        <textarea id="input" rows="1" placeholder="Escribe un mensaje…" spellcheck="true"></textarea>
+        <button class="icon-btn mic" id="btnMic" title="Hablar"></button>
+        <button class="send" id="btnSend" title="Enviar (Enter)"></button>
+      </div>
+      <div class="hint muted" id="hint"></div>
+    </footer>
+    <script type="module" src="chat.js"></script>
+  </body>
+</html>
