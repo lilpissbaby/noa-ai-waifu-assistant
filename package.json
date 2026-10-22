@@ -1,0 +1,77 @@
+{
+  "name": "waifu-desk",
+  "productName": "Waifu Desk",
+  "version": "0.1.0",
+  "description": "Asistente de IA con avatar anime flotante en el escritorio",
+  "main": "src/main/main.js",
+  "type": "module",
+  "author": "mupsim",
+  "license": "MIT",
+  "scripts": {
+    "start": "electron .",
+    "dist:win": "electron-builder --win",
+    "dist:win:cross": "electron-builder --win dir zip && node build/make-installer.mjs",
+    "dist:linux": "electron-builder --linux",
+    "skin:default": "python3 tools/draw_default_skin.py"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.1",
+    "onnxruntime-web": "^1.30.0"
+  },
+  "devDependencies": {
+    "electron": "^44.9.0",
+    "electron-builder": "^26.15.3",
+    "resedit": "^3.1.0"
+  },
+  "build": {
+    "appId": "desk.waifu.app",
+    "productName": "Waifu Desk",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "src/**/*",
+      "assets/**/*",
+      "package.json",
+      "!**/*.map",
+      "!node_modules/onnxruntime-web/lib/**",
+      "!node_modules/onnxruntime-web/dist/**",
+      "node_modules/onnxruntime-web/dist/ort.wasm.min.mjs",
+      "node_modules/onnxruntime-web/dist/ort-wasm-simd-threaded.mjs",
+      "node_modules/onnxruntime-web/dist/ort-wasm-simd-threaded.wasm"
+    ],
+    "afterPack": "build/after-pack.mjs",
+    "win": {
+      "target": [
+        "nsis",
+        "zip"
+      ],
+      "icon": "build/icon.ico",
+      "signAndEditExecutable": false,
+      "artifactName": "WaifuDesk-${version}-win-${arch}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "runAfterFinish": true,
+      "shortcutName": "Waifu Desk",
+      "language": "3082",
+      "installerLanguages": [
+        "es_ES"
+      ],
+      "artifactName": "WaifuDesk-Setup-${version}.${ext}"
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "category": "Utility",
+      "icon": "build/icon.png",
+      "maintainer": "mupsim"
+    }
+  }
+}
