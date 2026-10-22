@@ -192,6 +192,34 @@ export class VrmRenderer {
     return out.toDataURL('image/png');
   }
 
+  // Sustituye clips propios por movimientos importados según la asignación de la configuración.
+  // assign = { idle: id|null, …, talkGesture: [id…] }; motions = lista de skin:motions-list.
+  async setMotionAssign(assign = {}, motions = []) {
+    const lib = defaultLibrary();
+    if (this.vrm) {
+      const { loadMotionFile } = await import('./import-clip.js');
+      const byId = new Map(motions.map((m) => [m.id, m]));
+      for (const [key, value] of Object.entries(assign)) {
+        const ids = (Array.isArray(value) ? value : [value]).filter(Boolean);
+        const loaded = [];
+        for (const id of ids) {
+          const m = byId.get(id);
+          if (!m) {
+            console.warn(`Movimiento asignado que ya no existe: ${id}`);
+            continue;
+          }
+          try {
+            loaded.push((await loadMotionFile(m.url, m.format, this.vrm, m.name)).motion);
+          } catch (e) {
+            console.warn(`No se pudo cargar el movimiento ${m.name}:`, e?.message || e);
+          }
+        }
+        if (loaded.length) lib[key] = loaded;
+      }
+    }
+    this.player.setLibrary(lib);
+  }
+
   avgRenderMs() {
     const a = this.renderMs;
     return a.length ? a.reduce((s, v) => s + v, 0) / a.length : 0;

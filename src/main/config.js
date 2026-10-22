@@ -82,6 +82,8 @@ export function defaultConfig(locale = resolveLocale('auto', systemLocales())) {
       mcpServers: [],
     },
     tools: { autoApprove: {} },
+    // Movimientos importados asignados a cada estado o gesto de las skins 3D (null = el propio).
+    motions: { assign: { idle: null, thinking: null, listening: null, working: null, talking: null, greet: null, happy: null, talkGesture: [] } },
     ui: {
       language: 'auto', // auto | es | en | ru | uk | zh
       skinId: 'default',

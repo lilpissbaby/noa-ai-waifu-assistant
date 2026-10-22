@@ -154,6 +154,11 @@ export class MotionPlayer {
     if (key === 'idle') this.nextIdleSwap = this.time + 20 + this.random() * 20;
   }
 
+  // Reproduce un movimiento una vez encima del estado (botón «Probar» del editor).
+  play(motion) {
+    if (motion) this.gesture = { motion: Object.assign(Object.create(Object.getPrototypeOf(motion)), motion, { loop: false }), t: 0 };
+  }
+
   startGesture(name) {
     const list = asList(this.lib[name]);
     const motion = list[Math.floor(this.random() * list.length)];

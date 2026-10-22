@@ -22,6 +22,7 @@ let model = null; // { url, tmpId?, copyFrom?, meta, version, builtin }
 let framing = normalizeFraming();
 let loadStatus = null;
 let saveStatus = null;
+let motionStatus = null;
 
 
 const cleanErr = (e) => String(e?.message || e).replace(/^Error invoking remote method '[^']+': (Error: )?/, '');
@@ -31,6 +32,7 @@ const enable = (id, on = true) => (on ? $(id).removeAttribute('data-disabled') :
 function status(id, key, kind = '', vars) {
   const memo = key ? { key, kind, vars } : null;
   if (id === 'loadStatus') loadStatus = memo;
+  else if (id === 'motionStatus') motionStatus = memo;
   else saveStatus = memo;
   $(id).textContent = key ? (key.startsWith('!') ? key.slice(1) : t(key, vars)) : '';
   $(id).className = `status ${kind}`;
@@ -75,7 +77,9 @@ async function showModel(next) {
     stage.start();
     renderLicense();
     paintFraming();
-    ['step2', 'step3', 'step4', 'step5'].forEach((s) => enable(s));
+    ['step2', 'step3', 'step4', 'stepMotions', 'step5'].forEach((s) => enable(s));
+    renderMotions();
+    applyAssignToPreview();
     $('builtinNote').classList.toggle('hidden', !next.builtin);
     status('loadStatus', 'vrmEditor.loaded', 'ok', { title: next.meta?.title || '—', version: next.version || '?' });
   } catch (e) {
@@ -217,6 +221,111 @@ for (const e of ['happy', 'sad', 'angry', 'surprised', 'relaxed']) chip($('emoti
 chip($('gestures'), '', () => behaviour.trigger('greet'), 'vrmEditor.gesture.greet');
 paintStates();
 
+// ---------------------------------------------------------------- movimientos importados
+const SLOTS = ['idle', 'thinking', 'listening', 'working', 'talking', 'greet', 'happy', 'talkGesture'];
+
+const slotOf = (assign, id) => SLOTS.find((k) => (Array.isArray(assign[k]) ? assign[k].includes(id) : assign[k] === id)) || '';
+
+async function assignMotion(id, slot) {
+  const assign = structuredClone((await wd.invoke('cfg:get')).config.motions?.assign || {});
+  for (const k of SLOTS) {
+    if (Array.isArray(assign[k])) assign[k] = assign[k].filter((x) => x !== id);
+    else if (assign[k] === id) assign[k] = null;
+  }
+  if (slot === 'talkGesture') assign.talkGesture = [...(assign.talkGesture || []), id];
+  else if (slot) assign[slot] = id;
+  await wd.invoke('cfg:patch', { motions: { assign } });
+  await applyAssignToPreview();
+}
+
+async function applyAssignToPreview() {
+  if (!renderer?.vrm) return;
+  const pc = await wd.invoke('cfg:get');
+  await renderer.setMotionAssign(pc.config.motions?.assign || {}, await wd.invoke('skin:motions-list'));
+}
+
+async function loadForPreview(m) {
+  const { loadMotionFile } = await import('../shared/vrm/import-clip.js');
+  return loadMotionFile(m.url, m.format, renderer.vrm, m.name);
+}
+
+function el(tag, attrs = {}, ...kids) {
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) {
+    if (k === 'onclick' || k === 'onchange') e[k] = v;
+    else if (k === 'text') e.textContent = v;
+    else e.setAttribute(k, v);
+  }
+  e.append(...kids.filter(Boolean));
+  return e;
+}
+
+async function renderMotions() {
+  const list = await wd.invoke('skin:motions-list');
+  const assign = (await wd.invoke('cfg:get')).config.motions?.assign || {};
+  const box = $('motionList');
+  box.innerHTML = '';
+  if (!list.length) box.append(el('small', { class: 'muted', text: t('vrmEditor.motions.none') }));
+  for (const m of list) {
+    const select = el('select', { onchange: (e) => assignMotion(m.id, e.target.value) });
+    select.append(el('option', { value: '', text: t('vrmEditor.motions.unassigned') }));
+    for (const k of SLOTS) select.append(el('option', { value: k, text: t(`vrmEditor.motions.slot.${k}`) }));
+    select.value = slotOf(assign, m.id);
+    const info = [m.duration ? t('vrmEditor.motions.duration', { seconds: m.duration.toFixed(1) }) : '', m.missingBones?.length ? t('vrmEditor.motions.missing', { count: m.missingBones.length }) : ''].filter(Boolean).join(' · ');
+    box.append(
+      el(
+        'div',
+        { class: 'motion' },
+        el('div', { class: 'top' }, el('strong', { text: m.name, title: m.name }), el('small', { class: 'muted', text: `${m.format.toUpperCase()}${info ? ` · ${info}` : ''}` })),
+        el(
+          'div',
+          { class: 'row' },
+          select,
+          el('button', {
+            class: 'btn tiny',
+            text: t('vrmEditor.motions.try'),
+            onclick: async () => {
+              try {
+                renderer.player.play((await loadForPreview(m)).motion);
+              } catch (e) {
+                status('motionStatus', motionError(e), 'err', { error: cleanErr(e), mb: 30 });
+              }
+            },
+          }),
+          el('button', {
+            class: 'btn tiny ghost danger',
+            text: t('vrmEditor.motions.delete'),
+            onclick: async () => {
+              await wd.invoke('skin:motion-delete', m.id);
+              await renderMotions();
+              await applyAssignToPreview();
+            },
+          }),
+        ),
+      ),
+    );
+  }
+}
+
+const motionError = (e) => (e?.code ? `vrmEditor.motions.errors.${e.code}` : 'vrmEditor.motions.errors.load');
+
+$('btnMotion').onclick = async () => {
+  const entry = await wd.invoke('skin:motion-import');
+  if (!entry) return;
+  if (entry.error) return status('motionStatus', `vrmEditor.motions.errors.${entry.error}`, 'err', { mb: 30 });
+  try {
+    const r = await loadForPreview(entry);
+    await wd.invoke('skin:motion-update', entry.id, { duration: r.duration, missingBones: r.missingBones });
+    renderer.player.play(r.motion);
+    status('motionStatus', 'vrmEditor.motions.imported', 'ok', { name: entry.name });
+  } catch (e) {
+    await wd.invoke('skin:motion-delete', entry.id);
+    status('motionStatus', motionError(e), 'err', { error: cleanErr(e) });
+  }
+  await renderMotions();
+};
+wd.on('skin:motions-changed', () => model && renderMotions());
+
 // ---------------------------------------------------------------- guardar
 async function save(use) {
   if (!model || !renderer) return;
@@ -255,9 +364,13 @@ function applyLocale(locale) {
   for (const [id, memo] of [
     ['loadStatus', loadStatus],
     ['saveStatus', saveStatus],
+    ['motionStatus', motionStatus],
   ])
     if (memo) status(id, memo.key, memo.kind, memo.vars);
-  if (model) renderLicense();
+  if (model) {
+    renderLicense();
+    renderMotions();
+  }
 }
 wd.on('cfg:changed', (pc) => applyLocale(pc.locale));
 // Si ya estaba abierta y se pide otra skin (Ajustes → Ajustar), se recarga con ella.

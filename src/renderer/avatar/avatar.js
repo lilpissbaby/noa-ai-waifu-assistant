@@ -95,7 +95,21 @@ async function doLoadSkin(s) {
     setTimeout(() => currentState === 'error' && setState({ state: 'idle' }), 5000);
   }
   scheduleShapeRefresh();
+  await applyMotions(true); // cada modelo necesita sus movimientos importados reorientados
 }
+
+// Movimientos importados asignados a estados y gestos (solo skins 3D).
+let motionsKey = '';
+async function applyMotions(force = false) {
+  if (renderer?.kind !== 'vrm' || !cfg) return;
+  const assign = cfg.motions?.assign || {};
+  const key = JSON.stringify(assign);
+  if (!force && key === motionsKey && renderer.motionsApplied) return;
+  motionsKey = key;
+  renderer.motionsApplied = true;
+  await renderer.setMotionAssign(assign, await wd.invoke('skin:motions-list'));
+}
+wd.on('skin:motions-changed', () => applyMotions(true));
 
 window.addEventListener('resize', relayout);
 
@@ -436,6 +450,7 @@ wd.on('cfg:changed', (pc) => {
   setLocale(pc.locale);
   applyDom();
   if (skin && prevScale !== cfg.ui.scale) wd.send('avatar:resize', desiredSize());
+  applyMotions();
 });
 
 (async () => {

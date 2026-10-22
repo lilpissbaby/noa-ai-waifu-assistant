@@ -14,6 +14,7 @@ import { testHermes } from './tools/hermes.js';
 import { testPaperclip } from './tools/paperclip.js';
 import { transcribe, synthesize, speakable, SentenceChunker } from './voice.js';
 import { isBundleAllowed } from './bundle-allowed.js';
+import { listMotions, importMotion, updateMotion, deleteMotion } from './motions.js';
 import { APP_ROOT, listSkins, getSkin, saveSkin, deleteSkin, fetchImage, segmentModelStatus, downloadSegmentModel, stageVrm, downloadVrm, saveVrmSkin, clearVrmTmp } from './skins.js';
 import * as logger from './log.js';
 
@@ -743,6 +744,22 @@ function registerIpc() {
     broadcast('skin:list-changed', listSkins());
     if (loadConfig().ui.skinId === m.id) broadcast('skin:changed', m);
     return m;
+  });
+  ipcMain.handle('skin:motions-list', () => listMotions());
+  ipcMain.handle('skin:motion-import', async (e) => {
+    const win = BrowserWindow.fromWebContents(e.sender);
+    const r = await dialog.showOpenDialog(win, { title: t('vrmEditor.motions.pick'), filters: [{ name: t('vrmEditor.motions.files'), extensions: ['vrma', 'fbx'] }], properties: ['openFile'] });
+    if (r.canceled || !r.filePaths[0]) return null;
+    const entry = importMotion(r.filePaths[0]);
+    if (!entry.error) broadcast('skin:motions-changed', listMotions());
+    return entry;
+  });
+  ipcMain.handle('skin:motion-update', (_e, id, data) => updateMotion(id, data));
+  ipcMain.handle('skin:motion-delete', (_e, id) => {
+    deleteMotion(id);
+    broadcast('skin:motions-changed', listMotions());
+    broadcast('cfg:changed', publicConfig());
+    return true;
   });
   ipcMain.handle('skin:model-status', () => segmentModelStatus());
   ipcMain.handle('skin:model-download', async (e) => {
