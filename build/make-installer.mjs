@@ -1,6 +1,6 @@
-// Genera el instalador de Windows con makensis directamente, sin Wine.
-// Se usa al compilar para Windows desde Linux/macOS:  npm run dist:win:cross
-// (En Windows basta con «npm run dist:win», que usa el NSIS de electron-builder.)
+// Genera el instalador de Windows (build/installer.nsi) con makensis, sin Wine.
+// Lo llama «npm run dist:win» después de «electron-builder --win dir zip», en Windows, Linux o macOS.
+// makensis: en Windows, el de NSIS (choco install nsis); en Linux, apt install nsis; en macOS, brew install makensis.
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
@@ -15,13 +15,19 @@ if (!fs.existsSync(path.join(src, 'Waifu Desk.exe'))) {
   process.exit(1);
 }
 
-// makensis: el del PATH o el que descarga electron-builder en su caché.
+// makensis: el del PATH, el de la instalación de NSIS en Windows o el que descarga electron-builder.
 function findMakensis() {
   try {
     execFileSync('makensis', ['-VERSION'], { stdio: 'ignore' });
     return { bin: 'makensis', nsisDir: null };
   } catch {
     /* no está en el PATH */
+  }
+  if (process.platform === 'win32') {
+    for (const base of [process.env['ProgramFiles(x86)'], process.env.ProgramFiles].filter(Boolean)) {
+      const bin = path.join(base, 'NSIS', 'makensis.exe');
+      if (fs.existsSync(bin)) return { bin, nsisDir: null };
+    }
   }
   const caches = [process.env.ELECTRON_BUILDER_CACHE, path.join(os.homedir(), '.cache', 'electron-builder'), path.join(os.homedir(), 'Library', 'Caches', 'electron-builder')].filter(Boolean);
   const plat = process.platform === 'darwin' ? 'mac' : 'linux';
@@ -38,8 +44,11 @@ function findMakensis() {
   return null;
 }
 
-// Plugin WinShell (de los recursos NSIS de electron-builder) para poner el AppUserModelID al acceso directo.
+// Plugin WinShell para poner el AppUserModelID al acceso directo. Va incluido en build/nsis
+// (de los recursos NSIS de electron-builder, licencia zlib); si no, se busca en su caché.
 function findPluginDir() {
+  const vendored = path.join(root, 'build', 'nsis', 'x86-unicode');
+  if (fs.existsSync(path.join(vendored, 'WinShell.dll'))) return vendored;
   const caches = [process.env.ELECTRON_BUILDER_CACHE, path.join(os.homedir(), '.cache', 'electron-builder'), path.join(os.homedir(), 'Library', 'Caches', 'electron-builder')].filter(Boolean);
   for (const c of caches) {
     if (!fs.existsSync(c)) continue;

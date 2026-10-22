@@ -1,17 +1,32 @@
 {
   "name": "waifu-desk",
   "productName": "Waifu Desk",
+  "desktopName": "waifu-desk.desktop",
   "version": "0.1.0",
-  "description": "Asistente de IA con avatar anime flotante en el escritorio",
+  "description": "AI assistant with a floating anime avatar on your desktop (Claude, OpenAI-compatible, Hermes, Paperclip, MCP)",
+  "homepage": "https://github.com/lilpissbaby/noa-ai-waifu-assistant",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/lilpissbaby/noa-ai-waifu-assistant.git"
+  },
+  "bugs": {
+    "url": "https://github.com/lilpissbaby/noa-ai-waifu-assistant/issues"
+  },
   "main": "src/main/main.js",
   "type": "module",
   "author": "mupsim",
   "license": "MIT",
+  "engines": {
+    "node": ">=22.13"
+  },
   "scripts": {
     "start": "electron .",
-    "dist:win": "electron-builder --win",
-    "dist:win:cross": "electron-builder --win dir zip && node build/make-installer.mjs",
-    "dist:linux": "electron-builder --linux",
+    "test": "node --import ./test/setup.mjs --test \"test/*.test.mjs\"",
+    "lint": "eslint .",
+    "smoke": "node tools/smoke.mjs",
+    "screenshots": "node tools/smoke.mjs tools/automation/screenshots.mjs --scale=2",
+    "dist:win": "electron-builder --win dir zip --publish never && node build/make-installer.mjs",
+    "dist:linux": "electron-builder --linux --publish never",
     "skin:default": "python3 tools/draw_default_skin.py"
   },
   "dependencies": {
@@ -19,8 +34,11 @@
     "onnxruntime-web": "^1.30.0"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "electron": "^44.9.0",
     "electron-builder": "^26.15.3",
+    "eslint": "^10.13.0",
+    "globals": "^17.13.0",
     "resedit": "^3.1.0"
   },
   "build": {
@@ -44,25 +62,12 @@
     "afterPack": "build/after-pack.mjs",
     "win": {
       "target": [
-        "nsis",
+        "dir",
         "zip"
       ],
       "icon": "build/icon.ico",
       "signAndEditExecutable": false,
       "artifactName": "WaifuDesk-${version}-win-${arch}.${ext}"
-    },
-    "nsis": {
-      "oneClick": false,
-      "perMachine": false,
-      "allowToChangeInstallationDirectory": true,
-      "createDesktopShortcut": true,
-      "runAfterFinish": true,
-      "shortcutName": "Waifu Desk",
-      "language": "3082",
-      "installerLanguages": [
-        "es_ES"
-      ],
-      "artifactName": "WaifuDesk-Setup-${version}.${ext}"
     },
     "linux": {
       "target": [
@@ -71,7 +76,11 @@
       ],
       "category": "Utility",
       "icon": "build/icon.png",
-      "maintainer": "mupsim"
-    }
+      "maintainer": "mupsim",
+      "artifactName": "WaifuDesk-${version}-linux-${arch}.${ext}",
+      "synopsis": "AI assistant with a floating anime avatar",
+      "syncDesktopName": true
+    },
+    "publish": null
   }
 }
