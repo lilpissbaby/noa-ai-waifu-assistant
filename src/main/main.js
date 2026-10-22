@@ -13,6 +13,7 @@ import { syncMcp, mcpStatus, closeAllMcp } from './tools/mcp.js';
 import { testHermes } from './tools/hermes.js';
 import { testPaperclip } from './tools/paperclip.js';
 import { transcribe, synthesize, speakable, SentenceChunker } from './voice.js';
+import { isBundleAllowed } from './bundle-allowed.js';
 import { APP_ROOT, listSkins, getSkin, saveSkin, deleteSkin, fetchImage, segmentModelStatus, downloadSegmentModel } from './skins.js';
 import * as logger from './log.js';
 
@@ -58,7 +59,6 @@ const MIME = {
   '.onnx': 'application/octet-stream',
   '.woff2': 'font/woff2',
 };
-const BUNDLE_ALLOWED = ['src/renderer/', 'src/shared/', 'assets/', 'node_modules/onnxruntime-web/dist/'];
 
 function registerAppProtocol() {
   protocol.handle('app', async (req) => {
@@ -66,7 +66,7 @@ function registerAppProtocol() {
     const [, area, ...rest] = u.pathname.split('/');
     const rel = decodeURIComponent(rest.join('/'));
     const root = area === 'bundle' ? APP_ROOT : area === 'user' ? userDir() : null;
-    if (!root || (area === 'bundle' && !BUNDLE_ALLOWED.some((p) => rel.startsWith(p)))) return new Response('Forbidden', { status: 403 });
+    if (!root || (area === 'bundle' && !isBundleAllowed(rel))) return new Response('Forbidden', { status: 403 });
     const file = path.normalize(path.join(root, rel));
     if (!file.startsWith(path.normalize(root) + path.sep)) return new Response('Forbidden', { status: 403 });
     let res;

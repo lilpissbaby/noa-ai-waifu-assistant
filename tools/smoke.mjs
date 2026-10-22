@@ -14,7 +14,8 @@ const script = process.argv.slice(2).find((a) => !a.startsWith('--')) || 'tools/
 const scale = process.argv.find((a) => a.startsWith('--scale='))?.split('=')[1];
 const userData = fs.mkdtempSync(path.join(os.tmpdir(), 'waifu-desk-smoke-'));
 const args = ['.'];
-if (process.platform === 'linux') args.push('--no-sandbox', '--disable-gpu-sandbox');
+// En Linux sin GPU (CI, Xvfb) WebGL solo funciona con SwiftShader de ANGLE.
+if (process.platform === 'linux') args.push('--no-sandbox', '--disable-gpu-sandbox', '--use-angle=swiftshader');
 // Capturas: escala 2x y almacén de claves básico (en Windows y en escritorios con llavero no hace falta).
 if (scale) args.push(`--force-device-scale-factor=${scale}`, '--password-store=basic');
 

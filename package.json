@@ -31,7 +31,10 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.32.1",
-    "onnxruntime-web": "^1.30.0"
+    "@pixiv/three-vrm": "3.5.5",
+    "@pixiv/three-vrm-animation": "3.5.5",
+    "onnxruntime-web": "^1.30.0",
+    "three": "0.186.1"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
@@ -57,7 +60,26 @@
       "!node_modules/onnxruntime-web/dist/**",
       "node_modules/onnxruntime-web/dist/ort.wasm.min.mjs",
       "node_modules/onnxruntime-web/dist/ort-wasm-simd-threaded.mjs",
-      "node_modules/onnxruntime-web/dist/ort-wasm-simd-threaded.wasm"
+      "node_modules/onnxruntime-web/dist/ort-wasm-simd-threaded.wasm",
+      "!node_modules/three/**",
+      "!node_modules/@pixiv/**",
+      "node_modules/three/build/three.module.js",
+      "node_modules/three/build/three.core.js",
+      "node_modules/@pixiv/three-vrm/lib/three-vrm.module.min.js",
+      "node_modules/@pixiv/three-vrm-animation/lib/three-vrm-animation.module.min.js",
+      {
+        "from": "node_modules/three/examples/jsm",
+        "to": "node_modules/three/examples/jsm",
+        "filter": [
+          "loaders/GLTFLoader.js",
+          "loaders/FBXLoader.js",
+          "utils/BufferGeometryUtils.js",
+          "utils/SkeletonUtils.js",
+          "libs/fflate.module.js",
+          "curves/NURBSCurve.js",
+          "curves/NURBSUtils.js"
+        ]
+      }
     ],
     "afterPack": "build/after-pack.mjs",
     "win": {
