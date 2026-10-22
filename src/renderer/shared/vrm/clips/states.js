@@ -44,16 +44,16 @@ export const working = {
   },
 };
 
-// Hablando: postura abierta (los gestos van encima).
+// Hablando: manos relajadas por delante, a la altura de la cintura (los gestos van encima).
 export const talking = {
   name: 'talking',
   duration: 3,
   loop: true,
   bones: {
     spine: [[0, 2, 0, 0], [1.5, 2, 2, 0.5], [3, 2, 0, 0]],
-    leftUpperArm: [[0, 0, -10, 4], [1.5, 0, -12, 5], [3, 0, -10, 4]],
-    rightUpperArm: [[0, 0, 10, -4], [1.5, 0, 12, -5], [3, 0, 10, -4]],
-    leftLowerArm: [[0, 0, -35, 0], [1.5, 0, -40, 0], [3, 0, -35, 0]],
-    rightLowerArm: [[0, 0, 35, 0], [1.5, 0, 40, 0], [3, 0, 35, 0]],
+    leftUpperArm: [[0, 25, -10, -6], [1.5, 25, -12, -5], [3, 25, -10, -6]],
+    rightUpperArm: [[0, 25, 10, 6], [1.5, 25, 12, 5], [3, 25, 10, 6]],
+    leftLowerArm: [[0, 0, -50, 0], [1.5, 0, -55, 0], [3, 0, -50, 0]],
+    rightLowerArm: [[0, 0, 50, 0], [1.5, 0, 55, 0], [3, 0, 50, 0]],
   },
 };

@@ -29,8 +29,11 @@ Español · [English](README.en.md) — la app está en español, inglés, ruso,
 - **Paperclip**: lista agentes y proyectos, crea, asigna y comenta tareas, y despierta agentes.
 - **Automatizaciones**: webhooks (n8n, Make, Home Assistant…), cualquier servidor **MCP** y comandos en tu PC,
   estos siempre con tu aprobación.
-- **Skins**: le das cualquier dibujo y recorta el fondo con un modelo de IA para anime, en local. Coloca sola
+- **Skins 2D**: le das cualquier dibujo y recorta el fondo con un modelo de IA para anime, en local. Coloca sola
   ojos, boca y cuello, y tú los ajustas con la vista previa animada.
+- **Skins 3D (VRM)**: importa modelos de VRoid Hub, Booth o VRoid Studio. Se mueve según lo que hace (piensa con
+  la mano en la barbilla, teclea, saluda, gesticula al hablar), pone caras según el tono de la respuesta y
+  puedes añadirle movimientos `.vrma` o de Mixamo.
 - **Cinco idiomas**: español, English, Русский, Українська y 中文. Coge el del sistema y se cambia al vuelo.
 
 ## Descargar
@@ -84,6 +87,10 @@ Los atajos se cambian en Ajustes → General.
 
 ![Estados del avatar](docs/screenshots/states.jpg)
 
+**Skin 3D (VRM)**: reposo, pensando, trabajando, hablando y dos caras que pone según el tono de la respuesta.
+
+![Estados de la skin 3D](docs/screenshots/states-3d.jpg)
+
 **La misma petición en los cinco idiomas.** La interfaz y la respuesta siguen al idioma elegido.
 
 ![Chat en español, inglés, ruso, ucraniano y chino](docs/screenshots/languages.jpg)
@@ -106,6 +113,10 @@ Los atajos se cambian en Ajustes → General.
 **Editor de skins**: recorte del fondo, marcadores de ojos, boca y cuello, y vista previa animada.
 
 ![Editor de skins](docs/screenshots/skin-editor.png)
+
+**Editor 3D**: licencia del modelo, encuadre, prueba de estados, caras y gestos, y movimientos importados.
+
+![Editor de skins 3D](docs/screenshots/vrm-editor.png)
 
 Las capturas se generan con la app de verdad y un servidor simulado: `npm run screenshots` (ver
 [Desarrollo](#desarrollo)).
@@ -272,6 +283,34 @@ efectos automáticos. `names` es opcional y traduce el nombre:
 
 La skin de serie (Noa) está hecha así y se genera con `npm run skin:default`.
 
+## Skins 3D (VRM)
+
+Ajustes → Skins → **Importar un modelo 3D (VRM)** (o clic derecho en Noa → Skin → Importar modelo 3D):
+
+1. **Modelo**: un archivo `.vrm` (VRM 0.x o 1.0) o el enlace directo a uno. Sitios para conseguirlos:
+   [VRoid Hub](https://hub.vroid.com) (los que permiten descarga), [Booth](https://booth.pm) o hazte el tuyo
+   gratis con [VRoid Studio](https://vroid.com/studio). Hasta 150 MB.
+2. **Licencia**: la app enseña lo que declaró la autoría del modelo (quién puede usarlo, uso comercial,
+   redistribución, modificación, crédito). **Úsalo solo como permite.**
+3. **Encuadre**: cuerpo entero, medio cuerpo o busto, con zoom, giro, ángulo de cámara y altura. La ventana de la
+   waifu toma la forma del encuadre.
+4. **Pruébala**: estados (reposo, pensando, escuchando, trabajando, hablando), caras y saludo.
+5. **Movimientos**: importa animaciones `.vrma` (por ejemplo, el pack gratuito de VRoid en Booth) o `.fbx` de
+   [Mixamo](https://www.mixamo.com) (descarga «Without Skin») y asígnalas a un estado o gesto. Valen para todas
+   las skins 3D; si no asignas nada, usa los movimientos de serie.
+6. **Guardar y usar**.
+
+**Caras según la IA**: el modelo marca el tono con etiquetas ocultas (`<emo:happy>`, `<emo:sad>`…) que la app
+quita del texto y convierte en expresiones. Se desactiva en Ajustes → General → «Pone caras según el tono de la
+IA».
+
+La skin 3D de serie, **Noa 3D**, es la chica de ejemplo de pixiv del repositorio
+[three-vrm](https://github.com/pixiv/three-vrm) (VRM 1.0, permite redistribuirla y modificarla sin pedir
+crédito; ver [`assets/skins/noa-3d/LICENSE.txt`](assets/skins/noa-3d/LICENSE.txt)).
+
+El 3D necesita GPU: sin aceleración (máquinas virtuales, escritorio remoto) va a pocos fotogramas por segundo y
+es mejor usar una skin 2D.
+
 ---
 
 ## Desarrollo
@@ -322,17 +361,24 @@ src/
     llm/           adaptadores Anthropic y OpenAI-compatible (streaming + tool use) y bucle de agente
     tools/         herramientas: básicas, Hermes, Paperclip, webhooks, cliente MCP
     voice.js       transcripción, síntesis y troceado en frases
-    skins.js       skins y descarga del modelo de recorte
+    skins.js       skins (2D y VRM) y descarga del modelo de recorte
+    vrm-files.js   comprobación de archivos VRM y de su licencia
+    motions.js     biblioteca de movimientos importados (.vrma, .fbx)
     log.js         registro de diagnóstico
   preload/         puente seguro (contextIsolation + sandbox)
   renderer/
     avatar/        ventana transparente con la waifu, micrófono y reproducción con lip-sync
     chat/          panel de chat
     settings/      ajustes
-    editor/        importador de skins (recorte IA, marcadores, vista previa)
-    shared/        renderizador WebGL2 con malla deformable (y respaldo 2D), animador, markdown
+    editor/        importador de skins 2D (recorte IA, marcadores, vista previa)
+    vrm-editor/    importador de skins 3D (licencia, encuadre, movimientos)
+    shared/        comportamiento del avatar (behaviour.js) y bucle (stage.js), renderizador 2D WebGL2
+                   con malla deformable (y respaldo 2D), markdown
+    shared/vrm/    renderizador VRM (three.js + three-vrm), encuadre, labios y mirada, animaciones
+                   propias (clips/), importación de .vrma y Mixamo
   shared/i18n/     traducciones (es, en, ru, uk, zh), compartidas por el proceso principal y las páginas
 assets/skins/default/   skin de serie en capas SVG
+assets/skins/noa-3d/    skin 3D de serie (VRM de ejemplo de pixiv)
 build/                  icono, instalador NSIS multilingüe y hook que pone icono y versión al .exe
 test/                   tests (node:test) con un stub de Electron
 tools/                  generador de la skin, prueba de humo, capturas y notas de release
@@ -341,8 +387,13 @@ tools/                  generador de la skin, prueba de humo, capturas y notas d
 
 - La ventana del avatar es transparente y deja pasar los clics fuera de la silueta (en Windows con reenvío del
   ratón; en Linux recortando la forma de la ventana).
-- La animación deforma una malla 40×N en la GPU: respiración, giro de cabeza alrededor del cuello y mandíbula;
-  parpadeo y boca por capas o con shaders.
+- `Behaviour` decide qué hace el avatar (respiración, parpadeo, boca, mirada, saltito, emoción) y cada
+  renderizador lo dibuja a su manera. En 2D se deforma una malla 40×N en la GPU (respiración, giro de cabeza
+  alrededor del cuello y mandíbula; parpadeo y boca por capas o con shaders). En 3D se mezclan el clip del
+  estado, los gestos y una capa procedural (mirada, respiración), y las expresiones del VRM hacen los labios,
+  el parpadeo y las caras.
+- three.js y three-vrm se sirven tal cual desde `node_modules` (sin bundler) con un *import map* autorizado por
+  hash en la CSP; `node tools/importmap.mjs <página.html>` lo añade a una página nueva.
 - El prompt de sistema y las descripciones de las herramientas van en inglés (todos los modelos lo entienden
   igual); la respuesta sale en el idioma elegido.
 - Una herramienta nueva es un objeto `{ name, description, schema, run }` en `src/main/tools/` registrado en
@@ -382,10 +433,13 @@ tools/                  generador de la skin, prueba de humo, capturas y notas d
 
 ## Privacidad
 
-Todo se guarda en tu carpeta de datos local: ajustes, claves cifradas, conversación y skins. La app solo se
-conecta a los servicios que configures, y a GitHub para descargar el modelo de recorte si lo pides.
+Todo se guarda en tu carpeta de datos local: ajustes, claves cifradas, conversación, skins y movimientos. La
+app solo se conecta a los servicios que configures, a GitHub para descargar el modelo de recorte si lo pides y
+a la URL de un modelo VRM si la pegas tú.
 
 ## Licencia
 
-[MIT](LICENSE) © mupsim. La skin de serie Noa es original de este proyecto. El modelo de recorte `isnet-anime`
+[MIT](LICENSE) © mupsim. La skin de serie Noa es original de este proyecto. Noa 3D es un modelo de ejemplo de
+pixiv Inc. ([licencia](assets/skins/noa-3d/LICENSE.txt)). Usa [three.js](https://threejs.org) y
+[three-vrm](https://github.com/pixiv/three-vrm) (MIT); el mapa de huesos de Mixamo viene de sus ejemplos. El modelo de recorte `isnet-anime`
 es Apache-2.0 y se descarga aparte. El plugin WinShell de NSIS está bajo licencia zlib ([build/nsis](build/nsis/README.md)).

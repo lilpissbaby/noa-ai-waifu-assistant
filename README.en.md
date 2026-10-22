@@ -29,8 +29,11 @@ on your VPS, creates and assigns tasks to your Paperclip agents and runs your au
 - **Paperclip**: lists agents and projects, creates, assigns and comments on tasks, and wakes agents up.
 - **Automations**: webhooks (n8n, Make, Home Assistant…), any **MCP** server and commands on your PC, always
   with your approval.
-- **Skins**: give her any drawing and she cuts out the background with an anime-trained AI model, locally.
+- **2D skins**: give her any drawing and she cuts out the background with an anime-trained AI model, locally.
   Eyes, mouth and neck are placed automatically and you fine-tune them with a live animated preview.
+- **3D skins (VRM)**: import models from VRoid Hub, Booth or VRoid Studio. She moves according to what she's
+  doing (thinks with her hand on her chin, types, waves, gestures while talking), makes faces to match the tone
+  of the reply, and you can add `.vrma` or Mixamo motions.
 - **Five languages**: Español, English, Русский, Українська and 中文. Follows the system language and switches
   instantly.
 
@@ -79,6 +82,10 @@ free profile (Gemini or Groq) in **AI models → Add profile**.
 
 ![Avatar states](docs/screenshots/states.jpg)
 
+**3D skin (VRM)**: idle, thinking, working, talking and two faces she makes to match the tone of the reply.
+
+![3D skin states](docs/screenshots/states-3d.jpg)
+
 **The same request in all five languages.** Both the interface and the reply follow the chosen language.
 
 ![Chat in Spanish, English, Russian, Ukrainian and Chinese](docs/screenshots/languages.jpg)
@@ -99,6 +106,8 @@ free profile (Gemini or Groq) in **AI models → Add profile**.
 </table>
 
 ![Skin editor](docs/screenshots/skin-editor.png)
+
+![3D skin editor](docs/screenshots/vrm-editor.png)
 
 (The settings screenshots are in Spanish; switch the language in Settings → General.)
 
@@ -127,6 +136,29 @@ missing, and `npm run smoke` walks every window looking for untranslated strings
 - **Webhooks and MCP**: each webhook becomes a `webhook_<name>` tool (the description is what the AI reads);
   MCP servers can be stdio or Streamable HTTP.
 - **Commands** (`run_command`): PowerShell on Windows, bash on Linux; every command needs your explicit approval.
+
+## 3D skins (VRM)
+
+Settings → Skins → **Import a 3D model (VRM)** (or right-click Noa → Skin → Import 3D model):
+
+1. **Model**: a `.vrm` file (VRM 0.x or 1.0) or a direct link to one, up to 150 MB. Get them from
+   [VRoid Hub](https://hub.vroid.com) (downloadable ones), [Booth](https://booth.pm), or make your own for free
+   with [VRoid Studio](https://vroid.com/studio).
+2. **License**: the app shows what the model's author declared (who may use it, commercial use, redistribution,
+   modification, credit). **Only use it as it allows.**
+3. **Framing**: full body, half body or bust, with zoom, turn, camera angle and height.
+4. **Try her out**: states, faces and a wave.
+5. **Motions**: import `.vrma` animations or Mixamo `.fbx` files ("Without Skin") and assign them to a state or
+   gesture. They apply to every 3D skin; anything unassigned uses the built-in motions.
+6. **Save and use**.
+
+**Faces from the AI**: the model marks its tone with hidden tags (`<emo:happy>`, `<emo:sad>`…) that the app
+strips from the text and turns into expressions. Turn it off in Settings → General.
+
+The built-in 3D skin, **Noa 3D**, is pixiv's sample girl from the [three-vrm](https://github.com/pixiv/three-vrm)
+repository (VRM 1.0, redistribution and modification allowed, no credit required; see
+[`assets/skins/noa-3d/LICENSE.txt`](assets/skins/noa-3d/LICENSE.txt)). 3D needs a GPU: without acceleration
+(virtual machines, remote desktop) it runs at a few frames per second, so use a 2D skin there.
 
 The [Spanish README](README.md) has the full guide (nginx config, Paperclip CLI, voice providers, layered skins).
 
@@ -158,4 +190,5 @@ suffix (`0.3.0-beta.1`) are published as pre-releases.
 
 ## Licence
 
-[MIT](LICENSE) © mupsim.
+[MIT](LICENSE) © mupsim. Noa 3D is a sample model by pixiv Inc. ([licence](assets/skins/noa-3d/LICENSE.txt)).
+Built with [three.js](https://threejs.org) and [three-vrm](https://github.com/pixiv/three-vrm) (MIT).

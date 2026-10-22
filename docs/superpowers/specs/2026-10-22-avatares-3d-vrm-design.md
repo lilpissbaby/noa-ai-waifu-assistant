@@ -1,7 +1,7 @@
 # Avatares 3D (VRM) — diseño
 
 - Fecha: 22-oct-2026
-- Estado: aprobado en conversación, pendiente de revisión escrita
+- Estado: implementado en 0.3.0 (ver «Desviaciones durante la implementación» al final)
 - Versión objetivo: 0.3.0
 
 ## 1. Objetivo
@@ -282,3 +282,17 @@ Cada fase deja la app funcionando y con los tests en verde:
 - **WebGL en CI**: el smoke corre con Xvfb y SwiftShader. Si three.js no consigue contexto WebGL2 en el runner de Windows o Linux, el caso 3D del smoke se marca como omitido en ese runner (con aviso en el log) y la verificación visual se hace en local con capturas.
 - **Calidad de las animaciones propias**: escritas a mano como datos. Se iteran con renders; si alguna no queda natural, se simplifica antes que entregarla rara.
 - **Variedad de modelos VRM**: proporciones, expresiones y materiales cambian mucho entre modelos. Se prueba con al menos tres modelos distintos (dos CC0 de VRoid y uno VRM 1.0).
+
+## 11. Desviaciones durante la implementación
+
+- **Skin 3D de serie**: no se pudo descargar ninguna de las modelos CC0 de VRoid (OpenGameArt bloqueado desde el
+  entorno de trabajo). Se usa `VRM1_Constraint_Twist_Sample.vrm` del repositorio pixiv/three-vrm (pixiv Inc.,
+  VRM 1.0, `allowRedistribution: true`, `modification: allowModificationRedistribution`,
+  `creditNotation: unnecessary`) con el nombre «Noa 3D».
+- **Editor 3D**: es una ventana propia (`vrm-editor`) en vez de una pestaña del editor 2D; se abre desde
+  Ajustes → Skins, desde «Ajustar» en una skin VRM y desde el menú del avatar. Las skins de serie se guardan
+  como copia propia. No admite arrastrar archivos (en una página con sandbox no hay ruta del archivo).
+- **Suceso `done`**: da el saltito procedural; el gesto `happy` solo sale con la emoción `happy`.
+- **Encuadre `half`**: factor de ancho 2,8 (no 2,4) tras ver las capturas, para no cortar los brazos.
+- **Movimientos**: la asignación es global (`motions.assign`) para todas las skins 3D, como decía §4.2.
+- **Rendimiento sin GPU**: con SwiftShader cada fotograma VRM cuesta ~230 ms; el smoke solo lo registra.

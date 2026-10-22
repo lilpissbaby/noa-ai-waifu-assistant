@@ -166,6 +166,56 @@ export default async function screenshots(api) {
     );
   }
 
+  // ------------------------------------------------ 2b. skin 3D (VRM): estados, caras y editor
+  api.useSkin('noa-3d');
+  await waitForWindow(avatar, "window.__wd.renderer?.kind === 'vrm' && !!window.__wd.renderer.skin", 60000);
+  await sleep(2500);
+  const shots3d = [
+    ['idle', '', ''],
+    ['thinking', '', ''],
+    ['working', 'Paperclip…', ''],
+    ['talking', '', ''],
+    ['idle', '', 'happy'],
+    ['idle', '', 'surprised'],
+  ];
+  const pngs3d = [];
+  for (const [st, label, emo] of shots3d) {
+    api.setState(st, label);
+    if (st === 'talking') await avatar.webContents.executeJavaScript('window.__wd.behaviour.fakeTalkUntil = performance.now() + 60000');
+    if (emo) await avatar.webContents.executeJavaScript(`window.__wd.behaviour.setEmotion('${emo}', performance.now())`);
+    // Sin GPU (Xvfb) el 3D va a pocos fotogramas por segundo: hay que darle tiempo al fundido.
+    await sleep(emo ? 2500 : 5000);
+    pngs3d.push(await png(avatar));
+    await avatar.webContents.executeJavaScript("window.__wd.behaviour.fakeTalkUntil = 0; window.__wd.behaviour.setEmotion('neutral', performance.now())");
+    await sleep(1500);
+  }
+  api.setState('idle');
+  {
+    const a3 = imageSize(pngs3d[0]);
+    const pad = px(20);
+    const W = a3.width * shots3d.length + pad * 2;
+    const H = a3.height + px(40);
+    shot(
+      'states-3d.jpg',
+      await compose(W, H, [
+        { wallpaper: true },
+        ...pngs3d.map((b, i) => ({ img: b, x: pad + i * a3.width, y: px(4) })),
+        ...shots3d.map(([st, , emo], i) => ({ text: emo || st, x: pad + i * a3.width + a3.width / 2, y: H - px(12), font: `600 ${px(12)}px ui-monospace, monospace`, fill: '#b7aecb', align: 'center' })),
+      ]),
+    );
+  }
+  const vrmEditor = api.openWindow('vrm-editor', { query: { id: 'noa-3d' } });
+  vrmEditor.setSize(1180, 820);
+  await waitForWindow(vrmEditor, '!!window.__wdVrmEditor?.renderer?.vrm && document.querySelectorAll("#license dt").length >= 4', 60000);
+  await vrmEditor.webContents.executeJavaScript(`document.querySelector('[data-state="thinking"]').click()`);
+  vrmEditor.show();
+  vrmEditor.focus();
+  await sleep(6000);
+  shot('vrm-editor.png', await png(vrmEditor));
+  vrmEditor.close();
+  api.useSkin('default');
+  await waitForWindow(avatar, "window.__wd.renderer?.kind === '2d' && !!window.__wd.renderer.skin", 30000);
+
   // ------------------------------------------------ 3. ajustes (con valores de ejemplo en vez de los del simulador)
   const realistic = mockConfigPatch(mock.base);
   realistic.profiles[0] = { ...realistic.profiles[0], kind: 'anthropic', baseUrl: 'https://api.anthropic.com' };
