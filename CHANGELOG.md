@@ -4,6 +4,30 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). L
 [SemVer](https://semver.org/lang/es/). El workflow de releases publica el apartado de cada versión como notas de
 la release.
 
+## [0.3.0] - 2026-10-22
+
+### Añadido
+
+- **Skins 3D (VRM)**: importa modelos VRM 0.x y 1.0 de VRoid Hub, Booth o VRoid Studio (archivo o enlace
+  directo, hasta 150 MB). Renderizador con three.js y three-vrm: materiales toon, física de pelo y ropa,
+  parpadeo, labios sincronizados con la voz, mirada al cursor y respiración.
+- **Animaciones de cuerpo**: una pose por estado (reposo con dos variantes, pensando con la mano en la barbilla,
+  escuchando, trabajando, hablando) con fundidos, gestos al hablar, saludo al abrir el chat y alegría.
+- **Caras según la IA**: el modelo marca el tono con etiquetas ocultas (`<emo:happy>`…) que se quitan del chat,
+  de la voz y del historial, y la waifu 3D pone esa cara. Se puede desactivar en Ajustes → General.
+- **Editor 3D**: licencia declarada por el modelo, encuadre (cuerpo entero, medio cuerpo, busto, zoom, giro,
+  cámara y altura), prueba de estados, caras y gestos, y miniatura automática.
+- **Movimientos importados**: animaciones `.vrma` y `.fbx` de Mixamo asignables a cada estado o gesto.
+- Skin 3D de serie **Noa 3D** (modelo de ejemplo de pixiv con licencia que permite redistribuirlo).
+- Captura de la skin 3D y del editor 3D en el README.
+
+### Cambiado
+
+- El comportamiento del avatar (respiración, parpadeo, boca, mirada, saltito) se separa del dibujo: la skin 2D
+  se mueve exactamente igual que antes (hay un test que lo compara con la versión 0.2).
+- La prueba de humo usa WebGL por software (SwiftShader) en Linux, carga la skin 3D, va y vuelve entre 2D y 3D,
+  importa un VRM de principio a fin y comprueba que las etiquetas de emoción no llegan al chat.
+
 ## [0.2.0] - 2026-10-22
 
 Primera versión publicada en GitHub.
