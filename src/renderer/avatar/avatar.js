@@ -1,11 +1,11 @@
-import { SkinRenderer } from '../shared/skin-renderer.js';
+import { createRenderer, loadSkinWithFallback } from '../shared/renderer-factory.js';
 import { Behaviour } from '../shared/behaviour.js';
 import { Stage } from '../shared/stage.js';
 import { t, setLocale } from '../../shared/i18n/index.js';
 import { applyDom } from '../../shared/i18n/dom.js';
 
 const wd = window.wd;
-const canvas = document.getElementById('stage');
+let canvas = document.getElementById('stage');
 const bubble = document.getElementById('bubble');
 const bubbleText = document.getElementById('bubbleText');
 const micEl = document.getElementById('mic');
@@ -14,9 +14,9 @@ const TOP = 58; // espacio para el bocadillo
 const BASE_H = 330;
 const isLinux = wd.platform === 'linux';
 
-const renderer = new SkinRenderer(canvas);
+let renderer = null;
 const behaviour = new Behaviour();
-const stage = new Stage(renderer, behaviour);
+const stage = new Stage(null, behaviour);
 window.__wd = {
   get renderer() {
     return stage.renderer;
@@ -31,12 +31,13 @@ let skin = null;
 function desiredSize() {
   const scale = cfg?.ui?.scale || 1;
   const h = Math.round(BASE_H * scale);
-  const aspect = skin ? renderer.aspect : 0.75;
+  const aspect = skin && renderer ? renderer.aspect : 0.75;
   const w = Math.max(Math.round(h * aspect) + 16, 210);
   return { width: w, height: h + TOP };
 }
 
 function relayout() {
+  if (!renderer) return;
   renderer.layout({ x: 8, y: TOP, w: window.innerWidth - 16, h: window.innerHeight - TOP });
   // cola del bocadillo apuntando a la cabeza
   const head = skin && renderer.headAnchorCss();
@@ -47,20 +48,56 @@ function relayout() {
   updateShape();
 }
 
-async function loadSkin(s) {
-  skin = await renderer.load(s || (await wd.invoke('skin:get')));
-  const size = desiredSize();
-  wd.send('avatar:resize', size);
+// Si la GPU se reinicia (drivers, suspensión) se recarga la ventana para recuperar el WebGL.
+function onContextLost(e) {
+  e.preventDefault();
+  setTimeout(() => location.reload(), 600);
+}
+
+// Devuelve un renderizador del tipo pedido. Si cambia el tipo (2D <-> VRM) se usa un canvas nuevo:
+// un canvas no admite dos contextos.
+async function ensureRenderer(kind) {
+  if (renderer && renderer.kind === kind) return renderer;
+  if (renderer) {
+    const fresh = document.createElement('canvas');
+    fresh.id = 'stage';
+    fresh.setAttribute('aria-label', canvas.getAttribute('aria-label') || '');
+    canvas.removeEventListener('webglcontextlost', onContextLost);
+    canvas.replaceWith(fresh);
+    renderer.dispose();
+    canvas = fresh;
+  }
+  bindCanvas(canvas);
+  renderer = await createRenderer(canvas, kind);
+  stage.renderer = renderer;
+  return renderer;
+}
+
+let loading = Promise.resolve();
+function loadSkin(s) {
+  loading = loading.then(() => doLoadSkin(s)).catch((e) => console.warn('skin', e));
+  return loading;
+}
+async function doLoadSkin(s) {
+  const want = s || (await wd.invoke('skin:get'));
+  const r = await loadSkinWithFallback({
+    skin: want,
+    fallback: want.id === 'default' ? want : await wd.invoke('skin:get', 'default'),
+    ensure: ensureRenderer,
+    onError: (e) => console.warn(`No se pudo cargar la skin ${want.id}:`, e?.message || e),
+  });
+  skin = r.skin;
+  wd.send('avatar:resize', desiredSize());
   setTimeout(relayout, 60);
   stage.start();
+  if (r.failed) {
+    setState({ state: 'error', label: t('avatar.skinFailed') });
+    setTimeout(() => currentState === 'error' && setState({ state: 'idle' }), 5000);
+  }
+  scheduleShapeRefresh();
 }
 
 window.addEventListener('resize', relayout);
-// Si la GPU se reinicia (drivers, suspensión) se recarga la ventana para recuperar el WebGL.
-canvas.addEventListener('webglcontextlost', (e) => {
-  e.preventDefault();
-  setTimeout(() => location.reload(), 600);
-});
 
 // ---------------------------------------------------------------- estados
 // Estados que muestran bocadillo (con su texto por defecto, si lo tienen).
@@ -100,7 +137,7 @@ function overInteractive(x, y) {
     const r = micEl.getBoundingClientRect();
     if (x >= r.left - 6 && x <= r.right + 6 && y >= r.top - 6 && y <= r.bottom + 6) return true;
   }
-  return renderer.alphaAtCss(x, y, 1) > 40;
+  return !!renderer && renderer.alphaAtCss(x, y, 1) > 40;
 }
 
 function setIgnore(v) {
@@ -117,21 +154,28 @@ document.addEventListener('mouseleave', () => {
   if (!drag) setIgnore(true);
 });
 
-canvas.addEventListener('pointerdown', async (e) => {
+function bindCanvas(c) {
+  c.addEventListener('webglcontextlost', onContextLost);
+  c.addEventListener('pointerdown', onPointerDown);
+  c.addEventListener('pointermove', onPointerMove);
+  c.addEventListener('pointerup', onPointerUp);
+}
+
+async function onPointerDown(e) {
   if (e.button !== 0 || !overInteractive(e.clientX, e.clientY)) return;
   canvas.setPointerCapture(e.pointerId);
   const b = await wd.invoke('avatar:bounds');
   drag = { sx: e.screenX, sy: e.screenY, bx: b.x, by: b.y, moved: false };
-});
-canvas.addEventListener('pointermove', (e) => {
+}
+function onPointerMove(e) {
   if (!drag) return;
   const dx = e.screenX - drag.sx;
   const dy = e.screenY - drag.sy;
   if (!drag.moved && Math.hypot(dx, dy) < 5) return;
   drag.moved = true;
   wd.send('avatar:move', { x: drag.bx + dx, y: drag.by + dy });
-});
-canvas.addEventListener('pointerup', (e) => {
+}
+function onPointerUp(e) {
   if (!drag) return;
   const wasDrag = drag.moved;
   drag = null;
@@ -152,7 +196,7 @@ canvas.addEventListener('pointerup', (e) => {
     behaviour.trigger('greet');
     wd.send('avatar:click');
   }, 240);
-});
+}
 window.addEventListener('contextmenu', (e) => {
   e.preventDefault();
   wd.send('avatar:context-menu');
@@ -163,7 +207,7 @@ micEl.addEventListener('click', () => toggleRecording());
 // En Linux se recorta la ventana a la silueta (no hay "click-through" con reenvío).
 let shapeTimer = null;
 function updateShape() {
-  if (!isLinux) return;
+  if (!isLinux || !renderer) return;
   clearTimeout(shapeTimer);
   shapeTimer = setTimeout(() => {
     const rects = renderer.shapeRects(6, 4);
@@ -174,6 +218,13 @@ function updateShape() {
     }
     wd.send('avatar:shape', rects);
   }, 50);
+}
+
+// Los VRM mueven los brazos (gestos): en Linux la silueta se recalcula a menudo.
+let shapeInterval = null;
+function scheduleShapeRefresh() {
+  clearInterval(shapeInterval);
+  if (isLinux && renderer?.kind === 'vrm') shapeInterval = setInterval(updateShape, 400);
 }
 
 // ---------------------------------------------------------------- cursor

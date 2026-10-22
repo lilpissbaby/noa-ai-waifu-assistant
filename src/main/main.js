@@ -57,6 +57,9 @@ const MIME = {
   '.webp': 'image/webp',
   '.wasm': 'application/wasm',
   '.onnx': 'application/octet-stream',
+  '.vrm': 'model/gltf-binary',
+  '.vrma': 'model/gltf-binary',
+  '.glb': 'model/gltf-binary',
   '.woff2': 'font/woff2',
 };
 

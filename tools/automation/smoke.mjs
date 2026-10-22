@@ -67,6 +67,34 @@ export default async function smoke(api) {
     await check('avatar', api.wins.avatar, locale);
   }
 
+  // Skin 3D: carga y dibuja; ida y vuelta 2D <-> 3D dos veces sin duplicar el bucle de animación.
+  const av = api.wins.avatar;
+  if (!(await av.webContents.executeJavaScript("!!document.createElement('canvas').getContext('webgl2')"))) api.logger.warn('3D omitido: sin WebGL2');
+  else {
+    for (let round = 0; round < 2; round++) {
+      api.useSkin('noa-3d');
+      await waitForWindow(av, "window.__wd.renderer?.kind === 'vrm' && !!window.__wd.renderer.skin", 30000);
+      await sleep(1500);
+      const r = await av.webContents.executeJavaScript(`(async () => {
+        const r = window.__wd.renderer, st = window.__wd.stage;
+        const h = r.headAnchorCss();
+        const f0 = st.frames;
+        await new Promise((ok) => setTimeout(ok, 1000));
+        return { alpha: h ? r.alphaAtCss(h[0], h[1] + 25, 2) : -1, ms: r.avgRenderMs(), running: st.running, fps: st.frames - f0, rects: r.shapeRects(6, 4).length };
+      })()`);
+      if (!(r.alpha > 40)) problems.push(`3D: la waifu no se ve bajo la cabeza (alfa ${r.alpha})`);
+      if (!r.running) problems.push('3D: el bucle de animación no está en marcha');
+      if (r.fps > 75) problems.push(`3D: ${r.fps} fotogramas/s, ¿bucle duplicado?`);
+      if (!r.rects) problems.push('3D: la silueta está vacía');
+      api.logger.info(`3D (vuelta ${round + 1}): render medio ${r.ms.toFixed(1)} ms, ${r.fps} fps`);
+      api.useSkin('default');
+      await waitForWindow(av, "window.__wd.renderer?.kind === '2d' && !!window.__wd.renderer.skin", 15000);
+    }
+    await sleep(300);
+    const fps2d = await av.webContents.executeJavaScript('(async () => { const st = window.__wd.stage, f0 = st.frames; await new Promise((ok) => setTimeout(ok, 1000)); return st.frames - f0; })()');
+    if (fps2d > 75) problems.push(`2D: ${fps2d} fotogramas/s tras volver del 3D, ¿bucle duplicado?`);
+  }
+
   // Al cambiar de idioma, la personalidad por defecto sigue al idioma (acabamos en chino).
   if (api.loadConfig().assistant.personality !== tIn(SUPPORTED.at(-1), 'defaults.personality')) problems.push('la personalidad por defecto no cambió de idioma');
 

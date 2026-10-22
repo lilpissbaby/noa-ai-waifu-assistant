@@ -110,6 +110,7 @@ export default {
     aria: 'Assistant',
     listening: "I'm listening",
     noMic: 'No microphone',
+    skinFailed: "Couldn't load the 3D skin",
   },
   tools: {
     get_current_time: 'Check the time',

@@ -1,0 +1,18 @@
+Noa 3D — modelo VRM de serie de Waifu Desk
+==========================================
+
+Archivo: model.vrm (sin modificar)
+Origen:  VRM1_Constraint_Twist_Sample.vrm, modelo de ejemplo del repositorio pixiv/three-vrm
+         https://github.com/pixiv/three-vrm/tree/dev/packages/three-vrm/examples/models
+         (commit 3caf7a21ee68f0d5dfa363ab3d577450bbf60136)
+Autor:   pixiv Inc. — (c) 2022 pixiv Inc.
+
+Licencia declarada en el propio VRM (VRM Public License 1.0, https://vrm.dev/licenses/1.0/):
+  - avatarPermission:   everyone (cualquiera puede usarlo como avatar)
+  - commercialUsage:    corporation (uso comercial permitido, también para empresas)
+  - creditNotation:     unnecessary (no hace falta citar al autor)
+  - allowRedistribution: true (se puede redistribuir)
+  - modification:       allowModificationRedistribution (se puede modificar y redistribuir modificado)
+  - allowAntisocialOrHateUsage: false
+
+Waifu Desk lo incluye tal cual como skin 3D de ejemplo, con el nombre «Noa 3D».

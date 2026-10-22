@@ -114,6 +114,7 @@ export default {
     aria: 'Асистентка',
     listening: 'Слухаю',
     noMic: 'Немає мікрофона',
+    skinFailed: 'Не вдалося завантажити 3D-скін',
   },
   tools: {
     get_current_time: 'Дізнатися час',

@@ -104,6 +104,7 @@ export default {
     aria: '助手',
     listening: '我在听',
     noMic: '没有麦克风',
+    skinFailed: '无法加载 3D 皮肤',
   },
   tools: {
     get_current_time: '查看时间',

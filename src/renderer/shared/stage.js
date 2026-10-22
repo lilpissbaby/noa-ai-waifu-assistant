@@ -9,6 +9,7 @@ export class Stage {
     this.last = 0;
     this.lastSignals = null;
     this.wantRunning = false;
+    this.frames = 0; // fotogramas dibujados (lo usa la prueba de humo)
     if (typeof document !== 'undefined') {
       document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'hidden') this.pause();
@@ -55,5 +56,6 @@ export class Stage {
     this.lastSignals = signals;
     r.apply(signals);
     r.render(dt);
+    this.frames++;
   }
 }

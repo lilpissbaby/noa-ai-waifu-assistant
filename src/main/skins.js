@@ -29,7 +29,8 @@ function readManifest(dir, builtin) {
     for (const [k, f] of Object.entries(m.files || {})) urls[k] = toUrl(f);
     // `names` permite traducir el nombre de una skin: { "es": "…", "en": "…" }.
     const name = m.names?.[getLocale()] || m.name;
-    return { ...m, name, id: m.id || path.basename(dir), builtin, urls, thumb: urls.thumb || urls.base };
+    const type = m.type === 'vrm' ? 'vrm' : '2d';
+    return { ...m, type, name, id: m.id || path.basename(dir), builtin, urls, thumb: urls.thumb || urls.base };
   } catch {
     return null;
   }

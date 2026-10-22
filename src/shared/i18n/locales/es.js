@@ -111,6 +111,7 @@ export default {
     aria: 'Asistente',
     listening: 'Te escucho',
     noMic: 'Sin micrófono',
+    skinFailed: 'No pude cargar la skin 3D',
   },
   tools: {
     get_current_time: 'Mirar la hora',

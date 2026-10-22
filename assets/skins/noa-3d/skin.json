@@ -1,0 +1,37 @@
+{
+  "id": "noa-3d",
+  "type": "vrm",
+  "name": "Noa 3D",
+  "names": {
+    "es": "Noa 3D",
+    "en": "Noa 3D",
+    "ru": "Ноа 3D",
+    "uk": "Ноа 3D",
+    "zh": "Noa 3D"
+  },
+  "files": {
+    "model": "model.vrm",
+    "thumb": "thumb.png"
+  },
+  "framing": {
+    "preset": "half",
+    "zoom": 1,
+    "yaw": 0,
+    "pitch": 0,
+    "offsetY": 0
+  },
+  "meta": {
+    "title": "VRM1_Constraint_Twist_Sample",
+    "authors": ["pixiv Inc."],
+    "version": "1",
+    "license": {
+      "avatarPermission": "everyone",
+      "commercialUsage": "corporation",
+      "creditNotation": "unnecessary",
+      "allowRedistribution": true,
+      "modification": "allowModificationRedistribution",
+      "licenseUrl": "https://vrm.dev/licenses/1.0/",
+      "copyrightInformation": "(c) 2022 pixiv Inc."
+    }
+  }
+}
