@@ -139,6 +139,10 @@ export default {
       create: 'Create the file {path}?',
       replace: 'Overwrite the file {path}? Its current content will be lost.',
     },
+    webLocal: {
+      title: 'Read a local address',
+      message: 'She wants to read {url}, which is on your local network or this computer. Allow it?',
+    },
   },
   avatar: {
     aria: 'Assistant',
@@ -181,6 +185,8 @@ export default {
     files_read: 'Read file',
     files_write: 'Write file',
     calendar_events: 'Calendar',
+    web_fetch: 'Read web page',
+    web_search: 'Web search',
   },
   md: {
     code: 'code',
@@ -648,6 +654,15 @@ export default {
       briefingTime: 'Time',
       briefingDays: 'Days',
       briefingNow: 'Try it now',
+      webTitle: 'Web',
+      webDesc: 'She can always read the pages you give her. To let her search on her own, pick a search engine: SearXNG (your own, free), Brave Search API or Tavily (with a key).',
+      searchProvider: 'Search engine',
+      searchNone: 'None (only read links)',
+      searchHelp: {
+        searxng: 'Your SearXNG instance with the JSON format enabled (search.formats: json in settings.yml).',
+        brave: 'Get a key at api-dashboard.search.brave.com. Leave it empty to use the official address.',
+        tavily: 'Get a key at app.tavily.com. Leave it empty to use the official address.',
+      },
     },
   },
   editor: {

@@ -250,6 +250,16 @@ export default async function smoke(api) {
   if (!briefBubble.startsWith('¡Hola!')) problems.push(`resumen: el bocadillo no lo anuncia (${briefBubble})`);
   api.patchConfig({ productivity: { calendars: [] } });
 
+  // Web: buscar en un SearXNG simulado y leer el artículo (en la red local: aprobado de antemano).
+  api.patchConfig({ productivity: { search: { provider: 'searxng', baseUrl: `${mock.base}/searx` } }, tools: { autoApprove: { web_fetch: true } } });
+  const found = await api.runTool('web_search', { query: 'waifu desk' }).catch((e) => ({ error: e.message }));
+  if (!Array.isArray(found) || found[0]?.title !== 'Waifu Desk') problems.push(`web: búsqueda inesperada ${JSON.stringify(found).slice(0, 200)}`);
+  else {
+    const page = await api.runTool('web_fetch', { url: found[0].url }).catch((e) => ({ error: e.message }));
+    if (!/voces locales Piper/.test(page.text || '') || /NO|Menú/.test(page.text || '')) problems.push(`web: lectura inesperada ${JSON.stringify(page).slice(0, 200)}`);
+  }
+  api.patchConfig({ productivity: { search: { provider: 'none', baseUrl: '' } } });
+
   // Recordatorio de 1 s: llega como aviso al chat y al bocadillo del avatar.
   const announced = waitForChat(api, (e) => e.type === 'announce');
   const rem = await api.runTool('reminder_create', { text: 'Estirar las piernas', in_minutes: 1 / 60 });

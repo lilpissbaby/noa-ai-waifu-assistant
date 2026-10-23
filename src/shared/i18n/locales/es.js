@@ -140,6 +140,10 @@ export default {
       create: '¿Creo el archivo {path}?',
       replace: '¿Sobrescribo el archivo {path}? Se perderá su contenido actual.',
     },
+    webLocal: {
+      title: 'Leer una dirección local',
+      message: 'Quiere leer {url}, que está en tu red local o en este equipo. ¿Lo permites?',
+    },
   },
   avatar: {
     aria: 'Asistente',
@@ -182,6 +186,8 @@ export default {
     files_read: 'Leer archivo',
     files_write: 'Escribir archivo',
     calendar_events: 'Mirar la agenda',
+    web_fetch: 'Leer página web',
+    web_search: 'Buscar en la web',
   },
   md: {
     code: 'código',
@@ -651,6 +657,15 @@ export default {
       briefingTime: 'Hora',
       briefingDays: 'Días',
       briefingNow: 'Probar ahora',
+      webTitle: 'Web',
+      webDesc: 'Siempre puede leer las páginas que le pases. Para que busque por su cuenta, elige un buscador: SearXNG (el tuyo, gratis), Brave Search API o Tavily (con clave).',
+      searchProvider: 'Buscador',
+      searchNone: 'Ninguno (solo leer enlaces)',
+      searchHelp: {
+        searxng: 'Tu instancia de SearXNG con el formato JSON activado (search.formats: json en settings.yml).',
+        brave: 'Clave en api-dashboard.search.brave.com. Déjalo vacío para usar la dirección oficial.',
+        tavily: 'Clave en app.tavily.com. Déjalo vacío para usar la dirección oficial.',
+      },
     },
   },
   editor: {

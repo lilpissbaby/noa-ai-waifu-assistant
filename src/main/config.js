@@ -106,6 +106,7 @@ export function defaultConfig(locale = resolveLocale('auto', systemLocales())) {
       quickActions: null, // null = las de serie (traducidas); si el usuario las edita, su lista
       calendars: [], // [{ id, name, url | file }] (.ics; Google/Outlook: enlace privado iCal)
       briefing: { enabled: false, time: '08:30', days: [1, 2, 3, 4, 5] }, // resumen diario
+      search: { provider: 'none', baseUrl: '' }, // none | searxng | brave | tavily (clave en el secreto «search»)
     },
     // Movimientos importados asignados a cada estado o gesto de las skins 3D (null = el propio).
     motions: { assign: { idle: null, thinking: null, listening: null, working: null, talking: null, greet: null, happy: null, talkGesture: [] } },

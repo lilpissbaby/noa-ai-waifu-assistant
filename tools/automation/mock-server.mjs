@@ -133,6 +133,15 @@ export async function startMockServer({ delay = 0 } = {}) {
     }
     if (url.pathname === '/v1/models') return json({ data: [{ id: 'mock-model' }, { id: 'mock-model-large' }] });
 
+    // ---------------- web: un artículo y un SearXNG
+    if (url.pathname === '/web/article')
+      return res
+        .writeHead(200, { 'content-type': 'text/html; charset=utf-8' })
+        .end(
+          '<html><head><title>Notas de la versión</title><script>var x = "NO"</script></head><body><nav>Menú</nav><article><h1>Notas de la versión</h1><p>Waifu Desk añade avatares VTuber con Live2D, voces locales Piper y un montón de herramientas de productividad para el día a día.</p><p>También puede leer páginas web y buscar con tu propio SearXNG, sin depender de nadie.</p></article></body></html>',
+        );
+    if (url.pathname === '/searx/search') return json({ results: [{ title: 'Waifu Desk', url: `http://127.0.0.1:${server.address().port}/web/article`, content: 'Asistente con avatar' }] });
+
     // ---------------- Hermes Agent
     if (url.pathname === '/hermes/v1/chat/completions') {
       const send = sse(res);

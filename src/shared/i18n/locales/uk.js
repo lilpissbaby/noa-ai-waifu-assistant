@@ -143,6 +143,10 @@ export default {
       create: 'Створити файл {path}?',
       replace: 'Перезаписати файл {path}? Його поточний вміст буде втрачено.',
     },
+    webLocal: {
+      title: 'Відкрити локальну адресу',
+      message: 'Вона хоче прочитати {url} — це адреса у вашій локальній мережі чи на цьому комп’ютері. Дозволити?',
+    },
   },
   avatar: {
     aria: 'Асистентка',
@@ -185,6 +189,8 @@ export default {
     files_read: 'Прочитати файл',
     files_write: 'Записати файл',
     calendar_events: 'Календар',
+    web_fetch: 'Прочитати сторінку',
+    web_search: 'Пошук в інтернеті',
   },
   md: {
     code: 'код',
@@ -656,6 +662,15 @@ export default {
       briefingTime: 'Час',
       briefingDays: 'Дні',
       briefingNow: 'Спробувати зараз',
+      webTitle: 'Інтернет',
+      webDesc: 'Вона завжди може прочитати сторінки за вашими посиланнями. Щоб вона шукала сама, виберіть пошуковик: SearXNG (власний, безкоштовно), Brave Search API або Tavily (з ключем).',
+      searchProvider: 'Пошуковик',
+      searchNone: 'Немає (лише читати посилання)',
+      searchHelp: {
+        searxng: 'Ваш екземпляр SearXNG з увімкненим форматом JSON (search.formats: json у settings.yml).',
+        brave: 'Ключ — на api-dashboard.search.brave.com. Залиште порожнім для офіційної адреси.',
+        tavily: 'Ключ — на app.tavily.com. Залиште порожнім для офіційної адреси.',
+      },
     },
   },
   editor: {

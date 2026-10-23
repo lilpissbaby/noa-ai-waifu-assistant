@@ -133,6 +133,10 @@ export default {
       create: '要创建文件 {path} 吗？',
       replace: '要覆盖文件 {path} 吗？它现在的内容会丢失。',
     },
+    webLocal: {
+      title: '读取本地地址',
+      message: '她想读取 {url}，这个地址在你的局域网或这台电脑上。允许吗？',
+    },
   },
   avatar: {
     aria: '助手',
@@ -175,6 +179,8 @@ export default {
     files_read: '读取文件',
     files_write: '写入文件',
     calendar_events: '查看日程',
+    web_fetch: '读取网页',
+    web_search: '网页搜索',
   },
   md: {
     code: '代码',
@@ -631,6 +637,15 @@ export default {
       briefingTime: '时间',
       briefingDays: '日期',
       briefingNow: '现在试试',
+      webTitle: '网络',
+      webDesc: '她随时可以阅读你给的网页链接。要让她自己搜索，请选择搜索引擎：SearXNG（自建、免费）、Brave Search API 或 Tavily（需要密钥）。',
+      searchProvider: '搜索引擎',
+      searchNone: '无（只读取链接）',
+      searchHelp: {
+        searxng: '你的 SearXNG 实例，需要开启 JSON 格式（settings.yml 中 search.formats: json）。',
+        brave: '在 api-dashboard.search.brave.com 获取密钥。留空即使用官方地址。',
+        tavily: '在 app.tavily.com 获取密钥。留空即使用官方地址。',
+      },
     },
   },
   editor: {

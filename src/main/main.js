@@ -383,7 +383,7 @@ function useSkin(id) {
 
 // ------------------------------------------------------------------ configuración pública
 function secretFlags(cfg) {
-  const refs = ['stt', 'tts', 'hermes', 'paperclip', ...cfg.profiles.map((p) => `profile:${p.id}`)];
+  const refs = ['stt', 'tts', 'hermes', 'paperclip', 'search', ...cfg.profiles.map((p) => `profile:${p.id}`)];
   for (const w of cfg.connectors.webhooks || []) refs.push(`webhook:${w.id}`);
   for (const s of cfg.connectors.mcpServers || []) refs.push(`mcp:${s.id}`);
   return Object.fromEntries(refs.map((r) => [r, hasSecret(r)]));

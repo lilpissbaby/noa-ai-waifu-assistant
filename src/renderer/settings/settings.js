@@ -263,6 +263,7 @@ const ui = {
   text: (path, opts) => text(path, opts),
   select: (path, options, onchange) => select(path, options, onchange),
   check: (path, label, onchange) => check(path, label, onchange),
+  secret: (ref, placeholder) => secret(ref, placeholder),
   samplePhrase: () => samplePhrase(),
   get extraVoiceModes() {
     return [['piper', t('settings.personas.voicePiper')]];

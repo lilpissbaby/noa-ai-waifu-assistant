@@ -401,7 +401,40 @@ function briefingCard(ui) {
   );
 }
 
-export const PRODUCTIVITY_SECTIONS = [noticesCard, remindersCard, calendarsCard, briefingCard, memoryCard, notesCard, foldersCard, quickActionsCard];
+function webCard(ui) {
+  const { t, card, h, field } = ui;
+  const box = h('div', { class: 'grid', style: 'margin-top:10px' });
+  const paint = () => {
+    box.innerHTML = '';
+    const p = ui.getPc().config.productivity.search?.provider || 'none';
+    if (p === 'none') return;
+    box.append(
+      h('div', { class: p === 'searxng' ? 'full' : '' }, field(t('settings.common.baseUrl'), ui.text('productivity.search.baseUrl', { placeholder: { searxng: 'https://searx.tu-dominio.com', brave: 'https://api.search.brave.com/res/v1/web', tavily: 'https://api.tavily.com' }[p] }), t(`settings.productivity.searchHelp.${p}`))),
+    );
+    if (p !== 'searxng') box.append(field('API key', ui.secret('search')));
+  };
+  paint();
+  return card(
+    t('settings.productivity.webTitle'),
+    t('settings.productivity.webDesc'),
+    field(
+      t('settings.productivity.searchProvider'),
+      ui.select(
+        'productivity.search.provider',
+        [
+          ['none', t('settings.productivity.searchNone')],
+          ['searxng', 'SearXNG'],
+          ['brave', 'Brave Search API'],
+          ['tavily', 'Tavily'],
+        ],
+        paint,
+      ),
+    ),
+    box,
+  );
+}
+
+export const PRODUCTIVITY_SECTIONS = [noticesCard, remindersCard, calendarsCard, briefingCard, webCard, memoryCard, notesCard, foldersCard, quickActionsCard];
 
 export function productivityTab(ui) {
   return [ui.h('h1', {}, ui.t('settings.nav.productivity')), ui.h('p', { class: 'lead' }, ui.t('settings.productivity.lead')), ...PRODUCTIVITY_SECTIONS.map((section) => section(ui))];
