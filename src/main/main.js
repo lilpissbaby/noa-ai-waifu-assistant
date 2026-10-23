@@ -20,6 +20,8 @@ import { parseCard, cardToPersona, MAX_CARD_BYTES } from './persona-cards.js';
 import { piperRuntimeStatus, downloadPiperRuntime, piperRuntimeUrl, PIPER_WASM } from './piper-runtime.js';
 import { setAnnouncer } from './bus.js';
 import { Reminders } from './productivity/reminders.js';
+import { listMemory, forgetMemory } from './productivity/memory.js';
+import { notesDir } from './tools/notes.js';
 import { listVoices, fetchCatalog, catalogForLanguage, installFromCatalog, importVoiceFiles, deleteVoice } from './voices.js';
 import { APP_ROOT, listSkins, getSkin, saveSkin, deleteSkin, fetchImage, segmentModelStatus, downloadSegmentModel, stageVrm, downloadVrm, saveVrmSkin, clearVrmTmp } from './skins.js';
 import * as logger from './log.js';
@@ -884,6 +886,19 @@ function registerIpc() {
   });
   ipcMain.handle('productivity:reminders', () => reminders.list());
   ipcMain.handle('productivity:reminder-cancel', (_e, id) => reminders.cancel(id));
+  ipcMain.handle('productivity:memory', () => listMemory().reverse());
+  ipcMain.handle('productivity:memory-forget', (_e, id) => forgetMemory(id));
+  ipcMain.handle('productivity:notes-dir', () => notesDir(loadConfig()));
+  ipcMain.handle('productivity:open-notes', () => {
+    const dir = notesDir(loadConfig());
+    fs.mkdirSync(dir, { recursive: true });
+    return shell.openPath(dir);
+  });
+  // Elegir carpeta (notas, carpetas autorizadas…): devuelve la ruta o null.
+  ipcMain.handle('productivity:pick-folder', async (e, title) => {
+    const r = await dialog.showOpenDialog(BrowserWindow.fromWebContents(e.sender), { title: title || undefined, properties: ['openDirectory', 'createDirectory'] });
+    return r.canceled ? null : r.filePaths[0] || null;
+  });
   ipcMain.handle('voice:piper-list', () => ({ runtime: { ...piperRuntimeStatus(), sizeMB: PIPER_WASM.sizeMB }, voices: listVoices() }));
   ipcMain.handle('voice:piper-catalog', async (_e, { force = false, language = '' } = {}) => {
     try {

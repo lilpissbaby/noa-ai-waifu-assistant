@@ -7,13 +7,18 @@ import { webhookTools } from './webhooks.js';
 import { mcpTools } from './mcp.js';
 import { personaTools } from './persona.js';
 import { reminderTools } from './reminders.js';
+import { memoryTools } from './memory.js';
+import { noteTools } from './notes.js';
 import { loadConfig, patchConfig } from '../config.js';
 import { t } from '../../shared/i18n/index.js';
 
 // services: funciones de main.js que algunas herramientas necesitan (cambiar de personaje, abrir
 // ventanas, avisar…). En los tests se pasan dobles.
 export function buildToolbox(cfg, getParentWindow, services = {}) {
-  const all = [...builtinTools(cfg), ...personaTools(cfg, services), ...(services.reminders ? reminderTools(services) : []), ...hermesTools(cfg), ...paperclipTools(cfg), ...webhookTools(cfg), ...mcpTools(cfg)];
+  const all = [...builtinTools(cfg), ...personaTools(cfg, services), ...(services.reminders ? reminderTools(services) : []),
+    ...(cfg.productivity?.memory !== false ? memoryTools() : []),
+    ...noteTools(cfg),
+    ...hermesTools(cfg), ...paperclipTools(cfg), ...webhookTools(cfg), ...mcpTools(cfg)];
   const byName = new Map(all.map((tool) => [tool.name, tool]));
 
   async function run(name, input, ctx) {

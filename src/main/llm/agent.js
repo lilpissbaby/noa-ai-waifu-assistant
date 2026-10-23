@@ -6,6 +6,7 @@ import { getLocale, localeTag, LANGUAGES } from '../../shared/i18n/index.js';
 import { EmotionTagFilter, EMOTION_PROMPT, stripEmotionTags } from './emotion.js';
 import { activePersona, buildPersonaPrompt, effectiveFilters } from '../../shared/personas.js';
 import { azurePolicyFor } from './azure.js';
+import { listMemory, memoryPrompt } from '../productivity/memory.js';
 
 const MAX_STEPS = 10;
 
@@ -19,7 +20,8 @@ export function replyLanguage(cfg, locale = getLocale()) {
 
 // El prompt de sistema va en inglés (lo entienden igual todos los modelos); la respuesta sale
 // en el idioma elegido.
-export function buildSystemPrompt(cfg, toolList, locale = getLocale()) {
+// extras.memory: bloque «Things you know about the user» (memoryPrompt) o vacío.
+export function buildSystemPrompt(cfg, toolList, locale = getLocale(), extras = {}) {
   const now = new Date();
   const date = now.toLocaleString(localeTag(locale), { dateStyle: 'full', timeStyle: 'short' });
   const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -33,6 +35,7 @@ export function buildSystemPrompt(cfg, toolList, locale = getLocale()) {
     'When you give code, commands, long lists or data, use markdown; only the plain text is spoken.',
     `Local date and time: ${date} (${tz}). System: ${os.type()} ${os.release()}.`,
   ];
+  if (extras.memory) lines.push(extras.memory);
   if (groups.length) {
     lines.push(
       `You have tools to: ${groups.join('; ')}. Use them when they really help, without asking permission for read-only lookups.`,
@@ -61,7 +64,8 @@ export async function runTurn({ cfg, profile, apiKey, history, toolbox, emit, si
   repairHistory(history);
   const useTools = profile.toolsEnabled !== false && toolbox.list.length > 0;
   const tools = useTools ? toolbox.list : [];
-  const system = buildSystemPrompt(cfg, tools);
+  const memory = cfg.productivity?.memory !== false ? memoryPrompt(listMemory()) : '';
+  const system = buildSystemPrompt(cfg, tools, getLocale(), { memory });
   const stream = profile.kind === 'anthropic' ? streamAnthropic : streamOpenAI;
   // Azure OpenAI: política de contenido según los filtros del personaje activo.
   const policy = azurePolicyFor(profile, effectiveFilters(activePersona(cfg), cfg));

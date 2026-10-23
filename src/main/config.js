@@ -100,6 +100,8 @@ export function defaultConfig(locale = resolveLocale('auto', systemLocales())) {
     tools: { autoApprove: {} },
     productivity: {
       notify: 'speak', // speak (bocadillo + notificación + voz) | notify (sin voz) | silent (solo bocadillo y chat)
+      memory: true, // recuerda datos del usuario entre conversaciones (userData/memory.json)
+      notesDir: '', // vacío = userData/notes
     },
     // Movimientos importados asignados a cada estado o gesto de las skins 3D (null = el propio).
     motions: { assign: { idle: null, thinking: null, listening: null, working: null, talking: null, greet: null, happy: null, talkGesture: [] } },

@@ -64,7 +64,64 @@ function remindersCard(ui) {
   return card(t('settings.productivity.remindersTitle'), t('settings.productivity.remindersDesc'), list);
 }
 
-export const PRODUCTIVITY_SECTIONS = [noticesCard, remindersCard];
+function memoryCard(ui) {
+  const { t, card, h, wd, icons } = ui;
+  const list = h('div', { class: 'voice-list', id: 'memoryList' });
+  const paint = (items) => {
+    list.innerHTML = '';
+    if (!items.length) list.append(h('p', { class: 'small muted' }, t('settings.productivity.memoryEmpty')));
+    for (const m of items)
+      list.append(
+        h(
+          'div',
+          { class: 'voice-row' },
+          h('span', {}, m.text),
+          h('button', {
+            class: 'btn ghost danger',
+            html: icons.trash,
+            title: t('settings.productivity.forget'),
+            onclick: async () => {
+              await wd.invoke('productivity:memory-forget', m.id);
+              paint(await wd.invoke('productivity:memory'));
+            },
+          }),
+        ),
+      );
+  };
+  wd.invoke('productivity:memory').then(paint);
+  return card(t('settings.productivity.memoryTitle'), t('settings.productivity.memoryDesc'), ui.check('productivity.memory', t('settings.productivity.memoryOn')), list);
+}
+
+function notesCard(ui) {
+  const { t, card, h, wd, field } = ui;
+  const input = ui.text('productivity.notesDir');
+  wd.invoke('productivity:notes-dir').then((d) => (input.placeholder = d));
+  return card(
+    t('settings.productivity.notesTitle'),
+    t('settings.productivity.notesDesc'),
+    field(t('settings.productivity.notesDir'), input, t('settings.productivity.notesDirHelp')),
+    h(
+      'div',
+      { class: 'row', style: 'margin-top:10px' },
+      h(
+        'button',
+        {
+          class: 'btn',
+          onclick: async () => {
+            const dir = await wd.invoke('productivity:pick-folder', t('settings.productivity.notesDir'));
+            if (!dir) return;
+            input.value = dir;
+            ui.save('productivity.notesDir', dir, 0);
+          },
+        },
+        t('settings.productivity.pickFolder'),
+      ),
+      h('button', { class: 'btn ghost', onclick: () => wd.invoke('productivity:open-notes') }, t('settings.productivity.openFolder')),
+    ),
+  );
+}
+
+export const PRODUCTIVITY_SECTIONS = [noticesCard, remindersCard, memoryCard, notesCard];
 
 export function productivityTab(ui) {
   return [ui.h('h1', {}, ui.t('settings.nav.productivity')), ui.h('p', { class: 'lead' }, ui.t('settings.productivity.lead')), ...PRODUCTIVITY_SECTIONS.map((section) => section(ui))];
