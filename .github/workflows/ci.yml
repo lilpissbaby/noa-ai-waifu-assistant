@@ -32,7 +32,8 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run lint
-      - run: npm test
+      - name: npm test
+        run: npm test 2>&1 | tee "$RUNNER_TEMP/test.txt" || { node tools/ci-annotate.mjs "$RUNNER_TEMP/test.txt" "npm test (Linux)"; exit 1; }
       - name: Dependencias para Electron sin pantalla
         run: sudo apt-get update -q && sudo apt-get install -y -q xvfb
       - name: Voz Piper de prueba (releases de Piper en GitHub)
@@ -45,7 +46,7 @@ jobs:
           node tools/fetch-live2d-fixtures.mjs "$RUNNER_TEMP/live2d"
           echo "WAIFU_TEST_LIVE2D_DIR=$RUNNER_TEMP/live2d" >> "$GITHUB_ENV"
       - name: Prueba de humo (5 idiomas + conversación con herramientas + voz Piper + Live2D)
-        run: xvfb-run -a -s "-screen 0 1920x1080x24" npm run smoke
+        run: xvfb-run -a -s "-screen 0 1920x1080x24" npm run smoke 2>&1 | tee "$RUNNER_TEMP/smoke.txt" || { node tools/ci-annotate.mjs "$RUNNER_TEMP/smoke.txt" "smoke (Linux)"; exit 1; }
 
   windows:
     name: Tests y prueba de humo (Windows)
@@ -58,13 +59,17 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
-      - run: npm test
+      - name: npm test
+        shell: bash
+        run: npm test 2>&1 | tee "$RUNNER_TEMP/test.txt" || { node tools/ci-annotate.mjs "$RUNNER_TEMP/test.txt" "npm test (Windows)"; exit 1; }
       - name: Modelo Live2D de prueba
         shell: bash
         run: |
           node tools/fetch-live2d-fixtures.mjs "$RUNNER_TEMP/live2d"
           echo "WAIFU_TEST_LIVE2D_DIR=$RUNNER_TEMP/live2d" >> "$GITHUB_ENV"
-      - run: npm run smoke
+      - name: Prueba de humo
+        shell: bash
+        run: npm run smoke 2>&1 | tee "$RUNNER_TEMP/smoke.txt" || { node tools/ci-annotate.mjs "$RUNNER_TEMP/smoke.txt" "smoke (Windows)"; exit 1; }
 
   build:
     name: Ejecutables
