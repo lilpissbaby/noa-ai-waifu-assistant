@@ -46,7 +46,9 @@ jobs:
           node tools/fetch-live2d-fixtures.mjs "$RUNNER_TEMP/live2d"
           echo "WAIFU_TEST_LIVE2D_DIR=$RUNNER_TEMP/live2d" >> "$GITHUB_ENV"
       - name: Prueba de humo (5 idiomas + conversación con herramientas + voz Piper + Live2D)
-        run: xvfb-run -a -s "-screen 0 1920x1080x24" npm run smoke 2>&1 | tee "$RUNNER_TEMP/smoke.txt" || { node tools/ci-annotate.mjs "$RUNNER_TEMP/smoke.txt" "smoke (Linux)"; exit 1; }
+        run: |
+          xvfb-run -a -s "-screen 0 1920x1080x24" npm run smoke 2>&1 | tee "$RUNNER_TEMP/smoke.txt" || { node tools/ci-annotate.mjs "$RUNNER_TEMP/smoke.txt" "smoke (Linux)"; exit 1; }
+          grep -h "✓\|omitid" "$RUNNER_TEMP/smoke.txt" | sed 's/^/::notice title=smoke (Linux)::/' || true
 
   windows:
     name: Tests y prueba de humo (Windows)
@@ -69,7 +71,9 @@ jobs:
           echo "WAIFU_TEST_LIVE2D_DIR=$RUNNER_TEMP/live2d" >> "$GITHUB_ENV"
       - name: Prueba de humo
         shell: bash
-        run: npm run smoke 2>&1 | tee "$RUNNER_TEMP/smoke.txt" || { node tools/ci-annotate.mjs "$RUNNER_TEMP/smoke.txt" "smoke (Windows)"; exit 1; }
+        run: |
+          npm run smoke 2>&1 | tee "$RUNNER_TEMP/smoke.txt" || { node tools/ci-annotate.mjs "$RUNNER_TEMP/smoke.txt" "smoke (Windows)"; exit 1; }
+          grep -h "✓\|omitid" "$RUNNER_TEMP/smoke.txt" | sed 's/^/::notice title=smoke (Windows)::/' || true
 
   build:
     name: Ejecutables

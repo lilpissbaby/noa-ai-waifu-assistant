@@ -6,7 +6,8 @@ import path from 'node:path';
 import { resolveInside, listDir, searchFiles } from '../src/main/productivity/files.js';
 import { fileTools } from '../src/main/tools/files.js';
 
-const tmp = () => fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'waifu-files-')));
+// .native: en Windows también expande los nombres cortos 8.3 (RUNNER~1), como hace resolveInside.
+const tmp = () => fs.realpathSync.native(fs.mkdtempSync(path.join(os.tmpdir(), 'waifu-files-')));
 
 test('resolveInside acepta subcarpetas y rechaza lo que sale de las carpetas autorizadas', () => {
   const root = tmp();

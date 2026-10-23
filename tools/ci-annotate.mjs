@@ -13,8 +13,10 @@ for (let i = 0; i < lines.length; i++) {
     const out = [lines[i].trim()];
     for (let j = i + 1; j < lines.length && j < i + 40 && !/^\s*\.\.\.\s*$/.test(lines[j]); j++) out.push(lines[j]);
     blocks.push(out.join('\n'));
-  } else if (lines[i].includes('✗')) blocks.push(lines.slice(Math.max(0, i - 2), i + 6).join('\n'));
+  } else if (/^\s*✖ /.test(lines[i]) && !/✖ failing tests/.test(lines[i])) blocks.push(lines.slice(i, i + 14).join('\n')); // reporter «spec»
+  else if (lines[i].includes('✗')) blocks.push(lines.slice(Math.max(0, i - 2), i + 6).join('\n'));
 }
 const last = `Últimas líneas:\n${lines.slice(-40).join('\n')}`;
 const esc = (s) => s.replace(/%/g, '%25').replace(/\r/g, '%0D').replace(/\n/g, '%0A');
-for (const b of [...blocks.slice(0, 8), last]) console.log(`::error title=${title}::${esc(b.slice(0, 4000))}`);
+const unique = [...new Map(blocks.map((b) => [b.split('\n')[0].trim(), b])).values()];
+for (const b of [...unique.slice(0, 8), last]) console.log(`::error title=${title}::${esc(b.slice(0, 4000))}`);
