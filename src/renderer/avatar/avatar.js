@@ -79,20 +79,25 @@ function loadSkin(s) {
   loading = loading.then(() => doLoadSkin(s)).catch((e) => console.warn('skin', e));
   return loading;
 }
+let failCode = null;
 async function doLoadSkin(s) {
+  failCode = null;
   const want = s || (await wd.invoke('skin:get'));
   const r = await loadSkinWithFallback({
     skin: want,
     fallback: want.id === 'default' ? want : await wd.invoke('skin:get', 'default'),
     ensure: ensureRenderer,
-    onError: (e) => console.warn(`No se pudo cargar la skin ${want.id}:`, e?.message || e),
+    onError: (e) => {
+      failCode = e?.code || null;
+      console.warn(`No se pudo cargar la skin ${want.id}:`, e?.message || e);
+    },
   });
   skin = r.skin;
   wd.send('avatar:resize', desiredSize());
   setTimeout(relayout, 60);
   stage.start();
   if (r.failed) {
-    setState({ state: 'error', label: t('avatar.skinFailed') });
+    setState({ state: 'error', label: t(failCode === 'live2dCore' ? 'avatar.live2dCore' : 'avatar.skinFailed') });
     setTimeout(() => currentState === 'error' && setState({ state: 'idle' }), 5000);
   }
   scheduleShapeRefresh();

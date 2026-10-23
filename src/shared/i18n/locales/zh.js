@@ -78,6 +78,12 @@ export default {
     screenCapture: '无法截取屏幕。',
     attachmentTooBig: '{name} 太大（最多 20 MB）。',
     attachmentUnreadable: '无法读取文件：{message}',
+    live2dNotCore: '这不是 Live2D 的 Cubism Core：请选择“Cubism SDK for Web”的 .zip 或 live2dcubismcore.min.js 文件。',
+    live2dUnsafe: '模型包含不允许的路径或链接，未导入。',
+    live2dTooMany: '模型文件太多（最多 2000 个）。',
+    live2dTooBig: '模型太大（最多 300 MB）。',
+    live2dNoModel: '找不到模型的 .model3.json 文件。',
+    live2dDownload: '无法下载 Cubism Core：{message}。你可以从 live2d.com 下载 SDK 后导入。',
   },
   labels: {
     transcription: '语音转写',
@@ -143,6 +149,7 @@ export default {
     listening: '我在听',
     noMic: '没有麦克风',
     skinFailed: '无法加载 3D 皮肤',
+    live2dCore: '缺少 Live2D 引擎：请在“设置 → 皮肤”中安装',
   },
   tools: {
     get_current_time: '查看时间',
@@ -922,5 +929,17 @@ export default {
     },
     backgroundDone: '{label} 已完成：{result}',
     backgroundFailed: '{label} 失败：{message}',
+  },
+  live2d: {
+    license: {
+      title: 'Live2D 引擎',
+      message: 'VTuber 模型需要 Live2D 的 Cubism Core，需从官方网站下载一次。',
+      detail: 'Cubism Core 是 Live2D Inc. 的专有软件。其许可允许个人和小型企业免费使用；如果你的公司年营业额超过 1000 万日元，请查看其条款。下载即表示你接受 Live2D 许可协议。',
+      accept: '接受并下载',
+      read: '阅读许可',
+      cancel: '取消',
+    },
+    importCore: '导入 Cubism SDK 或 Core',
+    importModel: '导入 Live2D 模型',
   },
 };

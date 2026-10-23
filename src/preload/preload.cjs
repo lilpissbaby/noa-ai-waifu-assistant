@@ -1,7 +1,7 @@
 // Puente seguro entre las páginas y el proceso principal.
 const { contextBridge, ipcRenderer, webUtils } = require('electron');
 
-const ALLOWED = ['cfg:', 'chat:', 'voice:', 'skin:', 'win:', 'avatar:', 'tts:', 'models:', 'test:', 'mcp:', 'tools:', 'app:', 'persona:', 'productivity:'];
+const ALLOWED = ['cfg:', 'chat:', 'voice:', 'skin:', 'win:', 'avatar:', 'tts:', 'models:', 'test:', 'mcp:', 'tools:', 'app:', 'persona:', 'productivity:', 'live2d:'];
 const ok = (ch) => typeof ch === 'string' && ALLOWED.some((p) => ch.startsWith(p));
 
 contextBridge.exposeInMainWorld('wd', {

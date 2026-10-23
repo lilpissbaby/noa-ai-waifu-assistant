@@ -78,6 +78,12 @@ export default {
     screenCapture: 'I could not capture the screen.',
     attachmentTooBig: '{name} is too large (20 MB at most).',
     attachmentUnreadable: 'I could not read the file: {message}',
+    live2dNotCore: 'That is not the Live2D Cubism Core: choose the “Cubism SDK for Web” .zip or the live2dcubismcore.min.js file.',
+    live2dUnsafe: 'The model contains paths or links that are not allowed; it was not imported.',
+    live2dTooMany: 'The model has too many files (2000 at most).',
+    live2dTooBig: 'The model is too large (300 MB at most).',
+    live2dNoModel: 'The model’s .model3.json file cannot be found.',
+    live2dDownload: 'Could not download the Cubism Core: {message}. You can download the SDK from live2d.com and import it.',
   },
   labels: {
     transcription: 'Transcription',
@@ -149,6 +155,7 @@ export default {
     listening: "I'm listening",
     noMic: 'No microphone',
     skinFailed: "Couldn't load the 3D skin",
+    live2dCore: 'The Live2D engine is missing: install it in Settings → Skins',
   },
   tools: {
     get_current_time: 'Check the time',
@@ -939,5 +946,17 @@ export default {
     },
     backgroundDone: '{label} finished: {result}',
     backgroundFailed: '{label} failed: {message}',
+  },
+  live2d: {
+    license: {
+      title: 'Live2D engine',
+      message: 'VTuber models need the Live2D Cubism Core, downloaded once from the official site.',
+      detail: 'The Cubism Core is proprietary software by Live2D Inc. Its license lets individuals and small businesses use it for free; if your company makes more than 10 million yen a year, check their terms. By downloading it you accept the Live2D license agreement.',
+      accept: 'Accept and download',
+      read: 'Read the license',
+      cancel: 'Cancel',
+    },
+    importCore: 'Import the Cubism SDK or Core',
+    importModel: 'Import a Live2D model',
   },
 };

@@ -78,6 +78,12 @@ export default {
     screenCapture: 'Не удалось сделать снимок экрана.',
     attachmentTooBig: '{name} слишком большой (не более 20 МБ).',
     attachmentUnreadable: 'Не удалось прочитать файл: {message}',
+    live2dNotCore: 'Это не Cubism Core от Live2D: выберите .zip «Cubism SDK for Web» или файл live2dcubismcore.min.js.',
+    live2dUnsafe: 'В модели есть недопустимые пути или ссылки; она не импортирована.',
+    live2dTooMany: 'В модели слишком много файлов (не более 2000).',
+    live2dTooBig: 'Модель слишком большая (не более 300 МБ).',
+    live2dNoModel: 'Не найден файл .model3.json модели.',
+    live2dDownload: 'Не удалось скачать Cubism Core: {message}. Можно скачать SDK с live2d.com и импортировать его.',
   },
   labels: {
     transcription: 'Распознавание речи',
@@ -153,6 +159,7 @@ export default {
     listening: 'Слушаю',
     noMic: 'Нет микрофона',
     skinFailed: 'Не удалось загрузить 3D-скин',
+    live2dCore: 'Нет движка Live2D: установите его в «Настройки → Скины»',
   },
   tools: {
     get_current_time: 'Узнать время',
@@ -947,5 +954,17 @@ export default {
     },
     backgroundDone: '{label} — готово: {result}',
     backgroundFailed: '{label} — ошибка: {message}',
+  },
+  live2d: {
+    license: {
+      title: 'Движок Live2D',
+      message: 'Для моделей VTuber нужен Cubism Core от Live2D — он один раз скачивается с официального сайта.',
+      detail: 'Cubism Core — проприетарная программа Live2D Inc. Лицензия позволяет бесплатно пользоваться ею частным лицам и небольшим компаниям; если оборот вашей компании больше 10 млн иен в год, ознакомьтесь с условиями. Скачивая его, вы принимаете лицензионное соглашение Live2D.',
+      accept: 'Принять и скачать',
+      read: 'Прочитать лицензию',
+      cancel: 'Отмена',
+    },
+    importCore: 'Импортировать Cubism SDK или Core',
+    importModel: 'Импортировать модель Live2D',
   },
 };

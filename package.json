@@ -38,7 +38,9 @@
     "linkedom": "0.18.14",
     "onnxruntime-web": "^1.30.0",
     "pdfjs-dist": "6.4.299",
-    "three": "0.186.1"
+    "pixi.js": "8.22.0",
+    "three": "0.186.1",
+    "untitled-pixi-live2d-engine": "1.4.0"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
@@ -67,10 +69,16 @@
       "node_modules/onnxruntime-web/dist/ort-wasm-simd-threaded.wasm",
       "!node_modules/three/**",
       "!node_modules/@pixiv/**",
+      "!node_modules/pixi.js/**",
+      "!node_modules/untitled-pixi-live2d-engine/**",
+      "!node_modules/@pixi/**",
       "node_modules/three/build/three.module.js",
       "node_modules/three/build/three.core.js",
       "node_modules/@pixiv/three-vrm/lib/three-vrm.module.min.js",
       "node_modules/@pixiv/three-vrm-animation/lib/three-vrm-animation.module.min.js",
+      "node_modules/pixi.js/dist/pixi.min.js",
+      "node_modules/pixi.js/dist/packages/unsafe-eval.min.js",
+      "node_modules/untitled-pixi-live2d-engine/dist/cubism.min.js",
       "!node_modules/pdfjs-dist/**",
       "!node_modules/@napi-rs/**",
       "node_modules/pdfjs-dist/package.json",

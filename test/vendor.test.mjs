@@ -10,7 +10,7 @@ const ROOT = path.resolve(import.meta.dirname, '..');
 const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
 
 test('cada archivo de VENDOR_FILES existe en node_modules', () => {
-  assert.equal(VENDOR_FILES.length, 11);
+  assert.equal(VENDOR_FILES.length, 14); // 11 del 3D + 3 de Live2D (pixi, su parche sin eval y el motor)
   for (const f of VENDOR_FILES) assert.ok(fs.existsSync(path.join(ROOT, f)), `falta ${f}`);
 });
 
@@ -25,14 +25,16 @@ test('build.files incluye los VENDOR_FILES y excluye el resto de three y @pixiv'
   const files = pkg.build.files;
   const exThree = files.indexOf('!node_modules/three/**');
   const exPixiv = files.indexOf('!node_modules/@pixiv/**');
-  assert.ok(exThree >= 0 && exPixiv >= 0, 'faltan las exclusiones');
+  const exPixi = files.indexOf('!node_modules/pixi.js/**');
+  const exEngine = files.indexOf('!node_modules/untitled-pixi-live2d-engine/**');
+  assert.ok(exThree >= 0 && exPixiv >= 0 && exPixi >= 0 && exEngine >= 0, 'faltan las exclusiones');
   // electron-builder descarta las carpetas «examples» de node_modules: los complementos de three van
   // en un FileSet con el mismo destino.
   const sets = files.filter((f) => typeof f === 'object');
   for (const f of VENDOR_FILES) {
     const i = files.indexOf(f);
     const set = sets.find((s) => f.startsWith(`${s.from}/`) && s.to === s.from && s.filter.includes(f.slice(s.from.length + 1)));
-    assert.ok(i > Math.max(exThree, exPixiv) || set, `${f} debe incluirse después de las exclusiones`);
+    assert.ok(i > Math.max(exThree, exPixiv, exPixi, exEngine) || set, `${f} debe incluirse después de las exclusiones`);
   }
 });
 
@@ -40,6 +42,8 @@ test('las dependencias 3D están fijadas', () => {
   assert.equal(pkg.dependencies.three, '0.186.1');
   assert.equal(pkg.dependencies['@pixiv/three-vrm'], '3.5.5');
   assert.equal(pkg.dependencies['@pixiv/three-vrm-animation'], '3.5.5');
+  assert.equal(pkg.dependencies['pixi.js'], '8.22.0');
+  assert.equal(pkg.dependencies['untitled-pixi-live2d-engine'], '1.4.0');
 });
 
 function htmlFiles(dir) {

@@ -2,9 +2,13 @@
 // quien usa skins 2D no cargue three.js.
 import { SkinRenderer } from './skin-renderer.js';
 
-export const kindOf = (skin) => (skin?.type === 'vrm' ? 'vrm' : '2d');
+export const kindOf = (skin) => (skin?.type === 'vrm' ? 'vrm' : skin?.type === 'live2d' ? 'live2d' : '2d');
 
 export async function createRenderer(canvas, kind) {
+  if (kind === 'live2d') {
+    const { Live2DRenderer } = await import('./live2d/live2d-renderer.js');
+    return new Live2DRenderer(canvas);
+  }
   if (kind === 'vrm') {
     const { VrmRenderer } = await import('./vrm/vrm-renderer.js');
     return new VrmRenderer(canvas);

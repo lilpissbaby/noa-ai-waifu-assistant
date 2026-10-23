@@ -13,6 +13,7 @@ import { syncMcp, mcpStatus, closeAllMcp } from './tools/mcp.js';
 import { testHermes } from './tools/hermes.js';
 import { testPaperclip, paperclipApi } from './tools/paperclip.js';
 import { PaperclipWatcher } from './productivity/watchers.js';
+import { coreStatus, downloadCore, importCore, stageLive2d, saveLive2dSkin, clearLive2dTmp, LICENSE_URL } from './live2d.js';
 import { transcribe, synthesize, speakable, SentenceChunker } from './voice.js';
 import { isBundleAllowed, isUserAllowed } from './bundle-allowed.js';
 import { assistantName, activePersona, effectiveTts } from '../shared/personas.js';
@@ -1101,6 +1102,70 @@ function registerIpc() {
   });
   ipcMain.handle('productivity:reminders', () => reminders.list());
   ipcMain.handle('productivity:reminder-cancel', (_e, id) => reminders.cancel(id));
+  ipcMain.handle('live2d:core-status', () => coreStatus());
+  // Descarga del Cubism Core tras aceptar la licencia de Live2D (no va dentro de la app).
+  ipcMain.handle('live2d:core-download', async (e) => {
+    const parent = BrowserWindow.fromWebContents(e.sender);
+    for (;;) {
+      const { response } = await dialog.showMessageBox(parent, {
+        type: 'info',
+        title: t('live2d.license.title'),
+        message: t('live2d.license.message'),
+        detail: t('live2d.license.detail'),
+        buttons: [t('live2d.license.accept'), t('live2d.license.read'), t('live2d.license.cancel')],
+        defaultId: 0,
+        cancelId: 2,
+        noLink: true,
+      });
+      if (response === 2) return { canceled: true };
+      if (response === 1) {
+        shell.openExternal(LICENSE_URL);
+        continue;
+      }
+      break;
+    }
+    const sender = e.sender;
+    try {
+      return await downloadCore((p) => !sender.isDestroyed() && sender.send('live2d:core-progress', p));
+    } catch (err) {
+      return { error: t('errors.live2dDownload', { message: err.message }) };
+    }
+  });
+  ipcMain.handle('live2d:core-import', async (e) => {
+    const r = await dialog.showOpenDialog(BrowserWindow.fromWebContents(e.sender), {
+      title: t('live2d.importCore'),
+      filters: [{ name: 'Cubism SDK / Core', extensions: ['zip', 'js'] }],
+      properties: ['openFile'],
+    });
+    if (r.canceled || !r.filePaths[0]) return null;
+    try {
+      return importCore(r.filePaths[0]);
+    } catch (err) {
+      return { error: err.message };
+    }
+  });
+  // Importar un modelo: .zip o carpeta (sin argumentos abre el diálogo).
+  ipcMain.handle('live2d:stage', async (e, src, asFolder = false) => {
+    if (!src) {
+      const r = await dialog.showOpenDialog(BrowserWindow.fromWebContents(e.sender), {
+        title: t('live2d.importModel'),
+        filters: asFolder ? [] : [{ name: 'Live2D (.zip)', extensions: ['zip'] }],
+        properties: [asFolder ? 'openDirectory' : 'openFile'],
+      });
+      if (r.canceled || !r.filePaths[0]) return null;
+      src = r.filePaths[0];
+    }
+    try {
+      return stageLive2d(src);
+    } catch (err) {
+      return { error: 'corrupt', message: err.message };
+    }
+  });
+  ipcMain.handle('live2d:save', (_e, payload) => {
+    const manifest = saveLive2dSkin(payload);
+    broadcast('skin:list-changed');
+    return manifest;
+  });
   ipcMain.handle('productivity:memory', () => listMemory().reverse());
   ipcMain.handle('productivity:watched', () => watcher.list());
   ipcMain.handle('productivity:unwatch', (_e, id) => {
@@ -1355,6 +1420,7 @@ app.whenReady().then(async () => {
   if (firstRun) step('config inicial', () => patchConfig({}));
   step('historial', loadHistory);
   step('temporales 3D', clearVrmTmp);
+  step('temporales Live2D', clearLive2dTmp);
   step('ipc', registerIpc);
   step('avatar', createAvatarWindow);
   // Los recordatorios vencidos mientras la app estaba cerrada se anuncian cuando el avatar ya está.
@@ -1399,6 +1465,7 @@ function runAutomation(file) {
     pollAgents,
     watcher,
     runBackground,
+    live2d: { coreStatus, importCore, stageLive2d, saveLive2dSkin },
     broadcast,
     publicConfig,
     loadConfig,
