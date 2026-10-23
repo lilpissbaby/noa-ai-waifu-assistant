@@ -60,6 +60,8 @@ export default {
     notImage: '该 URL 不是图片（{type}）',
     imageTooBig: '图片太大（最大 {mb} MB）',
     download: '下载失败（HTTP {status}）',
+    contentFilter: 'Azure 的内容过滤器拦截了这条回复（类别：{categories}）。',
+    contentFilterUnknown: 'Azure 的内容过滤器拦截了这条回复。',
   },
   labels: {
     transcription: '语音转写',
@@ -267,6 +269,19 @@ export default {
       allowToolsHelp: '如果模型不支持工具调用（tool calling），或者它本身就是 Hermes（自带工具），请关闭。',
       addProfile: '添加配置',
       addProfileText: '选择一个服务商作为起点，然后调整 URL、密钥和模型。',
+      azure: {
+        title: 'Azure 内容策略',
+        desc: 'Azure 自己也会过滤。通过 <code>x-policy-id</code>，应用会为每条消息选择你创建的一个策略（<code>docs/azure/content-filters</code> 里有 Terraform 示例）。',
+        mode: '选择方式',
+        modeAuto: '按角色的过滤设置',
+        modeFixed: '始终使用同一个',
+        modeOff: '不发送（使用部署默认）',
+        strict: '严格',
+        standard: '标准',
+        relaxed: '宽松',
+        unfiltered: '无过滤（需要微软批准）',
+        fixed: '策略名称',
+      },
     },
     voice: {
       lead: '听写（你说的话 → 文字）和助手的声音（文字 → 语音，口型同步）。',

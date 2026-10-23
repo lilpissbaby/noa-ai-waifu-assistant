@@ -60,6 +60,8 @@ export default {
     notImage: 'По этому URL не изображение ({type})',
     imageTooBig: 'Изображение слишком большое (макс. {mb} МБ)',
     download: 'Ошибка загрузки (HTTP {status})',
+    contentFilter: 'Azure заблокировал ответ своим фильтром контента (категория: {categories}).',
+    contentFilterUnknown: 'Azure заблокировал ответ своим фильтром контента.',
   },
   labels: {
     transcription: 'Распознавание речи',
@@ -283,6 +285,19 @@ export default {
       allowToolsHelp: 'Отключите, если модель не поддерживает вызов инструментов (tool calling) или если это сам Hermes — у него свои инструменты.',
       addProfile: 'Добавить профиль',
       addProfileText: 'Выберите провайдера за основу, затем поправьте URL, ключ и модель.',
+      azure: {
+        title: 'Политики контента Azure',
+        desc: 'Azure фильтрует сам. С заголовком <code>x-policy-id</code> приложение выбирает для каждого сообщения одну из созданных вами политик (пример Terraform лежит в <code>docs/azure/content-filters</code>).',
+        mode: 'Как выбирать',
+        modeAuto: 'По фильтрам персонажа',
+        modeFixed: 'Всегда одну и ту же',
+        modeOff: 'Не отправлять (по умолчанию развёртывания)',
+        strict: 'Строгая',
+        standard: 'Стандартная',
+        relaxed: 'Мягкая',
+        unfiltered: 'Без фильтров (нужно одобрение Microsoft)',
+        fixed: 'Имя политики',
+      },
     },
     voice: {
       lead: 'Диктовка (ваша речь → текст) и голос ассистентки (текст → звук, с синхронизацией губ).',

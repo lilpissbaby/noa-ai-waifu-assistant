@@ -401,3 +401,9 @@ details.help ol {
   flex: 0 1 260px;
   width: auto;
 }
+.azure-box {
+  margin-top: 6px;
+  padding: 12px 14px;
+  border: 1px dashed var(--line-2);
+  border-radius: 10px;
+}

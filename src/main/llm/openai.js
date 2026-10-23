@@ -1,6 +1,7 @@
 // Adaptador OpenAI-compatible (OpenAI, OpenRouter, Groq, Gemini, Ollama, LM Studio, Hermes Agent...)
 import { net } from 'electron';
 import { readSSE, httpError } from './sse.js';
+import { contentFilterMessage } from './azure.js';
 
 export function toOpenAIMessages(system, history) {
   const out = [];
@@ -25,7 +26,18 @@ export function toOpenAIMessages(system, history) {
   return out;
 }
 
-const authHeaders = (apiKey) => (apiKey ? { authorization: `Bearer ${apiKey}` } : {});
+// Azure OpenAI con clave usa la cabecera api-key; el resto, Bearer.
+const authHeaders = (apiKey, profile) => (!apiKey ? {} : profile?.auth === 'api-key' ? { 'api-key': apiKey } : { authorization: `Bearer ${apiKey}` });
+
+async function failure(res, label) {
+  try {
+    const cf = contentFilterMessage(JSON.parse(await res.clone().text()));
+    if (cf) return Object.assign(new Error(cf), { status: res.status, contentFilter: true });
+  } catch {
+    /* no es JSON */
+  }
+  return httpError(res, label);
+}
 
 export async function streamOpenAI({ profile, apiKey, system, history, tools, signal, onText, extraHeaders }) {
   const base = profile.baseUrl.replace(/\/+$/, '');
@@ -47,7 +59,7 @@ export async function streamOpenAI({ profile, apiKey, system, history, tools, si
     method: 'POST',
     headers: {
       'content-type': 'application/json',
-      ...authHeaders(apiKey),
+      ...authHeaders(apiKey, profile),
       'HTTP-Referer': 'https://github.com/lilpissbaby/noa-ai-waifu-assistant',
       'X-Title': 'Waifu Desk',
       ...(extraHeaders || {}),
@@ -55,7 +67,7 @@ export async function streamOpenAI({ profile, apiKey, system, history, tools, si
     body: JSON.stringify(body),
     signal,
   });
-  if (!res.ok) throw await httpError(res, profile.name || 'OpenAI-compatible');
+  if (!res.ok) throw await failure(res, profile.name || 'OpenAI-compatible');
 
   const ctype = res.headers.get('content-type') || '';
   // Algunos servidores ignoran stream:true y devuelven JSON normal.
@@ -83,6 +95,15 @@ export async function streamOpenAI({ profile, apiKey, system, history, tools, si
       d = JSON.parse(evt.data);
     } catch {
       continue;
+    }
+    const cf = contentFilterMessage(d);
+    if (cf) {
+      // Bloqueo a mitad de respuesta: si ya había texto se avisa al final; si no, es un error.
+      if (!text) throw Object.assign(new Error(cf), { contentFilter: true });
+      text += `\n\n_${cf}_`;
+      onText?.(`\n\n_${cf}_`);
+      stopReason = 'content_filter';
+      break;
     }
     if (d.error) throw new Error(`${profile.name}: ${d.error.message || JSON.stringify(d.error)}`);
     if (d.usage) usage = d.usage;
@@ -119,7 +140,7 @@ function safeJSON(s) {
 
 export async function listOpenAIModels(profile, apiKey) {
   const base = profile.baseUrl.replace(/\/+$/, '');
-  const res = await net.fetch(`${base}/models`, { headers: authHeaders(apiKey) });
+  const res = await net.fetch(`${base}/models`, { headers: authHeaders(apiKey, profile) });
   if (!res.ok) throw await httpError(res, `${profile.name} /models`);
   const j = await res.json();
   return (j.data || j.models || []).map((m) => m.id || m.name).filter(Boolean);

@@ -4,7 +4,8 @@ import { streamAnthropic } from './anthropic.js';
 import { streamOpenAI } from './openai.js';
 import { getLocale, localeTag, LANGUAGES } from '../../shared/i18n/index.js';
 import { EmotionTagFilter, EMOTION_PROMPT, stripEmotionTags } from './emotion.js';
-import { activePersona, buildPersonaPrompt } from '../../shared/personas.js';
+import { activePersona, buildPersonaPrompt, effectiveFilters } from '../../shared/personas.js';
+import { azurePolicyFor } from './azure.js';
 
 const MAX_STEPS = 10;
 
@@ -62,6 +63,9 @@ export async function runTurn({ cfg, profile, apiKey, history, toolbox, emit, si
   const tools = useTools ? toolbox.list : [];
   const system = buildSystemPrompt(cfg, tools);
   const stream = profile.kind === 'anthropic' ? streamAnthropic : streamOpenAI;
+  // Azure OpenAI: política de contenido según los filtros del personaje activo.
+  const policy = azurePolicyFor(profile, effectiveFilters(activePersona(cfg), cfg));
+  const extraHeaders = policy ? { 'x-policy-id': policy } : undefined;
   let finalText = '';
 
   for (let step = 0; step < MAX_STEPS; step++) {
@@ -80,6 +84,7 @@ export async function runTurn({ cfg, profile, apiKey, history, toolbox, emit, si
       history: window,
       tools,
       signal,
+      extraHeaders,
       onText: (delta) => pass(filter.push(delta)),
     });
     pass(filter.flush());

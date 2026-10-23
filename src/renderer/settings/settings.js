@@ -192,6 +192,49 @@ function itemCheck(listKey, idx, prop, label, def = true) {
   );
 }
 
+// Azure OpenAI: cómo se elige la política de contenido (cabecera x-policy-id) y sus nombres.
+function azureBox(list, i) {
+  const p = list[i];
+  const set = (patch) => {
+    Object.assign(p, patch);
+    save('profiles', list, 400);
+  };
+  const policyInput = (key) =>
+    h('input', {
+      type: 'text',
+      value: p.azurePolicies[key] || '',
+      oninput: (e) => set({ azurePolicies: { ...p.azurePolicies, [key]: e.target.value.trim() } }),
+    });
+  const mode = p.azurePolicyMode || 'auto';
+  return h(
+    'div',
+    { class: 'azure-box' },
+    h('strong', {}, t('settings.models.azure.title')),
+    h('p', { class: 'small muted', html: t('settings.models.azure.desc') }),
+    h(
+      'div',
+      { class: 'grid' },
+      field(
+        t('settings.models.azure.mode'),
+        h(
+          'select',
+          {
+            onchange: (e) => {
+              set({ azurePolicyMode: e.target.value });
+              render();
+            },
+          },
+          ['auto', 'fixed', 'off'].map((m) => h('option', { value: m, selected: m === mode }, t(`settings.models.azure.mode${m[0].toUpperCase()}${m.slice(1)}`))),
+        ),
+      ),
+      mode === 'fixed'
+        ? field(t('settings.models.azure.fixed'), h('input', { type: 'text', value: p.azurePolicyFixed || '', oninput: (e) => set({ azurePolicyFixed: e.target.value.trim() }) }))
+        : h('div'),
+      ...(mode === 'auto' ? ['strict', 'standard', 'relaxed', 'unfiltered'].map((k) => field(t(`settings.models.azure.${k}`), policyInput(k))) : []),
+    ),
+  );
+}
+
 // Ayudantes que reciben las pestañas que viven en tabs/*.js.
 const ui = {
   h,
@@ -416,6 +459,7 @@ const TABS = {
             itemCheck('profiles', i, 'toolsEnabled', t('settings.models.allowTools')),
             h('small', { class: 'muted' }, t('settings.models.allowToolsHelp')),
           ),
+          p.azurePolicies ? h('div', { class: 'full' }, azureBox(list, i)) : null,
         ),
         res,
       );

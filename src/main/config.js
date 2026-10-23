@@ -37,6 +37,17 @@ export function providerPresets() {
     ollama: { kind: 'openai', name: `Ollama (${local})`, baseUrl: 'http://localhost:11434/v1', model: '', toolsEnabled: true },
     lmstudio: { kind: 'openai', name: `LM Studio (${local})`, baseUrl: 'http://localhost:1234/v1', model: '', toolsEnabled: true },
     hermes: { kind: 'openai', name: 'Hermes Agent (VPS)', baseUrl: 'http://your-vps:8642/v1', model: 'hermes-agent', toolsEnabled: false },
+    azure: {
+      kind: 'openai',
+      auth: 'api-key',
+      name: 'Azure OpenAI',
+      baseUrl: 'https://YOUR-RESOURCE.openai.azure.com/openai/v1',
+      model: '',
+      toolsEnabled: true,
+      azurePolicyMode: 'auto',
+      azurePolicies: { strict: 'waifudesk-strict', standard: 'waifudesk-standard', relaxed: 'waifudesk-relaxed', unfiltered: '' },
+      azurePolicyFixed: '',
+    },
     custom: { kind: 'openai', name: t('presets.custom'), baseUrl: 'http://localhost:8000/v1', model: '', toolsEnabled: true },
   };
 }

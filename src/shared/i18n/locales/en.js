@@ -60,6 +60,8 @@ export default {
     notImage: 'The URL is not an image ({type})',
     imageTooBig: 'Image too large (max. {mb} MB)',
     download: 'Download failed (HTTP {status})',
+    contentFilter: 'Azure blocked the response with its content filter (category: {categories}).',
+    contentFilterUnknown: 'Azure blocked the response with its content filter.',
   },
   labels: {
     transcription: 'Transcription',
@@ -277,6 +279,19 @@ export default {
       allowToolsHelp: "Turn it off if the model doesn't support tool calling, or if it is Hermes itself, which already has its own.",
       addProfile: 'Add profile',
       addProfileText: 'Pick a provider to start from, then adjust the URL, key and model.',
+      azure: {
+        title: 'Azure content policies',
+        desc: 'Azure filters on its own. With <code>x-policy-id</code> the app picks, for every message, one of the policies you created (there’s a Terraform example in <code>docs/azure/content-filters</code>).',
+        mode: 'How to choose',
+        modeAuto: "From the character's filters",
+        modeFixed: 'Always the same',
+        modeOff: "Don't send (deployment default)",
+        strict: 'Strict',
+        standard: 'Standard',
+        relaxed: 'Relaxed',
+        unfiltered: 'Unfiltered (needs Microsoft approval)',
+        fixed: 'Policy name',
+      },
     },
     voice: {
       lead: 'Dictation (what you say → text) and the assistant voice (text → audio, with lip-sync).',

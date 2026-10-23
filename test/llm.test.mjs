@@ -128,3 +128,24 @@ test('streamOpenAI(): acepta servidores que ignoran stream:true', async () => {
     await srv.close();
   }
 });
+
+test('streamOpenAI(): Azure usa api-key, envía x-policy-id y traduce el bloqueo por filtro', async () => {
+  const { setLocale } = await import('../src/shared/i18n/index.js');
+  setLocale('es');
+  let call = 0;
+  const srv = await serve((req, res) => {
+    call++;
+    if (call === 1) return sendSSE(res, [{ choices: [{ index: 0, delta: { content: 'ok' } }] }, '[DONE]']);
+    return json(res, { error: { code: 'content_filter', message: 'filtered', innererror: { content_filter_result: { sexual: { filtered: true, severity: 'high' } } } } }, 400);
+  });
+  try {
+    const profile = { baseUrl: `${srv.url}/openai/v1`, model: 'gpt-4o', name: 'Azure', auth: 'api-key' };
+    await streamOpenAI({ profile, apiKey: 'azkey', system: '', history: [], extraHeaders: { 'x-policy-id': 'waifudesk-relaxed' } });
+    assert.equal(srv.requests[0].headers['api-key'], 'azkey');
+    assert.equal(srv.requests[0].headers.authorization, undefined);
+    assert.equal(srv.requests[0].headers['x-policy-id'], 'waifudesk-relaxed');
+    await assert.rejects(streamOpenAI({ profile, apiKey: 'azkey', system: '', history: [] }), /Azure ha bloqueado[\s\S]*sexual/);
+  } finally {
+    await srv.close();
+  }
+});

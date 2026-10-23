@@ -61,6 +61,8 @@ export default {
     notImage: 'La URL no es una imagen ({type})',
     imageTooBig: 'Imagen demasiado grande (máx. {mb} MB)',
     download: 'Descarga fallida (HTTP {status})',
+    contentFilter: 'Azure ha bloqueado la respuesta por su filtro de contenido (categoría: {categories}).',
+    contentFilterUnknown: 'Azure ha bloqueado la respuesta por su filtro de contenido.',
   },
   labels: {
     transcription: 'Transcripción',
@@ -278,6 +280,19 @@ export default {
       allowToolsHelp: 'Desactívalo si el modelo no admite herramientas (tool calling) o si es el propio Hermes, que ya tiene las suyas.',
       addProfile: 'Añadir perfil',
       addProfileText: 'Elige un proveedor de partida y ajusta luego la URL, la clave y el modelo.',
+      azure: {
+        title: 'Políticas de contenido de Azure',
+        desc: 'Azure filtra por su cuenta. Con <code>x-policy-id</code> la app elige en cada mensaje una de las políticas que hayas creado (hay un Terraform de ejemplo en <code>docs/azure/content-filters</code>).',
+        mode: 'Cómo elegirla',
+        modeAuto: 'Según los filtros del personaje',
+        modeFixed: 'Siempre la misma',
+        modeOff: 'No enviar (la del despliegue)',
+        strict: 'Estricta',
+        standard: 'Estándar',
+        relaxed: 'Permisiva',
+        unfiltered: 'Sin filtros (requiere aprobación de Microsoft)',
+        fixed: 'Nombre de la política',
+      },
     },
     voice: {
       lead: 'Dictado (lo que dices → texto) y voz de la asistente (texto → audio, con la boca sincronizada).',

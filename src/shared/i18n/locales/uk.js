@@ -60,6 +60,8 @@ export default {
     notImage: 'За цим URL не зображення ({type})',
     imageTooBig: 'Зображення завелике (макс. {mb} МБ)',
     download: 'Помилка завантаження (HTTP {status})',
+    contentFilter: 'Azure заблокував відповідь своїм фільтром контенту (категорія: {categories}).',
+    contentFilterUnknown: 'Azure заблокував відповідь своїм фільтром контенту.',
   },
   labels: {
     transcription: 'Розпізнавання мовлення',
@@ -283,6 +285,19 @@ export default {
       allowToolsHelp: 'Вимкніть, якщо модель не підтримує виклик інструментів (tool calling) або якщо це сам Hermes — у нього свої інструменти.',
       addProfile: 'Додати профіль',
       addProfileText: 'Виберіть провайдера за основу, потім підправте URL, ключ і модель.',
+      azure: {
+        title: 'Політики контенту Azure',
+        desc: 'Azure фільтрує сам. Із заголовком <code>x-policy-id</code> застосунок вибирає для кожного повідомлення одну зі створених вами політик (приклад Terraform лежить у <code>docs/azure/content-filters</code>).',
+        mode: 'Як вибирати',
+        modeAuto: 'За фільтрами персонажа',
+        modeFixed: 'Завжди ту саму',
+        modeOff: 'Не надсилати (типова для розгортання)',
+        strict: 'Сувора',
+        standard: 'Стандартна',
+        relaxed: 'М’яка',
+        unfiltered: 'Без фільтрів (потрібне схвалення Microsoft)',
+        fixed: 'Назва політики',
+      },
     },
     voice: {
       lead: 'Диктування (ваше мовлення → текст) і голос асистентки (текст → звук, із синхронізацією губ).',
