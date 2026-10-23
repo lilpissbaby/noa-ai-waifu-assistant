@@ -92,3 +92,33 @@ test('el prompt incluye nombre, contexto, ejemplos e instrucciones extra', () =>
   assert.match(s, /EXTRA/);
   assert.ok(s.indexOf('EXTRA') < s.indexOf(HARD_LIMITS), 'los límites van al final');
 });
+
+test('plantillas de personaje en los 5 idiomas', async () => {
+  const { TEMPLATE_IDS, personaFromTemplate } = await import('../src/shared/personas.js');
+  const { SUPPORTED } = await import('../src/shared/i18n/index.js');
+  assert.deepEqual(TEMPLATE_IDS, ['profesional', 'alegre', 'tsundere', 'kuudere', 'dulce', 'sarcastica', 'romantica']);
+  for (const id of TEMPLATE_IDS)
+    for (const loc of SUPPORTED) {
+      const p = personaFromTemplate(id, loc);
+      assert.ok(p.name.trim() && p.personality.trim().length > 20, `${id}/${loc}`);
+      assert.deepEqual(p.source, { kind: 'template', name: id });
+    }
+  assert.equal(personaFromTemplate('romantica', 'es').filters.romance, 'on');
+  assert.equal(personaFromTemplate('profesional', 'es').filters.language, 'avoid');
+  assert.equal(personaFromTemplate('profesional', 'es').filters.romance, 'off');
+  assert.equal(personaFromTemplate('tsundere', 'es').filters.sexual, 'off');
+  assert.notEqual(personaFromTemplate('alegre', 'es').id, personaFromTemplate('alegre', 'es').id);
+});
+
+test('effectiveTts: la voz del personaje va encima de la global', async () => {
+  const { effectiveTts } = await import('../src/shared/personas.js');
+  const tts = { mode: 'system', systemVoice: 'A', rate: 1.05, voice: 'nova' };
+  const base = { voice: { tts }, personas: [{ id: 'a', name: 'A', voice: null }, { id: 'b', name: 'B', voice: { mode: 'piper', piperVoice: 'es_ES-x', rate: 1.2 } }] };
+  assert.deepEqual(effectiveTts({ ...base, activePersonaId: 'a' }), tts);
+  const b = effectiveTts({ ...base, activePersonaId: 'b' });
+  assert.equal(b.mode, 'piper');
+  assert.equal(b.piperVoice, 'es_ES-x');
+  assert.equal(b.rate, 1.2);
+  assert.equal(b.voice, 'nova');
+  assert.equal(tts.mode, 'system', 'no modifica la configuración global');
+});

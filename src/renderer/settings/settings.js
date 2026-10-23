@@ -2,6 +2,7 @@ import { icons } from '../shared/icons.js';
 import { t, tHtml, setLocale, getLocale, SUPPORTED, LANGUAGES } from '../../shared/i18n/index.js';
 import { applyDom } from '../../shared/i18n/dom.js';
 import { assistantName } from '../../shared/personas.js';
+import { personasTab } from './tabs/personas.js';
 
 const wd = window.wd;
 const view = document.getElementById('view');
@@ -191,8 +192,26 @@ function itemCheck(listKey, idx, prop, label, def = true) {
   );
 }
 
+// Ayudantes que reciben las pestañas que viven en tabs/*.js.
+const ui = {
+  h,
+  card,
+  field,
+  t,
+  tHtml,
+  wd,
+  icons,
+  getLocale,
+  toast,
+  getPc: () => pc,
+  setPc: (next) => (pc = next),
+  render: () => render(),
+  markEdit: () => (lastLocalEdit = Date.now()),
+};
+
 // ---------------------------------------------------------------- pestañas
 const TABS = {
+  personas: () => personasTab(ui),
   general() {
     const c = pc.config;
     const isLinux = pc.platform === 'linux';
@@ -228,6 +247,7 @@ const TABS = {
           'div',
           { class: 'grid' },
           field(t('settings.general.userName'), text('assistant.userName', { placeholder: t('settings.general.userNamePlaceholder') })),
+          h('div', { class: 'full' }, h('p', { class: 'small muted', html: t('settings.general.characterMoved') }), h('button', { class: 'btn', onclick: () => go('personas') }, t('settings.general.openPersonas'))),
         ),
       ),
       card(

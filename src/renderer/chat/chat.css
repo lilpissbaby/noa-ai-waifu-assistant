@@ -530,3 +530,9 @@ body[data-state='error'] .dot {
 .hint .hint-item {
   white-space: nowrap;
 }
+
+/* Avisos de la asistente (recordatorios, agentes, resultados en segundo plano) */
+.msg.assistant.notice-msg .body {
+  border-left: 3px solid var(--accent-2);
+  padding-left: 10px;
+}

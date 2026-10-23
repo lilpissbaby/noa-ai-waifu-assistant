@@ -1,5 +1,6 @@
 // Personajes: forma de ser, filtros de contenido y el trozo de prompt de sistema que les toca.
 // Módulo puro (sin Electron ni Node): lo usan el proceso principal y las páginas.
+import { tIn } from './i18n/index.js';
 
 export const FILTER_LEVELS = {
   language: ['avoid', 'mild', 'free'],
@@ -116,4 +117,29 @@ export function buildPersonaPrompt(persona, cfg) {
   if (p.extraInstructions.trim()) lines.push(p.extraInstructions.trim());
   lines.push(HARD_LIMITS);
   return lines.join('\n');
+}
+
+// Plantillas para crear personajes (textos en personaTemplates.<id> de cada idioma).
+export const TEMPLATE_IDS = ['profesional', 'alegre', 'tsundere', 'kuudere', 'dulce', 'sarcastica', 'romantica'];
+const TEMPLATE_FILTERS = {
+  profesional: { language: 'avoid', romance: 'off' },
+  romantica: { romance: 'on' },
+};
+
+export function personaFromTemplate(id, locale) {
+  return normalizePersona({
+    name: tIn(locale, `personaTemplates.${id}.name`),
+    personality: tIn(locale, `personaTemplates.${id}.personality`),
+    filters: { ...DEFAULT_FILTERS, ...(TEMPLATE_FILTERS[id] || {}) },
+    source: { kind: 'template', name: id },
+  });
+}
+
+// Configuración de voz que toca: la de Ajustes → Voz con la del personaje activo encima.
+export function effectiveTts(cfg) {
+  const base = cfg.voice?.tts || {};
+  const own = activePersona(cfg).voice;
+  if (!own) return base;
+  const set = Object.fromEntries(Object.entries(own).filter(([, v]) => v != null && v !== ''));
+  return { ...base, ...set };
 }

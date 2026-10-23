@@ -11,7 +11,7 @@ import { sleep, waitForWindow, waitForChat, setLanguage } from './common.mjs';
 // Cualquier texto con forma de clave («chat.algo», «settings.x.y»), exista o no en el catálogo.
 const NAMESPACES = [...new Set(Object.keys(CATALOGS.es).map((k) => k.split('.')[0]))].join('|');
 const KEY_RE = `^(${NAMESPACES})\\.[A-Za-z0-9_.]+$`;
-const TABS = ['general', 'models', 'voice', 'connectors', 'automations', 'skins'];
+const TABS = ['general', 'personas', 'models', 'voice', 'connectors', 'automations', 'skins'];
 // Busca en la página textos o atributos que sean una clave de traducción sin resolver.
 const SCAN = `(() => {
   const re = new RegExp(${JSON.stringify(KEY_RE)});
@@ -134,6 +134,28 @@ export default async function smoke(api) {
     await sleep(300);
     const fps2d = await av.webContents.executeJavaScript('(async () => { const st = window.__wd.stage, f0 = st.frames; await new Promise((ok) => setTimeout(ok, 1000)); return st.frames - f0; })()');
     if (fps2d > 75) problems.push(`2D: ${fps2d} fotogramas/s tras volver del 3D, ¿bucle duplicado?`);
+  }
+
+  // Personajes: uno nuevo con skin 3D y saludo; al activarlo cambia la skin y saluda en el chat.
+  if (hasGl) {
+    const cfg0 = api.loadConfig();
+    api.patchConfig({ personas: [...cfg0.personas, { id: 'smoke3d', name: 'Tres', personality: 'x', greeting: 'Hola, {{user}}', skinId: 'noa-3d', filters: {} }] });
+    const greet = waitForChat(api, (e) => e.type === 'assistant_message');
+    api.switchPersona('smoke3d');
+    await waitForWindow(av, "window.__wd.renderer?.kind === 'vrm' && !!window.__wd.renderer.skin", 30000);
+    const g = await greet;
+    if (!/^Hola/.test(g.text)) problems.push(`personajes: saludo inesperado ${JSON.stringify(g.text)}`);
+    const settingsWin = api.wins.settings;
+    if (settingsWin && !settingsWin.isDestroyed()) {
+      await settingsWin.webContents.executeJavaScript(`document.querySelector('[data-tab="personas"]').click()`);
+      await sleep(500);
+      const n = await settingsWin.webContents.executeJavaScript('document.querySelectorAll(".persona-row").length');
+      if (n !== 2) problems.push(`personajes: la lista tiene ${n} filas`);
+    }
+    api.switchPersona(cfg0.activePersonaId, { greet: false });
+    api.patchConfig({ personas: cfg0.personas });
+    api.useSkin('default');
+    await waitForWindow(av, "window.__wd.renderer?.kind === '2d'", 15000);
   }
 
   // Al cambiar de idioma, la personalidad por defecto sigue al idioma (acabamos en chino).

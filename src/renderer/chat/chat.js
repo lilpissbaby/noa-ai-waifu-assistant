@@ -253,6 +253,18 @@ function handleEvent(e) {
     case 'notice':
       addNotice(e.message, e.level);
       break;
+    case 'assistant_message': {
+      // Mensaje completo fuera de un turno: saludo de un personaje, avisos, resultados en segundo plano.
+      const prev = current;
+      current = newAssistant();
+      current.text = e.text;
+      if (e.notice) current.el.classList.add('notice-msg');
+      renderCurrent(true);
+      current = prev;
+      scrollDown(true);
+      updateEmpty();
+      break;
+    }
     default:
       break;
   }

@@ -14,7 +14,7 @@ import { testHermes } from './tools/hermes.js';
 import { testPaperclip } from './tools/paperclip.js';
 import { transcribe, synthesize, speakable, SentenceChunker } from './voice.js';
 import { isBundleAllowed } from './bundle-allowed.js';
-import { assistantName, activePersona } from '../shared/personas.js';
+import { assistantName, activePersona, effectiveTts } from '../shared/personas.js';
 import { listMotions, importMotion, updateMotion, deleteMotion } from './motions.js';
 import { APP_ROOT, listSkins, getSkin, saveSkin, deleteSkin, fetchImage, segmentModelStatus, downloadSegmentModel, stageVrm, downloadVrm, saveVrmSkin, clearVrmTmp } from './skins.js';
 import * as logger from './log.js';
@@ -276,6 +276,7 @@ function refreshTrayMenu() {
       { label: t('tray.openChat'), click: () => toggleChat(true) },
       { label: t('menu.talk'), click: () => sendTo('avatar', 'voice:record-toggle') },
       { type: 'separator' },
+      { label: t('menu.persona'), submenu: personaMenu(cfg) },
       { label: t('menu.language'), submenu: languageMenu(cfg) },
       { label: t('tray.skins'), click: () => openWindow('settings', { query: { tab: 'skins' } }) },
       { label: t('menu.settings'), click: () => openWindow('settings') },
@@ -340,6 +341,7 @@ function avatarContextMenu() {
     { label: t('menu.talk'), accelerator: cfg.ui.hotkeyTalk, click: () => sendTo('avatar', 'voice:record-toggle') },
     { label: t('menu.stop'), click: stopEverything },
     { type: 'separator' },
+    { label: t('menu.persona'), submenu: personaMenu(cfg) },
     { label: t('menu.model'), submenu: profiles },
     { label: t('menu.skin'), submenu: [...skins, { type: 'separator' }, { label: t('menu.importImage'), click: () => openWindow('editor') }, { label: t('menu.importVrm'), click: () => openWindow('vrm-editor') }] },
     { label: t('menu.size'), submenu: scales },
@@ -509,6 +511,66 @@ function stopEverything() {
   setState('idle');
 }
 
+// Mensaje completo del asistente fuera de un turno (saludos, avisos, resultados en segundo plano).
+function appendAssistantMessage(text, { speak = true, notice = null } = {}) {
+  const msg = { role: 'assistant', content: text, ts: Date.now(), ...(notice ? { notice } : {}) };
+  history.push(msg);
+  saveHistory();
+  chatEvent({ type: 'assistant_message', text, notice });
+  if (speak && loadConfig().voice.speakReplies !== 'never') for (const s of splitSentences(text)) enqueueSpeech(s);
+}
+
+const splitSentences = (text) => {
+  const out = [];
+  const chunker = new SentenceChunker((s) => out.push(s));
+  chunker.push(text);
+  chunker.flush();
+  return out;
+};
+
+function switchPersona(id, { greet = true } = {}) {
+  const cfg = loadConfig();
+  const persona = cfg.personas.find((p) => p.id === id);
+  if (!persona) throw new Error(`Unknown character: ${id}`);
+  patchConfig({ activePersonaId: id });
+  if (persona.skinId && persona.skinId !== cfg.ui.skinId && listSkins().some((s) => s.id === persona.skinId)) useSkin(persona.skinId);
+  applyLocale(loadConfig());
+  refreshTrayMenu();
+  broadcast('cfg:changed', publicConfig());
+  if (greet && persona.greeting.trim()) appendAssistantMessage(persona.greeting.trim().replaceAll('{{user}}', cfg.assistant.userName || '').replaceAll('{{char}}', persona.name));
+  return persona;
+}
+
+function personaMenu(cfg) {
+  return cfg.personas.map((p) => ({ label: p.name, type: 'radio', checked: p.id === cfg.activePersonaId, click: () => switchPersona(p.id) }));
+}
+
+async function unlockAdult(parent) {
+  const opts = {
+    type: 'warning',
+    title: t('settings.personas.adultDialog.title'),
+    message: t('settings.personas.adultDialog.message'),
+    detail: t('settings.personas.adultDialog.detail'),
+    checkboxLabel: t('settings.personas.adultDialog.checkbox'),
+    checkboxChecked: false,
+    buttons: [t('settings.personas.adultDialog.confirm'), t('settings.personas.adultDialog.cancel')],
+    defaultId: 1,
+    cancelId: 1,
+    noLink: true,
+  };
+  const { response, checkboxChecked } = parent ? await dialog.showMessageBox(parent, opts) : await dialog.showMessageBox(opts);
+  if (response !== 0) return false;
+  if (!checkboxChecked) {
+    const warn = { type: 'info', message: t('settings.personas.adultDialog.needCheck') };
+    if (parent) await dialog.showMessageBox(parent, warn);
+    else await dialog.showMessageBox(warn);
+    return false;
+  }
+  patchConfig({ content: { adultUnlockedAt: Date.now() } });
+  broadcast('cfg:changed', publicConfig());
+  return true;
+}
+
 function newConversation() {
   stopEverything();
   history = [];
@@ -520,7 +582,9 @@ function newConversation() {
 const speechLang = (cfg) => localeTag(languageFromName(cfg.assistant.language) || getLocale());
 
 function enqueueSpeech(sentence) {
-  const cfg = loadConfig();
+  const base = loadConfig();
+  // La voz del personaje activo (si tiene) va encima de la de Ajustes → Voz.
+  const cfg = { ...base, voice: { ...base.voice, tts: effectiveTts(base) } };
   const text = speakable(sentence);
   if (!text || cfg.voice.tts.mode === 'off') return;
   const gen = ttsGen;
@@ -721,6 +785,16 @@ function registerIpc() {
     return true;
   });
   ipcMain.handle('skin:use', (_e, id) => useSkin(id));
+  ipcMain.handle('persona:switch', (_e, id) => {
+    switchPersona(id);
+    return true;
+  });
+  ipcMain.handle('persona:unlock-adult', (e) => unlockAdult(BrowserWindow.fromWebContents(e.sender)));
+  ipcMain.handle('persona:lock-adult', () => {
+    patchConfig({ content: { adultUnlockedAt: null } });
+    broadcast('cfg:changed', publicConfig());
+    return true;
+  });
   ipcMain.handle('skin:fetch-image', (_e, url) => fetchImage(url));
   ipcMain.handle('skin:open-image', async (e) => {
     const win = BrowserWindow.fromWebContents(e.sender);
@@ -893,6 +967,7 @@ function runAutomation(file) {
     stopEverything,
     setState,
     useSkin,
+    switchPersona,
     broadcast,
     publicConfig,
     loadConfig,
