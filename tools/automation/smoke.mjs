@@ -9,6 +9,7 @@ import { startMockServer, mockConfigPatch } from './mock-server.mjs';
 import { sleep, waitForWindow, waitForChat, setLanguage } from './common.mjs';
 import { piperCheck } from './piper-check.mjs';
 import { makePdf } from '../../test/helpers/pdf.mjs';
+import { live2dFixtures, live2dCheck } from './live2d-check.mjs';
 
 // Cualquier texto con forma de clave («chat.algo», «settings.x.y»), exista o no en el catálogo.
 const NAMESPACES = [...new Set(Object.keys(CATALOGS.es).map((k) => k.split('.')[0]))].join('|');
@@ -66,6 +67,12 @@ export default async function smoke(api) {
     if (!vrmEditor.__watched) watch('editor 3D', vrmEditor), (vrmEditor.__watched = true);
     await waitForWindow(vrmEditor, 'document.querySelector("#btnOpen").textContent.trim().length > 0');
     await check('editor 3D', vrmEditor, locale);
+    api.openWindow('vrm-editor', { query: { kind: 'live2d' } });
+    await sleep(300);
+    await waitForWindow(api.wins['vrm-editor'], 'document.body.classList.contains("mode-live2d") && document.querySelector("#btnOpenZip").textContent.trim().length > 0');
+    await check('editor Live2D', api.wins['vrm-editor'], locale);
+    api.openWindow('vrm-editor', { query: {} });
+    await sleep(300);
     api.toggleChat(true);
     await sleep(300);
     const chat = api.wins.chat;
@@ -288,6 +295,10 @@ export default async function smoke(api) {
   if (!bubbleTxt.includes('Estirar las piernas')) problems.push(`recordatorios: el bocadillo no lo muestra (${bubbleTxt})`);
   if (api.reminders.list().length) problems.push('recordatorios: el único sigue pendiente tras avisar');
 
+  // Live2D con el SDK oficial y Hiyori (CI: tools/fetch-live2d-fixtures.mjs → WAIFU_TEST_LIVE2D_DIR).
+  const l2d = live2dFixtures(process.env.WAIFU_TEST_LIVE2D_DIR);
+  if (l2d && hasGl) await live2dCheck(api, l2d, problems);
+
   // Voces locales Piper con una voz real (el CI la descarga de los releases de Piper).
   const piperVoice = process.env.WAIFU_TEST_PIPER_VOICE;
   if (piperVoice) await piperCheck(api, piperVoice, problems, check);
@@ -297,7 +308,7 @@ export default async function smoke(api) {
     ok: problems.length === 0,
     locales: SUPPORTED,
     problems,
-    message: `✓ Prueba de humo superada (${SUPPORTED.join(', ')})${piperVoice ? ' + voz Piper' : ' — sin voz Piper de prueba (WAIFU_TEST_PIPER_VOICE)'}`,
+    message: `✓ Prueba de humo superada (${SUPPORTED.join(', ')})${piperVoice ? ' + voz Piper' : ' — sin voz Piper de prueba (WAIFU_TEST_PIPER_VOICE)'}${l2d && hasGl ? ' + Live2D' : ' — Live2D omitido (WAIFU_TEST_LIVE2D_DIR)'}`,
   };
   console.log(`SMOKE_RESULT ${JSON.stringify(result)}`);
   await mock.close();

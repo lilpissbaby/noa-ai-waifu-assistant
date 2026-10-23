@@ -357,7 +357,7 @@ function avatarContextMenu() {
     { type: 'separator' },
     { label: t('menu.persona'), submenu: personaMenu(cfg) },
     { label: t('menu.model'), submenu: profiles },
-    { label: t('menu.skin'), submenu: [...skins, { type: 'separator' }, { label: t('menu.importImage'), click: () => openWindow('editor') }, { label: t('menu.importVrm'), click: () => openWindow('vrm-editor') }] },
+    { label: t('menu.skin'), submenu: [...skins, { type: 'separator' }, { label: t('menu.importImage'), click: () => openWindow('editor') }, { label: t('menu.importVrm'), click: () => openWindow('vrm-editor') }, { label: t('menu.importLive2d'), click: () => openWindow('vrm-editor', { query: { kind: 'live2d' } }) }] },
     { label: t('menu.size'), submenu: scales },
     { label: t('menu.language'), submenu: languageMenu(cfg) },
     {

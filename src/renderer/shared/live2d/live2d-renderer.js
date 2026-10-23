@@ -106,11 +106,14 @@ export class Live2DRenderer {
     this.greetGroup = groups.find((g) => /^(tap|greet|wave)/i.test(g)) || null;
     this.activeEmotion = null;
 
-    // Los parámetros calculados se escriben después de motion/parpadeo/física y antes de dibujar.
+    // Los parámetros calculados se escriben tras los movimientos (así la física del pelo responde
+    // al giro de cabeza) y otra vez justo antes de dibujar (por encima de parpadeo y expresiones).
     const core3 = model.internalModel.coreModel;
-    model.internalModel.on('beforeModelUpdate', () => {
+    const write = () => {
       for (const [id, v] of this.params) core3.setParameterValueById(id, v);
-    });
+    };
+    model.internalModel.on('afterMotionUpdate', write);
+    model.internalModel.on('beforeModelUpdate', write);
 
     this.skin = { ...skin, framing: normalizeFraming2d(skin.framing) };
     this.setFraming(this.skin.framing);
@@ -124,6 +127,11 @@ export class Live2DRenderer {
     const raw = core.getModel?.()?.parameters;
     if (!raw) return [];
     return Array.from({ length: raw.count }, (_, i) => ({ id: raw.ids[i], min: raw.minimumValues[i], max: raw.maximumValues[i], value: raw.values[i] }));
+  }
+
+  // Valor que el renderizador escribió en el último fotograma (o el del modelo).
+  paramValue(id) {
+    return this.params.has(id) ? this.params.get(id) : this.parameters().find((p) => p.id === id)?.value;
   }
 
   setOverride(id, value) {

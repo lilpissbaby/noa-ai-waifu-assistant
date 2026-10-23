@@ -12,27 +12,56 @@
   <body>
     <aside class="panel">
       <header>
-        <h1 id="title" data-i18n="vrmEditor.titleNew"></h1>
-        <p class="muted" data-i18n="vrmEditor.subtitle"></p>
+        <h1 id="title"></h1>
+        <p class="muted" id="subtitle"></p>
       </header>
 
       <section class="step" id="step1">
         <h2><span class="n">1</span> <span data-i18n="vrmEditor.step1"></span></h2>
-        <div class="row">
-          <button class="btn" id="btnOpen"></button>
+        <div class="seg" id="kinds">
+          <button class="btn tiny" data-kind="vrm" data-i18n="vrmEditor.kind.vrm"></button>
+          <button class="btn tiny" data-kind="live2d" data-i18n="vrmEditor.kind.live2d"></button>
         </div>
-        <div class="inline">
-          <input type="url" id="url" data-i18n-placeholder="vrmEditor.urlPlaceholder" />
-          <button class="btn" id="btnUrl" data-i18n="vrmEditor.load"></button>
+        <div class="only-vrm">
+          <div class="row">
+            <button class="btn" id="btnOpen"></button>
+          </div>
+          <div class="inline">
+            <input type="url" id="url" data-i18n-placeholder="vrmEditor.urlPlaceholder" />
+            <button class="btn" id="btnUrl" data-i18n="vrmEditor.load"></button>
+          </div>
+        </div>
+        <div class="only-live2d">
+          <div class="row">
+            <button class="btn" id="btnOpenZip" data-i18n="live2dEditor.openZip"></button>
+            <button class="btn" id="btnOpenFolder" data-i18n="live2dEditor.openFolder"></button>
+          </div>
+          <label class="field hidden" id="modelPick"><span data-i18n="live2dEditor.whichModel"></span><select id="modelSel"></select></label>
+          <div class="core-box hidden" id="coreBox">
+            <strong data-i18n="live2dEditor.coreTitle"></strong>
+            <small class="muted" data-i18n="live2dEditor.coreText"></small>
+            <div class="row">
+              <button class="btn primary" id="btnCoreDownload" data-i18n="live2dEditor.coreDownload"></button>
+              <button class="btn" id="btnCoreImport" data-i18n="live2dEditor.coreImport"></button>
+            </div>
+          </div>
         </div>
         <p class="status" id="loadStatus"></p>
-        <small class="muted" data-i18n="vrmEditor.step1Help"></small>
+        <small class="muted only-vrm" data-i18n="vrmEditor.step1Help"></small>
+        <small class="muted only-live2d" data-i18n="live2dEditor.step1Help"></small>
       </section>
 
       <section class="step" id="step2" data-disabled>
         <h2><span class="n">2</span> <span data-i18n="vrmEditor.step2"></span></h2>
-        <dl class="license" id="license"></dl>
-        <small class="muted" data-i18n="vrmEditor.license.note"></small>
+        <div class="only-vrm">
+          <dl class="license" id="license"></dl>
+          <small class="muted" data-i18n="vrmEditor.license.note"></small>
+        </div>
+        <div class="only-live2d">
+          <div id="readmes"></div>
+          <small class="muted" data-i18n="live2dEditor.termsNote"></small>
+          <label class="field" id="vtsPick"><span data-i18n="live2dEditor.vts"></span><select id="vtsSel"></select></label>
+        </div>
       </section>
 
       <section class="step" id="step3" data-disabled>
@@ -43,8 +72,8 @@
           <button class="btn tiny" data-preset="bust" data-i18n="vrmEditor.preset.bust"></button>
         </div>
         <label class="slider"><span data-i18n="vrmEditor.zoom"></span><input type="range" id="zoom" min="0.6" max="1.6" step="0.02" /></label>
-        <label class="slider"><span data-i18n="vrmEditor.yaw"></span><input type="range" id="yaw" min="-45" max="45" step="1" /></label>
-        <label class="slider"><span data-i18n="vrmEditor.pitch"></span><input type="range" id="pitch" min="-15" max="15" step="0.5" /></label>
+        <label class="slider only-vrm"><span data-i18n="vrmEditor.yaw"></span><input type="range" id="yaw" min="-45" max="45" step="1" /></label>
+        <label class="slider only-vrm"><span data-i18n="vrmEditor.pitch"></span><input type="range" id="pitch" min="-15" max="15" step="0.5" /></label>
         <label class="slider"><span data-i18n="vrmEditor.offsetY"></span><input type="range" id="offsetY" min="-0.2" max="0.2" step="0.01" /></label>
       </section>
 
@@ -56,9 +85,19 @@
         <div class="chips" id="emotions"></div>
         <small class="muted" data-i18n="vrmEditor.gestures"></small>
         <div class="chips" id="gestures"></div>
+        <div class="only-live2d">
+          <small class="muted" data-i18n="live2dEditor.expressions"></small>
+          <div class="expr-grid" id="exprAssign"></div>
+          <details class="params" id="paramBox">
+            <summary data-i18n="live2dEditor.params"></summary>
+            <input type="text" id="paramFilter" data-i18n-placeholder="live2dEditor.paramFilter" />
+            <div id="paramList"></div>
+            <button class="btn tiny" id="btnParamReset" data-i18n="live2dEditor.paramReset"></button>
+          </details>
+        </div>
       </section>
 
-      <section class="step" id="stepMotions" data-disabled>
+      <section class="step only-vrm" id="stepMotions" data-disabled>
         <h2><span class="n">5</span> <span data-i18n="vrmEditor.motions.title"></span></h2>
         <small class="muted" data-i18n="vrmEditor.motions.help"></small>
         <div class="motions" id="motionList"></div>
@@ -84,8 +123,10 @@
       <div class="drop" id="empty">
         <div class="drop-inner">
           <div class="drop-icon" id="emptyIcon"></div>
-          <strong data-i18n="vrmEditor.empty"></strong>
-          <span class="muted" data-i18n="vrmEditor.emptyText"></span>
+          <strong class="only-vrm" data-i18n="vrmEditor.empty"></strong>
+          <span class="muted only-vrm" data-i18n="vrmEditor.emptyText"></span>
+          <strong class="only-live2d" data-i18n="live2dEditor.empty"></strong>
+          <span class="muted only-live2d" data-i18n="live2dEditor.emptyText"></span>
         </div>
       </div>
       <div class="vrm-frame hidden" id="frame">

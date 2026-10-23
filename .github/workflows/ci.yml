@@ -40,7 +40,11 @@ jobs:
           mkdir -p "$RUNNER_TEMP/piper-voice"
           curl -sSfL https://github.com/rhasspy/piper/releases/download/v0.0.2/voice-es-mls_9972-low.tar.gz | tar xz -C "$RUNNER_TEMP/piper-voice"
           echo "WAIFU_TEST_PIPER_VOICE=$RUNNER_TEMP/piper-voice" >> "$GITHUB_ENV"
-      - name: Prueba de humo (5 idiomas + conversación con herramientas + voz Piper)
+      - name: Modelo Live2D de prueba (SDK oficial + Hiyori de CubismWebSamples)
+        run: |
+          node tools/fetch-live2d-fixtures.mjs "$RUNNER_TEMP/live2d"
+          echo "WAIFU_TEST_LIVE2D_DIR=$RUNNER_TEMP/live2d" >> "$GITHUB_ENV"
+      - name: Prueba de humo (5 idiomas + conversación con herramientas + voz Piper + Live2D)
         run: xvfb-run -a -s "-screen 0 1920x1080x24" npm run smoke
 
   windows:
@@ -55,6 +59,11 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm test
+      - name: Modelo Live2D de prueba
+        shell: bash
+        run: |
+          node tools/fetch-live2d-fixtures.mjs "$RUNNER_TEMP/live2d"
+          echo "WAIFU_TEST_LIVE2D_DIR=$RUNNER_TEMP/live2d" >> "$GITHUB_ENV"
       - run: npm run smoke
 
   build:

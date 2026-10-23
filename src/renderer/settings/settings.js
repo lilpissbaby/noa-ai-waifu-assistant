@@ -1033,7 +1033,7 @@ const TABS = {
                       },
                       t('settings.skins.use'),
                     ),
-                s.type === 'vrm'
+                s.type === 'vrm' || s.type === 'live2d'
                   ? h('button', { class: 'btn', onclick: () => wd.invoke('win:open', 'vrm-editor', { id: s.id }) }, t('settings.skins.adjust'))
                   : s.builtin
                     ? null
@@ -1070,9 +1070,54 @@ const TABS = {
           h('strong', {}, t('settings.skins.importVrm')),
           h('small', { class: 'muted' }, t('settings.skins.importVrmText')),
         ),
+        h(
+          'div',
+          { class: 'skin add', id: 'addLive2d', onclick: () => wd.invoke('win:open', 'vrm-editor', { kind: 'live2d' }) },
+          h('span', { html: icons.sparkle }),
+          h('strong', {}, t('settings.skins.importLive2d')),
+          h('small', { class: 'muted' }, t('settings.skins.importLive2dText')),
+        ),
       );
     })();
-    return [h('h1', {}, t('settings.nav.skins')), h('p', { class: 'lead' }, t('settings.skins.lead')), grid];
+    // Motor de Live2D (Cubism Core): estado y descarga/importación.
+    const core = h('p', { class: 'small muted', id: 'live2dCore' });
+    const paintCore = async () => {
+      const st = await wd.invoke('live2d:core-status');
+      core.innerHTML = '';
+      if (st.ready) core.append(t('settings.skins.live2dReady', { version: st.version || '—' }));
+      else
+        core.append(
+          t('settings.skins.live2dMissing'),
+          ' ',
+          h(
+            'button',
+            {
+              class: 'btn tiny',
+              onclick: async () => {
+                const r = await wd.invoke('live2d:core-download');
+                if (r?.error) toast(r.error);
+                paintCore();
+              },
+            },
+            t('live2dEditor.coreDownload'),
+          ),
+          ' ',
+          h(
+            'button',
+            {
+              class: 'btn tiny ghost',
+              onclick: async () => {
+                const r = await wd.invoke('live2d:core-import');
+                if (r?.error) toast(r.error);
+                paintCore();
+              },
+            },
+            t('live2dEditor.coreImport'),
+          ),
+        );
+    };
+    paintCore();
+    return [h('h1', {}, t('settings.nav.skins')), h('p', { class: 'lead' }, t('settings.skins.lead')), grid, core];
   },
 };
 
