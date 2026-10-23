@@ -12,7 +12,7 @@ import { piperCheck } from './piper-check.mjs';
 // Cualquier texto con forma de clave («chat.algo», «settings.x.y»), exista o no en el catálogo.
 const NAMESPACES = [...new Set(Object.keys(CATALOGS.es).map((k) => k.split('.')[0]))].join('|');
 const KEY_RE = `^(${NAMESPACES})\\.[A-Za-z0-9_.]+$`;
-const TABS = ['general', 'personas', 'models', 'voice', 'connectors', 'automations', 'skins'];
+const TABS = ['general', 'personas', 'models', 'voice', 'productivity', 'connectors', 'automations', 'skins'];
 // Busca en la página textos o atributos que sean una clave de traducción sin resolver.
 const SCAN = `(() => {
   const re = new RegExp(${JSON.stringify(KEY_RE)});
@@ -186,6 +186,19 @@ export default async function smoke(api) {
   const end2 = await done2;
   if (end2.type === 'error') problems.push(`paperclip: ${end2.message}`);
   if (mock.issues[0]?.title !== 'Migrar Postgres a la 17') problems.push(`paperclip: no se creó la tarea ${JSON.stringify(mock.issues)}`);
+
+  // Recordatorio de 1 s: llega como aviso al chat y al bocadillo del avatar.
+  const announced = waitForChat(api, (e) => e.type === 'announce');
+  const rem = await api.runTool('reminder_create', { text: 'Estirar las piernas', in_minutes: 1 / 60 });
+  if (!rem?.id) problems.push(`recordatorios: no se creó ${JSON.stringify(rem)}`);
+  const ann = await announced.catch((e) => ({ text: String(e) }));
+  if (!/Estirar las piernas/.test(ann.text)) problems.push(`recordatorios: aviso inesperado ${JSON.stringify(ann.text)}`);
+  await sleep(300);
+  const remDom = await api.wins.chat.webContents.executeJavaScript(`[...document.querySelectorAll('.msg.notice-msg .body')].map((b) => b.textContent).join(' | ')`);
+  if (!remDom.includes('Estirar las piernas')) problems.push(`recordatorios: no está en el chat (${remDom})`);
+  const bubbleTxt = await api.wins.avatar.webContents.executeJavaScript(`document.querySelector('#bubble.announce:not(.hidden) #bubbleText')?.textContent || ''`);
+  if (!bubbleTxt.includes('Estirar las piernas')) problems.push(`recordatorios: el bocadillo no lo muestra (${bubbleTxt})`);
+  if (api.reminders.list().length) problems.push('recordatorios: el único sigue pendiente tras avisar');
 
   // Voces locales Piper con una voz real (el CI la descarga de los releases de Piper).
   const piperVoice = process.env.WAIFU_TEST_PIPER_VOICE;

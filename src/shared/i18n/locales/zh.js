@@ -141,6 +141,12 @@ export default {
     paperclip_update_issue: 'Paperclip · 更新任务',
     paperclip_add_comment: 'Paperclip · 评论',
     paperclip_wakeup_agent: 'Paperclip · 唤醒智能体',
+    reminder_create: '创建提醒',
+    reminder_list: '查看提醒',
+    reminder_cancel: '取消提醒',
+    persona_list: '查看角色',
+    persona_switch: '切换角色',
+    persona_update: '调整角色',
   },
   md: {
     code: '代码',
@@ -194,6 +200,7 @@ export default {
       automations: '自动化',
       skins: '皮肤',
       personas: '角色',
+      productivity: '效率',
     },
     storage: {
       secure: '密钥已加密保存在系统密钥库中。',
@@ -533,6 +540,24 @@ export default {
       voicePiper: '本地语音（Piper）',
       piperNone: '请先在“设置 → 语音”中安装语音。',
     },
+    productivity: {
+      lead: '让她在日常中真正有用：通知、提醒等等。直接说就行（“6 点提醒我给安娜打电话”“定一个 10 分钟的计时器”）。',
+      noticesTitle: '通知',
+      noticesDesc: '提醒或其他消息到来时她如何告诉你。消息总会显示在她的气泡和聊天中。',
+      notify: '通知方式',
+      notifySpeak: '气泡、系统通知和语音',
+      notifyNotify: '气泡和系统通知（无语音）',
+      notifySilent: '仅气泡和聊天',
+      remindersTitle: '提醒和计时器',
+      remindersDesc: '待办的提醒。如果应用之前关闭了，打开时她会告诉你过去 24 小时内错过的提醒。',
+      remindersEmpty: '没有待办事项。',
+      repeat: {
+        daily: '每天',
+        weekdays: '周一至周五',
+        weekly: '每周',
+        monthly: '每月',
+      },
+    },
   },
   editor: {
     windowTitle: 'Waifu Desk — 皮肤编辑器',
@@ -759,5 +784,9 @@ export default {
       name: '樱',
       personality: '温柔又爱撒娇。把用户当作特别的人，说话甜蜜，喜欢安静地聊天，需要帮忙时也从不含糊。',
     },
+  },
+  reminders: {
+    fire: '提醒：{text}',
+    late: '迟到的提醒（原定 {time}）：{text}',
   },
 };

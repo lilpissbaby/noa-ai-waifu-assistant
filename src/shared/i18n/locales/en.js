@@ -147,6 +147,12 @@ export default {
     paperclip_update_issue: 'Paperclip · update task',
     paperclip_add_comment: 'Paperclip · comment',
     paperclip_wakeup_agent: 'Paperclip · wake agent',
+    reminder_create: 'Create reminder',
+    reminder_list: 'Reminders',
+    reminder_cancel: 'Cancel reminder',
+    persona_list: 'Characters',
+    persona_switch: 'Switch character',
+    persona_update: 'Adjust her character',
   },
   md: {
     code: 'code',
@@ -200,6 +206,7 @@ export default {
       automations: 'Automations',
       skins: 'Skins',
       personas: 'Characters',
+      productivity: 'Productivity',
     },
     storage: {
       secure: 'Keys are stored encrypted in the system keychain.',
@@ -550,6 +557,24 @@ export default {
       voicePiper: 'Local voice (Piper)',
       piperNone: 'Install voices in Settings → Voice first.',
     },
+    productivity: {
+      lead: 'What makes her useful day to day: notices, reminders and more. Just ask (“remind me at 6 to call Ana”, “set a 10-minute timer”).',
+      noticesTitle: 'Notices',
+      noticesDesc: 'How she lets you know when a reminder or other news comes up. It always shows in her speech bubble and in the chat.',
+      notify: 'When notifying',
+      notifySpeak: 'Bubble, notification and voice',
+      notifyNotify: 'Bubble and notification (no voice)',
+      notifySilent: 'Only bubble and chat',
+      remindersTitle: 'Reminders and timers',
+      remindersDesc: 'The pending ones. If the app was closed, she tells you about those from the last 24 hours when you open it.',
+      remindersEmpty: 'Nothing pending.',
+      repeat: {
+        daily: 'every day',
+        weekdays: 'Monday to Friday',
+        weekly: 'every week',
+        monthly: 'every month',
+      },
+    },
   },
   editor: {
     windowTitle: 'Waifu Desk — Skin editor',
@@ -776,5 +801,9 @@ export default {
       name: 'Sakura',
       personality: 'Affectionate and flirty. Treats the user as someone special, uses tender words and enjoys quiet conversations, while still helping whenever needed.',
     },
+  },
+  reminders: {
+    fire: 'Reminder: {text}',
+    late: 'Late reminder (it was for {time}): {text}',
   },
 };

@@ -4,6 +4,7 @@ import { applyDom } from '../../shared/i18n/dom.js';
 import { assistantName } from '../../shared/personas.js';
 import { personasTab } from './tabs/personas.js';
 import { piperSection, piperPersonaVoice } from './tabs/piper.js';
+import { productivityTab } from './tabs/productivity.js';
 
 const wd = window.wd;
 const view = document.getElementById('view');
@@ -260,6 +261,8 @@ const ui = {
   markEdit: () => (lastLocalEdit = Date.now()),
   save: (path, value, delay) => save(path, value, delay),
   text: (path, opts) => text(path, opts),
+  select: (path, options, onchange) => select(path, options, onchange),
+  check: (path, label, onchange) => check(path, label, onchange),
   samplePhrase: () => samplePhrase(),
   get extraVoiceModes() {
     return [['piper', t('settings.personas.voicePiper')]];
@@ -297,6 +300,7 @@ const ui = {
 // ---------------------------------------------------------------- pestañas
 const TABS = {
   personas: () => personasTab(ui),
+  productivity: () => productivityTab(ui),
   general() {
     const c = pc.config;
     const isLinux = pc.platform === 'linux';

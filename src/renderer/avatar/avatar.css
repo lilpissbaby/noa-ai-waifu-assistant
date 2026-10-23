@@ -92,8 +92,22 @@ body[data-state='listening'] .dots i {
 body[data-state='working'] .dots i {
   background: #5cdcff;
 }
-.bubble.static .dots {
+.bubble.static .dots,
+.bubble.announce .dots {
   display: none;
+}
+/* Avisos (recordatorios…): hasta dos líneas, sin puntos de «pensando». */
+.bubble.announce {
+  white-space: normal;
+  width: max-content;
+  max-width: min(280px, calc(100% - 16px));
+  border-color: rgba(255, 122, 182, 0.6);
+}
+.bubble.announce .bubble-text {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  line-height: 1.3;
 }
 
 @keyframes dot {

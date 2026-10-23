@@ -1,5 +1,5 @@
 // Waifu Desk — proceso principal de Electron.
-import { app, BrowserWindow, ipcMain, protocol, net, screen, Tray, Menu, nativeImage, globalShortcut, dialog, session, shell } from 'electron';
+import { app, BrowserWindow, ipcMain, protocol, net, screen, Tray, Menu, nativeImage, globalShortcut, dialog, session, shell, Notification } from 'electron';
 import path from 'node:path';
 import fs from 'node:fs';
 import { pathToFileURL } from 'node:url';
@@ -18,6 +18,8 @@ import { assistantName, activePersona, effectiveTts } from '../shared/personas.j
 import { listMotions, importMotion, updateMotion, deleteMotion } from './motions.js';
 import { parseCard, cardToPersona, MAX_CARD_BYTES } from './persona-cards.js';
 import { piperRuntimeStatus, downloadPiperRuntime, piperRuntimeUrl, PIPER_WASM } from './piper-runtime.js';
+import { setAnnouncer } from './bus.js';
+import { Reminders } from './productivity/reminders.js';
 import { listVoices, fetchCatalog, catalogForLanguage, installFromCatalog, importVoiceFiles, deleteVoice } from './voices.js';
 import { APP_ROOT, listSkins, getSkin, saveSkin, deleteSkin, fetchImage, segmentModelStatus, downloadSegmentModel, stageVrm, downloadVrm, saveVrmSkin, clearVrmTmp } from './skins.js';
 import * as logger from './log.js';
@@ -544,11 +546,41 @@ function switchPersona(id, { greet = true } = {}) {
   return persona;
 }
 
+// ---------------------------------------------------------------- avisos
+// Un aviso (recordatorio, resumen, tarea terminada…) sale en el bocadillo y en el chat, y según
+// productivity.notify también como notificación del sistema y en voz alta.
+function announce({ text, kind = 'reminder', speak = true }) {
+  const cfg = loadConfig();
+  const mode = cfg.productivity.notify;
+  history.push({ role: 'assistant', content: text, ts: Date.now(), notice: kind });
+  saveHistory();
+  chatEvent({ type: 'announce', kind, text });
+  sendTo('avatar', 'avatar:announce', { text, kind });
+  if (mode !== 'silent' && Notification.isSupported()) {
+    const n = new Notification({ title: assistantName(cfg), body: text.length > 240 ? `${text.slice(0, 237)}…` : text, silent: mode === 'speak' });
+    n.on('click', () => toggleChat(true));
+    n.show();
+  }
+  if (speak && mode === 'speak') for (const s of splitSentences(text)) enqueueSpeech(s);
+}
+setAnnouncer(announce);
+
+const reminders = new Reminders({
+  file: path.join(userDir(), 'reminders.json'),
+  onFire: (r, { late }) =>
+    announce({
+      kind: 'reminder',
+      text: late ? t('reminders.late', { text: r.text, time: new Date(r.due).toLocaleTimeString(localeTag(), { timeStyle: 'short' }) }) : t('reminders.fire', { text: r.text }),
+    }),
+  onChange: (list) => broadcast('productivity:reminders', list),
+});
+
 // Lo que necesitan algunas herramientas de este proceso (ver tools/index.js).
 const services = {
   switchPersona,
   openWindow,
   configChanged: () => broadcast('cfg:changed', publicConfig()),
+  reminders,
 };
 
 // Importa una tarjeta de SillyTavern como personaje nuevo (la imagen va a userData/personas/).
@@ -850,6 +882,8 @@ function registerIpc() {
     const sender = e.sender;
     return downloadPiperRuntime((p) => !sender.isDestroyed() && sender.send('voice:piper-runtime-progress', p));
   });
+  ipcMain.handle('productivity:reminders', () => reminders.list());
+  ipcMain.handle('productivity:reminder-cancel', (_e, id) => reminders.cancel(id));
   ipcMain.handle('voice:piper-list', () => ({ runtime: { ...piperRuntimeStatus(), sizeMB: PIPER_WASM.sizeMB }, voices: listVoices() }));
   ipcMain.handle('voice:piper-catalog', async (_e, { force = false, language = '' } = {}) => {
     try {
@@ -1080,6 +1114,8 @@ app.whenReady().then(async () => {
   step('temporales 3D', clearVrmTmp);
   step('ipc', registerIpc);
   step('avatar', createAvatarWindow);
+  // Los recordatorios vencidos mientras la app estaba cerrada se anuncian cuando el avatar ya está.
+  setTimeout(() => step('recordatorios', () => reminders.start()), 2500);
   step('bandeja', buildTray);
   step('ajustes de ventana', applyUiConfig);
   syncMcp(loadConfig()).catch((e) => logger.error('MCP', e));
@@ -1104,6 +1140,9 @@ function runAutomation(file) {
     useSkin,
     switchPersona,
     testTts,
+    announce,
+    reminders,
+    runTool: (name, input) => buildToolbox(loadConfig(), null, services).run(name, input),
     broadcast,
     publicConfig,
     loadConfig,

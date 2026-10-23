@@ -1,6 +1,6 @@
 import { renderMarkdown, escapeHtml } from '../shared/md.js';
 import { icons } from '../shared/icons.js';
-import { t, tHtml, setLocale, getLocale } from '../../shared/i18n/index.js';
+import { t, tHtml, setLocale, getLocale, CATALOGS } from '../../shared/i18n/index.js';
 import { applyDom } from '../../shared/i18n/dom.js';
 import { assistantName } from '../../shared/personas.js';
 
@@ -24,24 +24,8 @@ let busy = false;
 let current = null; // mensaje del asistente en curso
 
 // Nombre legible de cada herramienta en los chips del chat (claves en tools.*).
-const KNOWN_TOOLS = new Set([
-  'get_current_time',
-  'open_url',
-  'clipboard_read',
-  'clipboard_write',
-  'show_notification',
-  'run_command',
-  'hermes_task',
-  'paperclip_list_agents',
-  'paperclip_list_projects',
-  'paperclip_list_issues',
-  'paperclip_get_issue',
-  'paperclip_create_issue',
-  'paperclip_update_issue',
-  'paperclip_add_comment',
-  'paperclip_wakeup_agent',
-]);
-const toolLabel = (n) => (KNOWN_TOOLS.has(n) ? t(`tools.${n}`) : n.replace(/^webhook_/, 'Webhook · ').replace(/^mcp_/, 'MCP · '));
+// Nombre legible de la herramienta si el catálogo lo tiene; si no, el técnico.
+const toolLabel = (n) => (CATALOGS.en[`tools.${n}`] ? t(`tools.${n}`) : n.replace(/^webhook_/, 'Webhook · ').replace(/^mcp_/, 'MCP · '));
 
 // ---------------------------------------------------------------- utilidades de vista
 const atBottom = () => log.scrollHeight - log.scrollTop - log.clientHeight < 60;
@@ -155,6 +139,13 @@ function renderHistory(history) {
     if (m.role === 'user') {
       addUser(m);
       lastAssistant = null;
+    } else if (m.role === 'assistant' && m.notice) {
+      // Avisos y mensajes sueltos (recordatorios, saludos…): burbuja propia.
+      const el = newAssistant();
+      el.text = m.content;
+      el.el.classList.add('notice-msg');
+      el.body.innerHTML = renderMarkdown(el.text);
+      lastAssistant = null;
     } else if (m.role === 'assistant') {
       if (!lastAssistant) lastAssistant = newAssistant();
       for (const tc of m.toolCalls || []) addTool(lastAssistant, tc, 'run');
@@ -253,12 +244,13 @@ function handleEvent(e) {
     case 'notice':
       addNotice(e.message, e.level);
       break;
+    case 'announce':
     case 'assistant_message': {
       // Mensaje completo fuera de un turno: saludo de un personaje, avisos, resultados en segundo plano.
       const prev = current;
       current = newAssistant();
       current.text = e.text;
-      if (e.notice) current.el.classList.add('notice-msg');
+      if (e.notice || e.type === 'announce') current.el.classList.add('notice-msg');
       renderCurrent(true);
       current = prev;
       scrollDown(true);

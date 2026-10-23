@@ -148,6 +148,12 @@ export default {
     paperclip_update_issue: 'Paperclip · actualizar tarea',
     paperclip_add_comment: 'Paperclip · comentar',
     paperclip_wakeup_agent: 'Paperclip · despertar agente',
+    reminder_create: 'Crear recordatorio',
+    reminder_list: 'Ver recordatorios',
+    reminder_cancel: 'Cancelar recordatorio',
+    persona_list: 'Ver personajes',
+    persona_switch: 'Cambiar de personaje',
+    persona_update: 'Ajustar su personaje',
   },
   md: {
     code: 'código',
@@ -201,6 +207,7 @@ export default {
       automations: 'Automatizaciones',
       skins: 'Skins',
       personas: 'Personajes',
+      productivity: 'Productividad',
     },
     storage: {
       secure: 'Las claves se guardan cifradas con el almacén del sistema.',
@@ -553,6 +560,24 @@ export default {
       voicePiper: 'Voz local (Piper)',
       piperNone: 'Primero instala voces en Ajustes → Voz.',
     },
+    productivity: {
+      lead: 'Lo que la hace útil en el día a día: avisos, recordatorios y más. Pídeselo hablando («recuérdame a las 6 que llame a Ana», «pon un temporizador de 10 minutos»).',
+      noticesTitle: 'Avisos',
+      noticesDesc: 'Cómo te avisa cuando llega un recordatorio u otra novedad. Siempre aparece en su bocadillo y en el chat.',
+      notify: 'Al avisar',
+      notifySpeak: 'Bocadillo, notificación y voz',
+      notifyNotify: 'Bocadillo y notificación (sin voz)',
+      notifySilent: 'Solo bocadillo y chat',
+      remindersTitle: 'Recordatorios y temporizadores',
+      remindersDesc: 'Los que tiene pendientes. Si la app estaba cerrada, al abrirla te avisa de los de las últimas 24 horas.',
+      remindersEmpty: 'No hay nada pendiente.',
+      repeat: {
+        daily: 'todos los días',
+        weekdays: 'de lunes a viernes',
+        weekly: 'cada semana',
+        monthly: 'cada mes',
+      },
+    },
   },
   editor: {
     windowTitle: 'Waifu Desk — Editor de skins',
@@ -779,5 +804,9 @@ export default {
       name: 'Sakura',
       personality: 'Cariñosa y coqueta. Trata al usuario como a alguien especial, le dedica palabras afectuosas y disfruta de las conversaciones tranquilas, sin dejar de ayudar cuando hace falta.',
     },
+  },
+  reminders: {
+    fire: 'Recordatorio: {text}',
+    late: 'Recordatorio con retraso (era para las {time}): {text}',
   },
 };

@@ -123,20 +123,36 @@ const STATE_TEXT = {
   error: '',
 };
 let currentState = 'idle';
+let currentLabel = '';
+// Aviso en el bocadillo (recordatorios…): se queda unos segundos aunque cambie el estado.
+let announceText = '';
+let announceTimer = null;
 function setState({ state, label }) {
   currentState = state;
+  currentLabel = label || '';
   document.body.dataset.state = state;
   behaviour.state = state;
-  const show = state in STATE_TEXT;
-  bubble.classList.toggle('hidden', !show);
+  const own = state in STATE_TEXT;
+  bubble.classList.toggle('hidden', !own && !announceText);
   bubble.classList.toggle('static', state === 'error');
-  bubbleText.textContent = label || (STATE_TEXT[state] ? t(STATE_TEXT[state]) : '');
+  bubble.classList.toggle('announce', !own && !!announceText);
+  bubbleText.textContent = own ? label || (STATE_TEXT[state] ? t(STATE_TEXT[state]) : '') : announceText;
   if (state === 'idle' && prevState === 'talking') behaviour.trigger('done');
   prevState = state;
   requestAnimationFrame(relayout);
 }
 let prevState = 'idle';
 wd.on('avatar:state', setState);
+wd.on('avatar:announce', ({ text }) => {
+  announceText = text.length > 160 ? `${text.slice(0, 157)}…` : text;
+  clearTimeout(announceTimer);
+  announceTimer = setTimeout(() => {
+    announceText = '';
+    setState({ state: currentState, label: currentLabel });
+  }, 12000);
+  setState({ state: currentState, label: currentLabel });
+  behaviour.trigger?.('happy');
+});
 
 // ---------------------------------------------------------------- ratón: arrastrar, clic, menú
 let ignoring = !isLinux;
