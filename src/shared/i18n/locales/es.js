@@ -63,6 +63,9 @@ export default {
     download: 'Descarga fallida (HTTP {status})',
     contentFilter: 'Azure ha bloqueado la respuesta por su filtro de contenido (categoría: {categories}).',
     contentFilterUnknown: 'Azure ha bloqueado la respuesta por su filtro de contenido.',
+    integrity: 'La descarga no coincide con la firma esperada; no se ha instalado nada.',
+    piperRuntime: 'Las voces locales necesitan su motor: descárgalo en Ajustes → Voz. Mientras tanto uso la voz del sistema.',
+    piperVoiceMissing: 'No encuentro la voz local «{voice}»; uso la voz del sistema.',
   },
   labels: {
     transcription: 'Transcripción',

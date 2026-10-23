@@ -17,6 +17,7 @@ import { isBundleAllowed } from './bundle-allowed.js';
 import { assistantName, activePersona, effectiveTts } from '../shared/personas.js';
 import { listMotions, importMotion, updateMotion, deleteMotion } from './motions.js';
 import { parseCard, cardToPersona, MAX_CARD_BYTES } from './persona-cards.js';
+import { piperRuntimeStatus, downloadPiperRuntime, piperRuntimeUrl } from './piper-runtime.js';
 import { APP_ROOT, listSkins, getSkin, saveSkin, deleteSkin, fetchImage, segmentModelStatus, downloadSegmentModel, stageVrm, downloadVrm, saveVrmSkin, clearVrmTmp } from './skins.js';
 import * as logger from './log.js';
 
@@ -618,6 +619,24 @@ function newConversation() {
 // Idioma en el que habla: el de «Idioma de respuesta» si se reconoce, si no el de la interfaz.
 const speechLang = (cfg) => localeTag(languageFromName(cfg.assistant.language) || getLocale());
 
+// Voz Piper instalada en userData/voices/<clave>/ (modelo + configuración).
+let piperWarned = false;
+function piperVoice(tts) {
+  const key = String(tts.piperVoice || '');
+  if (!key || /[\\/]|\.\./.test(key) || !piperRuntimeStatus().ready) return null;
+  const dir = path.join(userDir(), 'voices', key);
+  if (!fs.existsSync(path.join(dir, 'model.onnx')) || !fs.existsSync(path.join(dir, 'model.onnx.json'))) return null;
+  const base = `app://local/user/voices/${encodeURIComponent(key)}/`;
+  return { key, modelUrl: `${base}model.onnx`, configUrl: `${base}model.onnx.json`, rate: Number(tts.piperRate) || 1, speaker: Number(tts.piperSpeaker) || 0 };
+}
+
+function testTts(text) {
+  ttsGen++;
+  ttsChain = Promise.resolve();
+  piperWarned = false;
+  enqueueSpeech(text || t('voice.testDefault'));
+}
+
 function enqueueSpeech(sentence) {
   const base = loadConfig();
   // La voz del personaje activo (si tiene) va encima de la de Ajustes → Voz.
@@ -626,6 +645,19 @@ function enqueueSpeech(sentence) {
   if (!text || cfg.voice.tts.mode === 'off') return;
   const gen = ttsGen;
   const id = uid();
+  if (cfg.voice.tts.mode === 'piper') {
+    const voice = piperVoice(cfg.voice.tts);
+    if (voice) {
+      ttsChain = ttsChain.then(() => {
+        if (gen === ttsGen) sendTo('avatar', 'tts:piper', { id, text, voice, runtimeUrl: piperRuntimeUrl() });
+      });
+      return;
+    }
+    // Sin motor o sin voz: aviso una vez y se usa la voz del sistema.
+    if (!piperWarned) chatEvent({ type: 'notice', level: 'warn', message: piperRuntimeStatus().ready ? t('errors.piperVoiceMissing', { voice: cfg.voice.tts.piperVoice || '?' }) : t('errors.piperRuntime') });
+    piperWarned = true;
+    cfg.voice.tts = { ...cfg.voice.tts, mode: 'system' };
+  }
   if (cfg.voice.tts.mode === 'system') {
     ttsChain = ttsChain.then(() => {
       if (gen === ttsGen) sendTo('avatar', 'tts:say', { id, text, voice: cfg.voice.tts.systemVoice, rate: cfg.voice.tts.rate, pitch: cfg.voice.tts.pitch, lang: speechLang(cfg) });
@@ -802,11 +834,16 @@ function registerIpc() {
       setState('listening');
     } else if (assistantState === 'listening') setState('idle');
   });
-  ipcMain.handle('voice:test-tts', (_e, text) => {
-    ttsGen++;
-    ttsChain = Promise.resolve();
-    enqueueSpeech(text || t('voice.testDefault'));
+  ipcMain.handle('voice:piper-runtime-status', () => piperRuntimeStatus());
+  ipcMain.handle('voice:piper-runtime-download', (e) => {
+    const sender = e.sender;
+    return downloadPiperRuntime((p) => !sender.isDestroyed() && sender.send('voice:piper-runtime-progress', p));
   });
+  ipcMain.on('tts:piper-error', (_e, message) => {
+    logger.warn(`Piper: ${message}`);
+    chatEvent({ type: 'notice', level: 'warn', message: t('errors.voice', { message }) });
+  });
+  ipcMain.handle('voice:test-tts', (_e, text) => testTts(text));
 
   ipcMain.handle('skin:get', (_e, id) => getSkin(id || loadConfig().ui.skinId));
   ipcMain.handle('skin:list', () => listSkins());
@@ -1013,6 +1050,7 @@ function runAutomation(file) {
     setState,
     useSkin,
     switchPersona,
+    testTts,
     broadcast,
     publicConfig,
     loadConfig,

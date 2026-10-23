@@ -62,6 +62,9 @@ export default {
     download: 'Download failed (HTTP {status})',
     contentFilter: 'Azure blocked the response with its content filter (category: {categories}).',
     contentFilterUnknown: 'Azure blocked the response with its content filter.',
+    integrity: "The download doesn't match the expected signature; nothing was installed.",
+    piperRuntime: 'Local voices need their engine: download it in Settings → Voice. Using the system voice meanwhile.',
+    piperVoiceMissing: "Can't find the local voice “{voice}”; using the system voice.",
   },
   labels: {
     transcription: 'Transcription',

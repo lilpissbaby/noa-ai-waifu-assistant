@@ -62,6 +62,9 @@ export default {
     download: '下载失败（HTTP {status}）',
     contentFilter: 'Azure 的内容过滤器拦截了这条回复（类别：{categories}）。',
     contentFilterUnknown: 'Azure 的内容过滤器拦截了这条回复。',
+    integrity: '下载的文件与预期签名不符，未安装任何内容。',
+    piperRuntime: '本地语音需要先下载引擎：在「设置 → 语音」里下载。在此之前先用系统语音。',
+    piperVoiceMissing: '找不到本地语音「{voice}」，改用系统语音。',
   },
   labels: {
     transcription: '语音转写',

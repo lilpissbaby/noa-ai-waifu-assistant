@@ -1,6 +1,7 @@
 import { createRenderer, loadSkinWithFallback } from '../shared/renderer-factory.js';
 import { Behaviour } from '../shared/behaviour.js';
 import { Stage } from '../shared/stage.js';
+import { PiperClient } from './piper-client.js';
 import { t, setLocale } from '../../shared/i18n/index.js';
 import { applyDom } from '../../shared/i18n/dom.js';
 
@@ -363,6 +364,9 @@ function pump() {
 async function playAudio(item) {
   try {
     const ctx = getAudioCtx();
+    // Piper: el WAV se está sintetizando desde que llegó la frase (va por delante de la reproducción).
+    if (item.audioP) item.audio = new Uint8Array(await item.audioP);
+    if (playing !== item) return;
     const ab = item.audio.buffer.slice(item.audio.byteOffset, item.audio.byteOffset + item.audio.byteLength);
     const buffer = await ctx.decodeAudioData(ab);
     if (playing !== item) return;
@@ -434,6 +438,13 @@ function stopPlayback() {
 
 wd.on('tts:play', ({ id, audio }) => {
   queue.push({ type: 'audio', id, audio });
+  pump();
+});
+const piper = new PiperClient();
+wd.on('tts:piper', ({ id, text, voice, runtimeUrl }) => {
+  const audioP = piper.synth(text, voice, runtimeUrl);
+  audioP.catch((e) => wd.send('tts:piper-error', String(e?.message || e)));
+  queue.push({ type: 'audio', id, audioP });
   pump();
 });
 wd.on('tts:say', (item) => {
