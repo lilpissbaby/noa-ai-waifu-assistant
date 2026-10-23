@@ -2,6 +2,7 @@ process.env.TZ = 'Europe/Madrid';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { eventsBetween, fetchCalendars, WINDOWS_TZ, zonedToDate } from '../src/main/productivity/calendar.js';
 import { briefingDue } from '../src/main/productivity/briefing.js';
 import { calendarTools } from '../src/main/tools/calendar.js';
@@ -66,7 +67,7 @@ test('fetchCalendars: archivo y URL (webcal → https) con caché', async () => 
   });
   try {
     const cals = [
-      { id: 'a', name: 'Personal', file: new URL('./fixtures/calendar/personal.ics', import.meta.url).pathname },
+      { id: 'a', name: 'Personal', file: fileURLToPath(new URL('./fixtures/calendar/personal.ics', import.meta.url)) },
       { id: 'b', name: 'Trabajo', url: `${srv.url}/cal.ics` },
     ];
     const now = new Date();
@@ -75,6 +76,7 @@ test('fetchCalendars: archivo y URL (webcal → https) con caché', async () => 
       r.map((c) => c.name),
       ['Personal', 'Trabajo'],
     );
+    assert.match(r[0].text, /BEGIN:VCALENDAR/);
     assert.match(r[1].text, /Romance Standard Time/);
     await fetchCalendars(cals, { now: new Date(now.getTime() + 5 * 60000) });
     assert.equal(hits, 1);
@@ -102,7 +104,7 @@ test('briefingDue', () => {
 });
 
 test('herramienta calendar_events: hoy por defecto, rango y búsqueda', async () => {
-  const cfg = { productivity: { calendars: [{ id: 'a', name: 'Personal', file: new URL('./fixtures/calendar/personal.ics', import.meta.url).pathname }] } };
+  const cfg = { productivity: { calendars: [{ id: 'a', name: 'Personal', file: fileURLToPath(new URL('./fixtures/calendar/personal.ics', import.meta.url)) }] } };
   const [tool] = calendarTools(cfg, { now: () => local(2026, 10, 26, 8) });
   const today = await tool.run({});
   assert.deepEqual(
