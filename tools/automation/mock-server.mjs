@@ -9,6 +9,7 @@ const REPLIES = {
     created: '¡Hecho! He creado **PAP-7 · Migrar Postgres a la 17** y se la he asignado al CTO con prioridad alta.\n\n- Estado: `todo`\n- Le he despertado para que empiece ya.',
     hermes: 'Hermes ha revisado el VPS: **12 contenedores** en marcha y `nginx`, `portainer` y `postgres` sanos. Disco al 61 %.',
     issueTitle: 'Migrar Postgres a la 17',
+    screen: 'Veo tu escritorio con la ventana de la terminal abierta.',
   },
   en: {
     hello: "Hi! I'm Noa. I can talk to your Paperclip agents, send work to Hermes on your VPS and run your automations.",
@@ -16,6 +17,7 @@ const REPLIES = {
     created: 'Done! I created **PAP-7 · Migrate Postgres to 17** and assigned it to the CTO with high priority.\n\n- Status: `todo`\n- I woke them up so they start right away.',
     hermes: 'Hermes checked the VPS: **12 containers** up and `nginx`, `portainer` and `postgres` healthy. Disk at 61 %.',
     issueTitle: 'Migrate Postgres to 17',
+    screen: 'I can see your desktop with the terminal window open.',
   },
   ru: {
     hello: 'Привет! Я Noa. Могу общаться с вашими агентами в Paperclip, передавать работу Hermes на VPS и запускать автоматизации.',
@@ -23,6 +25,7 @@ const REPLIES = {
     created: 'Готово! Я создала **PAP-7 · Перевести Postgres на 17** и назначила её CTO с высоким приоритетом.\n\n- Статус: `todo`\n- Разбудила агента, чтобы он начал сразу.',
     hermes: 'Hermes проверил VPS: работают **12 контейнеров**, `nginx`, `portainer` и `postgres` в порядке. Диск заполнен на 61 %.',
     issueTitle: 'Перевести Postgres на 17',
+    screen: 'Вижу ваш рабочий стол с открытым окном терминала.',
   },
   uk: {
     hello: 'Привіт! Я Noa. Можу спілкуватися з вашими агентами в Paperclip, передавати роботу Hermes на VPS і запускати автоматизації.',
@@ -30,6 +33,7 @@ const REPLIES = {
     created: 'Готово! Я створила **PAP-7 · Перевести Postgres на 17** і призначила її CTO з високим пріоритетом.\n\n- Статус: `todo`\n- Розбудила агента, щоб він почав одразу.',
     hermes: 'Hermes перевірив VPS: працюють **12 контейнерів**, `nginx`, `portainer` і `postgres` у порядку. Диск заповнений на 61 %.',
     issueTitle: 'Перевести Postgres на 17',
+    screen: 'Бачу ваш робочий стіл із відкритим вікном термінала.',
   },
   zh: {
     hello: '你好！我是 Noa。我可以和你在 Paperclip 里的智能体沟通，把工作交给 VPS 上的 Hermes，还能运行你的自动化。',
@@ -37,6 +41,7 @@ const REPLIES = {
     created: '搞定！我创建了 **PAP-7 · 将 Postgres 升级到 17**，并以高优先级分配给了 CTO。\n\n- 状态：`todo`\n- 已经唤醒它，马上开工。',
     hermes: 'Hermes 检查了 VPS：**12 个容器**正在运行，`nginx`、`portainer` 和 `postgres` 都正常。磁盘使用率 61 %。',
     issueTitle: '将 Postgres 升级到 17',
+    screen: '我看到你的桌面上开着终端窗口。',
   },
 };
 
@@ -73,6 +78,7 @@ function toolCall(send, id, name, args) {
 
 export async function startMockServer({ delay = 0 } = {}) {
   const issues = [];
+  const images = []; // data: URL de las imágenes recibidas (captura de pantalla)
   const server = http.createServer(async (req, res) => {
     let raw = '';
     for await (const c of req) raw += c;
@@ -87,8 +93,15 @@ export async function startMockServer({ delay = 0 } = {}) {
       const L = REPLIES[lang];
       const last = msgs.at(-1);
       const send = sse(res);
-      const userText = [...msgs].reverse().find((m) => m.role === 'user')?.content || '';
-      if (last.role === 'user' && /paperclip|PAP|tarea|task|задач|任务/i.test(userText)) {
+      const userContent = [...msgs].reverse().find((m) => m.role === 'user')?.content || '';
+      const userText = Array.isArray(userContent) ? userContent.map((p) => p.text || '').join(' ') : userContent;
+      const image = Array.isArray(last.content) ? last.content.find((p) => p.type === 'image_url') : null;
+      if (last.role === 'user' && image) {
+        images.push(image.image_url.url);
+        await streamText(send, L.screen, delay);
+      } else if (last.role === 'user' && /pantalla|screen|экран|屏幕/i.test(userText)) {
+        toolCall(send, 'call_s', 'screen_capture', { target: 'screen' });
+      } else if (last.role === 'user' && /paperclip|PAP|tarea|task|задач|任务/i.test(userText)) {
         toolCall(send, 'call_issue', 'paperclip_create_issue', { title: L.issueTitle, assigneeAgentId: 'a1', priority: 'high' });
       } else if (last.role === 'tool' && last.tool_call_id === 'call_issue') {
         toolCall(send, 'call_wake', 'paperclip_wakeup_agent', { agentId: 'a1', issueId: 'PAP-7' });
@@ -143,7 +156,7 @@ export async function startMockServer({ delay = 0 } = {}) {
       server.closeAllConnections?.(); // net.fetch deja conexiones keep-alive abiertas
       server.close(r);
     });
-  return { base, issues, close };
+  return { base, issues, images, close };
 }
 
 // Configuración que apunta todos los conectores al servidor simulado.

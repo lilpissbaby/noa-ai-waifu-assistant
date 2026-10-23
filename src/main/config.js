@@ -115,6 +115,7 @@ export function defaultConfig(locale = resolveLocale('auto', systemLocales())) {
       emotions: true, // la IA marca el tono con <emo:…> y el avatar 3D pone cara
       hotkeyChat: 'Control+Alt+Space',
       hotkeyTalk: 'Control+Alt+V',
+      hotkeyLook: 'Control+Alt+S', // «Mira esto»: captura la pantalla y la adjunta al chat
       startWithSystem: false,
     },
   };

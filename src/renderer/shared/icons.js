@@ -3,6 +3,7 @@ const wrap = (d) =>
   `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
 
 export const icons = {
+  file: wrap('<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/>'),
   send: wrap('<path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/>'),
   stop: wrap('<rect x="6" y="6" width="12" height="12" rx="2"/>'),
   mic: wrap('<rect x="9" y="2" width="6" height="12" rx="3"/><path d="M19 10v1a7 7 0 0 1-14 0v-1"/><path d="M12 18v4"/>'),

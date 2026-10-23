@@ -31,6 +31,7 @@ export default {
     quit: 'Quit',
     importVrm: 'Import 3D model…',
     persona: 'Character',
+    look: 'Look at this (screenshot)',
   },
   state: {
     missingConfig: 'Setup needed',
@@ -73,6 +74,9 @@ export default {
     zipUnsafe: 'The .zip {file} contains paths or links that are not allowed; nothing was imported.',
     zipTooMany: 'The .zip {file} has too many files.',
     zipCorrupt: '{file} is not a valid .zip.',
+    visionUnsupported: 'The model {model} did not accept the image; it may not support images. Try another model or untick “Can see images” in its profile. Details: {detail}',
+    screenCapture: 'I could not capture the screen.',
+    attachmentTooBig: '{name} is too large (20 MB at most).',
   },
   labels: {
     transcription: 'Transcription',
@@ -124,6 +128,11 @@ export default {
       title: 'Change her filters',
       message: '{name} wants to loosen her content filters:',
     },
+    screen: {
+      title: 'See your screen',
+      message: 'Let her take a screenshot and send it to the model?',
+      detail: 'The avatar and the chat are hidden while capturing. The image is sent to the active model’s provider.',
+    },
   },
   avatar: {
     aria: 'Assistant',
@@ -160,6 +169,7 @@ export default {
     note_append: 'Add to note',
     note_read: 'Read note',
     note_search: 'Search notes',
+    screen_capture: 'See the screen',
   },
   md: {
     code: 'code',
@@ -199,6 +209,8 @@ export default {
       clipboard: "Summarise what's on my clipboard",
       what: 'What can you do for me?',
     },
+    screenshotName: 'Screenshot {time}',
+    removeAttachment: 'Remove',
   },
   settings: {
     windowTitle: 'Waifu Desk — Settings',
@@ -275,6 +287,8 @@ export default {
         '<b>Click</b> {name}: open or close the chat · <b>Double-click</b>: talk to her · <b>Drag</b>: move her · <b>Right-click</b>: menu (model, skin, size, language…). She also lives in the system tray.',
       characterMoved: "Your assistant's name, personality, voice and filters are in the <b>Characters</b> tab.",
       openPersonas: 'Open Characters',
+      hotkeyLook: '“Look at this” shortcut',
+      hotkeyLookHelp: 'Takes a screenshot and opens the chat with it attached so you can ask about it.',
     },
     models: {
       lead: 'Each profile is a model with its own API key. Switch between them from the chat or the avatar menu. Keys are stored encrypted in the system keychain.',
@@ -317,6 +331,8 @@ export default {
         unfiltered: 'Unfiltered (needs Microsoft approval)',
         fixed: 'Policy name',
       },
+      vision: 'Can see images',
+      visionHelp: 'Untick it if the model does not accept images: she will not offer to look at the screen.',
     },
     voice: {
       lead: 'Dictation (what you say → text) and the assistant voice (text → audio, with lip-sync).',

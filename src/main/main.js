@@ -1,5 +1,5 @@
 // Waifu Desk — proceso principal de Electron.
-import { app, BrowserWindow, ipcMain, protocol, net, screen, Tray, Menu, nativeImage, globalShortcut, dialog, session, shell, Notification } from 'electron';
+import { app, BrowserWindow, ipcMain, protocol, net, screen, Tray, Menu, nativeImage, globalShortcut, dialog, session, shell, Notification, desktopCapturer } from 'electron';
 import path from 'node:path';
 import fs from 'node:fs';
 import { pathToFileURL } from 'node:url';
@@ -13,7 +13,7 @@ import { syncMcp, mcpStatus, closeAllMcp } from './tools/mcp.js';
 import { testHermes } from './tools/hermes.js';
 import { testPaperclip } from './tools/paperclip.js';
 import { transcribe, synthesize, speakable, SentenceChunker } from './voice.js';
-import { isBundleAllowed } from './bundle-allowed.js';
+import { isBundleAllowed, isUserAllowed } from './bundle-allowed.js';
 import { assistantName, activePersona, effectiveTts } from '../shared/personas.js';
 import { listMotions, importMotion, updateMotion, deleteMotion } from './motions.js';
 import { parseCard, cardToPersona, MAX_CARD_BYTES } from './persona-cards.js';
@@ -21,6 +21,7 @@ import { piperRuntimeStatus, downloadPiperRuntime, piperRuntimeUrl, PIPER_WASM }
 import { setAnnouncer } from './bus.js';
 import { Reminders } from './productivity/reminders.js';
 import { listMemory, forgetMemory } from './productivity/memory.js';
+import { saveImageAttachment, attachmentsDir, clearAttachments } from './attachments.js';
 import { notesDir } from './tools/notes.js';
 import { listVoices, fetchCatalog, catalogForLanguage, installFromCatalog, importVoiceFiles, deleteVoice } from './voices.js';
 import { APP_ROOT, listSkins, getSkin, saveSkin, deleteSkin, fetchImage, segmentModelStatus, downloadSegmentModel, stageVrm, downloadVrm, saveVrmSkin, clearVrmTmp } from './skins.js';
@@ -78,7 +79,7 @@ function registerAppProtocol() {
     const [, area, ...rest] = u.pathname.split('/');
     const rel = decodeURIComponent(rest.join('/'));
     const root = area === 'bundle' ? APP_ROOT : area === 'user' ? userDir() : null;
-    if (!root || (area === 'bundle' && !isBundleAllowed(rel))) return new Response('Forbidden', { status: 403 });
+    if (!root || (area === 'bundle' && !isBundleAllowed(rel)) || (area === 'user' && !isUserAllowed(rel))) return new Response('Forbidden', { status: 403 });
     const file = path.normalize(path.join(root, rel));
     if (!file.startsWith(path.normalize(root) + path.sep)) return new Response('Forbidden', { status: 403 });
     let res;
@@ -346,6 +347,7 @@ function avatarContextMenu() {
   Menu.buildFromTemplate([
     { label: t('menu.chat'), accelerator: cfg.ui.hotkeyChat, click: () => toggleChat(true) },
     { label: t('menu.talk'), accelerator: cfg.ui.hotkeyTalk, click: () => sendTo('avatar', 'voice:record-toggle') },
+    { label: t('menu.look'), accelerator: cfg.ui.hotkeyLook, click: lookAtScreen },
     { label: t('menu.stop'), click: stopEverything },
     { type: 'separator' },
     { label: t('menu.persona'), submenu: personaMenu(cfg) },
@@ -448,6 +450,7 @@ function registerShortcuts() {
   };
   tryReg(cfg.ui.hotkeyChat, () => toggleChat());
   tryReg(cfg.ui.hotkeyTalk, () => sendTo('avatar', 'voice:record-toggle'));
+  tryReg(cfg.ui.hotkeyLook, lookAtScreen);
 }
 
 // Seguimiento del cursor para que gire un poco la cabeza.
@@ -583,7 +586,70 @@ const services = {
   openWindow,
   configChanged: () => broadcast('cfg:changed', publicConfig()),
   reminders,
+  captureScreen,
 };
+
+// ---------------------------------------------------------------- ver la pantalla
+// Captura la pantalla del cursor (o la ventana de arriba que no sea nuestra) con el avatar y el
+// chat ocultos un instante. JPEG 85 % con el lado mayor a 1568 px (lo que aprovechan los modelos).
+async function captureScreen({ target = 'screen' } = {}) {
+  const own = Object.values(wins).filter((w) => w && !w.isDestroyed() && w.isVisible());
+  const ownIds = new Set(own.map((w) => w.getMediaSourceId()));
+  const focused = BrowserWindow.getFocusedWindow();
+  // En Linux setOpacity no hace nada: allí se ocultan y se vuelven a mostrar.
+  const hide = process.platform === 'linux';
+  for (const w of own) (hide ? w.hide() : w.setOpacity(0));
+  await new Promise((r) => setTimeout(r, hide ? 350 : 160));
+  try {
+    const display = screen.getDisplayNearestPoint(screen.getCursorScreenPoint());
+    const thumbnailSize = { width: Math.round(display.size.width * display.scaleFactor), height: Math.round(display.size.height * display.scaleFactor) };
+    let img = null;
+    if (target === 'window') {
+      const wins2 = await desktopCapturer.getSources({ types: ['window'], thumbnailSize, fetchWindowIcons: false });
+      img = wins2.find((src) => !ownIds.has(src.id) && !src.thumbnail.isEmpty())?.thumbnail || null;
+    }
+    if (!img) {
+      const screens = await desktopCapturer.getSources({ types: ['screen'], thumbnailSize });
+      img = (screens.find((src) => src.display_id === String(display.id)) || screens[0])?.thumbnail || null;
+    }
+    if (!img || img.isEmpty()) throw new Error(t('errors.screenCapture'));
+    const { width, height } = img.getSize();
+    const k = Math.min(1, 1568 / Math.max(width, height));
+    if (k < 1) img = img.resize({ width: Math.round(width * k), height: Math.round(height * k), quality: 'good' });
+    const size = img.getSize();
+    return { buffer: img.toJPEG(85), mime: 'image/jpeg', width: size.width, height: size.height };
+  } finally {
+    for (const w of own) if (!w.isDestroyed()) hide ? (w === focused ? w.show() : w.showInactive()) : w.setOpacity(1);
+  }
+}
+
+// «Mira esto»: captura y abre el chat con la imagen ya adjunta, lista para preguntar.
+let composerAttachments = [];
+async function lookAtScreen() {
+  try {
+    const shot = await captureScreen({ target: 'screen' });
+    const att = saveImageAttachment(shot.buffer, shot.mime, t('chat.screenshotName', { time: new Date().toLocaleTimeString(localeTag(), { timeStyle: 'short' }) }));
+    const c = wins.chat;
+    // Chat ya cargado: se le manda; si no, lo recoge al arrancar (chat:take-attachments).
+    if (c && !c.isDestroyed() && !c.webContents.isLoading()) c.webContents.send('chat:attach', att);
+    else composerAttachments.push(att);
+    toggleChat(true);
+  } catch (e) {
+    logger.warn(`captura: ${e.message}`);
+    chatEvent({ type: 'notice', level: 'warn', message: e.message });
+  }
+}
+
+// Adjuntos que llegan del chat: se aceptan solo los nuestros (imagen guardada) o texto acotado.
+function cleanAttachments(list) {
+  const out = [];
+  for (const a of Array.isArray(list) ? list.slice(0, 10) : []) {
+    if (a?.kind === 'image' && typeof a.file === 'string' && path.basename(a.file) === a.file && fs.existsSync(path.join(attachmentsDir(), a.file)))
+      out.push({ kind: 'image', file: a.file, mime: String(a.mime || 'image/png'), name: String(a.name || a.file).slice(0, 120) });
+    else if (a?.kind === 'text' && typeof a.text === 'string') out.push({ kind: 'text', name: String(a.name || 'file').slice(0, 120), text: a.text.slice(0, 100000) });
+  }
+  return out;
+}
 
 // Importa una tarjeta de SillyTavern como personaje nuevo (la imagen va a userData/personas/).
 async function importPersonaCard(parent) {
@@ -648,6 +714,12 @@ function newConversation() {
   stopEverything();
   history = [];
   saveHistory();
+  composerAttachments = [];
+  try {
+    clearAttachments();
+  } catch (e) {
+    logger.warn(`adjuntos: ${e.message}`);
+  }
   chatEvent({ type: 'reset' });
 }
 
@@ -719,9 +791,10 @@ function enqueueSpeech(sentence) {
   });
 }
 
-async function sendMessage(text, via = 'text') {
+async function sendMessage(text, via = 'text', { attachments = [] } = {}) {
   text = String(text || '').trim();
-  if (!text) return;
+  attachments = cleanAttachments(attachments);
+  if (!text && !attachments.length) return;
   if (current) {
     current.ctrl.abort();
     await current.done.catch(() => {});
@@ -732,7 +805,7 @@ async function sendMessage(text, via = 'text') {
 
   const cfg = loadConfig();
   const profile = cfg.profiles.find((p) => p.id === cfg.activeProfileId) || cfg.profiles[0];
-  const userMsg = { role: 'user', content: text, via, ts: Date.now() };
+  const userMsg = { role: 'user', content: text, via, ts: Date.now(), ...(attachments.length ? { attachments } : {}) };
   history.push(userMsg);
   chatEvent({ type: 'user', message: userMsg });
 
@@ -842,7 +915,21 @@ function registerIpc() {
 
   ipcMain.handle('chat:history', () => ({ messages: history, seq: chatSeq, busy: !!current, partialText: current ? partialText : '' }));
   ipcMain.handle('chat:pending', () => pendingChatEvents.splice(0));
-  ipcMain.handle('chat:send', (_e, text, via) => sendMessage(text, via));
+  ipcMain.handle('chat:send', (_e, text, via, attachments) => sendMessage(text, via, { attachments }));
+  ipcMain.handle('chat:open-attachment', (_e, file) => {
+    if (typeof file === 'string' && path.basename(file) === file) return shell.openPath(path.join(attachmentsDir(), file));
+    return '';
+  });
+  ipcMain.handle('chat:take-attachments', () => {
+    const list = composerAttachments;
+    composerAttachments = [];
+    return list;
+  });
+  ipcMain.handle('chat:attach-image', (_e, bytes, mime, name) => {
+    const buf = Buffer.from(bytes);
+    if (!buf.length || buf.length > 20 * 1024 * 1024) throw new Error(t('errors.attachmentTooBig', { name: name || 'image' }));
+    return saveImageAttachment(buf, mime, name);
+  });
   ipcMain.handle('chat:stop', () => stopEverything());
   ipcMain.handle('chat:new', () => newConversation());
   ipcMain.handle('chat:state', () => assistantState);
@@ -1158,6 +1245,8 @@ function runAutomation(file) {
     announce,
     reminders,
     runTool: (name, input) => buildToolbox(loadConfig(), null, services).run(name, input),
+    captureScreen,
+    lookAtScreen,
     broadcast,
     publicConfig,
     loadConfig,

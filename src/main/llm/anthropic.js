@@ -1,8 +1,21 @@
 // Adaptador para la Messages API de Anthropic (streaming + tool use).
 import { net } from 'electron';
 import { readSSE, httpError } from './sse.js';
+import { attachmentBase64 } from '../attachments.js';
 
 const API_VERSION = '2023-06-01';
+
+// Adjuntos -> bloques: imágenes en base64 y archivos como texto.
+function imageBlock(att) {
+  const data = attachmentBase64(att);
+  return data ? { type: 'image', source: { type: 'base64', media_type: att.mime, data } } : { type: 'text', text: `[image: ${att.name} (missing)]` };
+}
+function userBlocks(m) {
+  const blocks = (m.attachments || []).map((a) => (a.kind === 'image' ? imageBlock(a) : { type: 'text', text: `Attached file: ${a.name}\n\n${a.text}` }));
+  if (m.content) blocks.push({ type: 'text', text: m.content });
+  return blocks;
+}
+const isToolResults = (msg) => Array.isArray(msg.content) && msg.content[0]?.type === 'tool_result';
 
 // Historial neutro -> formato Anthropic
 export function toAnthropicMessages(history) {
@@ -10,18 +23,26 @@ export function toAnthropicMessages(history) {
   for (const m of history) {
     if (m.role === 'user') {
       const last = out[out.length - 1];
+      const plain = !m.attachments?.length;
       // Si un turno anterior falló quedan dos mensajes de usuario seguidos: se fusionan.
-      if (last && last.role === 'user' && typeof last.content === 'string') last.content += `\n\n${m.content}`;
-      else out.push({ role: 'user', content: m.content });
+      if (last && last.role === 'user' && !isToolResults(last)) {
+        if (plain && typeof last.content === 'string') last.content += `\n\n${m.content}`;
+        else {
+          if (typeof last.content === 'string') last.content = [{ type: 'text', text: last.content }];
+          last.content.push(...userBlocks(m));
+        }
+      } else out.push({ role: 'user', content: plain ? m.content : userBlocks(m) });
     } else if (m.role === 'assistant') {
       const blocks = [];
       if (m.content) blocks.push({ type: 'text', text: m.content });
       for (const tc of m.toolCalls || []) blocks.push({ type: 'tool_use', id: tc.id, name: tc.name, input: tc.input || {} });
       if (blocks.length) out.push({ role: 'assistant', content: blocks });
     } else if (m.role === 'tool') {
-      const block = { type: 'tool_result', tool_use_id: m.toolCallId, content: m.content || '(no output)', is_error: !!m.isError };
+      const text = m.content || '(no output)';
+      const content = m.images?.length ? [{ type: 'text', text }, ...m.images.map(imageBlock)] : text;
+      const block = { type: 'tool_result', tool_use_id: m.toolCallId, content, is_error: !!m.isError };
       const last = out[out.length - 1];
-      if (last && last.role === 'user' && Array.isArray(last.content) && last.content[0]?.type === 'tool_result') last.content.push(block);
+      if (last && last.role === 'user' && isToolResults(last)) last.content.push(block);
       else out.push({ role: 'user', content: [block] });
     }
   }

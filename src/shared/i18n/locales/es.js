@@ -32,6 +32,7 @@ export default {
     quit: 'Salir',
     importVrm: 'Importar modelo 3D…',
     persona: 'Personaje',
+    look: 'Mira esto (captura de pantalla)',
   },
   state: {
     missingConfig: 'Falta configuración',
@@ -74,6 +75,9 @@ export default {
     zipUnsafe: 'El .zip {file} contiene rutas o enlaces no permitidos; no se ha importado nada.',
     zipTooMany: 'El .zip {file} tiene demasiados archivos.',
     zipCorrupt: '{file} no es un .zip válido.',
+    visionUnsupported: 'El modelo {model} no ha aceptado la imagen; puede que no vea imágenes. Prueba con otro modelo o desmarca «Puede ver imágenes» en su perfil. Detalle: {detail}',
+    screenCapture: 'No he podido capturar la pantalla.',
+    attachmentTooBig: '{name} es demasiado grande (máximo 20 MB).',
   },
   labels: {
     transcription: 'Transcripción',
@@ -125,6 +129,11 @@ export default {
       title: 'Cambiar sus filtros',
       message: '{name} quiere relajar sus filtros de contenido:',
     },
+    screen: {
+      title: 'Ver tu pantalla',
+      message: '¿Dejas que haga una captura de tu pantalla y la envíe al modelo?',
+      detail: 'El avatar y el chat se ocultan durante la captura. La imagen se envía al proveedor del modelo activo.',
+    },
   },
   avatar: {
     aria: 'Asistente',
@@ -161,6 +170,7 @@ export default {
     note_append: 'Añadir a nota',
     note_read: 'Leer nota',
     note_search: 'Buscar notas',
+    screen_capture: 'Ver la pantalla',
   },
   md: {
     code: 'código',
@@ -200,6 +210,8 @@ export default {
       clipboard: 'Resúmeme lo que tengo en el portapapeles',
       what: '¿Qué puedes hacer por mí?',
     },
+    screenshotName: 'Captura {time}',
+    removeAttachment: 'Quitar',
   },
   settings: {
     windowTitle: 'Waifu Desk — Ajustes',
@@ -276,6 +288,8 @@ export default {
         '<b>Clic</b> en {name}: abre o cierra el chat · <b>Doble clic</b>: hablarle · <b>Arrastrar</b>: moverla · <b>Clic derecho</b>: menú (modelo, skin, tamaño, idioma…). También vive en la bandeja del sistema.',
       characterMoved: 'El nombre, la forma de ser, la voz y los filtros de tu asistente están en la pestaña <b>Personajes</b>.',
       openPersonas: 'Abrir Personajes',
+      hotkeyLook: 'Atajo «Mira esto»',
+      hotkeyLookHelp: 'Captura la pantalla y abre el chat con la imagen adjunta para preguntarle.',
     },
     models: {
       lead: 'Cada perfil es un modelo con su API key. Cambia de uno a otro desde el chat o el menú del avatar. Las claves se guardan cifradas con el almacén seguro del sistema.',
@@ -318,6 +332,8 @@ export default {
         unfiltered: 'Sin filtros (requiere aprobación de Microsoft)',
         fixed: 'Nombre de la política',
       },
+      vision: 'Puede ver imágenes',
+      visionHelp: 'Desmárcalo si el modelo no admite imágenes: no se le ofrecerá ver la pantalla.',
     },
     voice: {
       lead: 'Dictado (lo que dices → texto) y voz de la asistente (texto → audio, con la boca sincronizada).',

@@ -187,6 +187,18 @@ export default async function smoke(api) {
   if (end2.type === 'error') problems.push(`paperclip: ${end2.message}`);
   if (mock.issues[0]?.title !== 'Migrar Postgres a la 17') problems.push(`paperclip: no se creó la tarea ${JSON.stringify(mock.issues)}`);
 
+  // Ver la pantalla: la herramienta captura (aprobada de antemano) y la imagen llega al modelo.
+  api.patchConfig({ tools: { autoApprove: { screen_capture: true } } });
+  const done3 = waitForChat(api, (e) => e.type === 'done' || e.type === 'error', 30000);
+  await api.sendMessage('Mira mi pantalla, ¿qué ves?');
+  const end3 = await done3;
+  if (end3.type === 'error') problems.push(`pantalla: ${end3.message}`);
+  if (!mock.images.length || !mock.images[0].startsWith('data:image/jpeg;base64,')) problems.push(`pantalla: el modelo no recibió la captura (${mock.images.length})`);
+  else if (mock.images[0].length < 2000) problems.push('pantalla: la captura está vacía');
+  await sleep(300);
+  const shotDom = await api.wins.chat.webContents.executeJavaScript(`!!document.querySelector('.tool.ok .tool-shot')`);
+  if (!shotDom) problems.push('pantalla: el chat no muestra la miniatura de la captura');
+
   // Recordatorio de 1 s: llega como aviso al chat y al bocadillo del avatar.
   const announced = waitForChat(api, (e) => e.type === 'announce');
   const rem = await api.runTool('reminder_create', { text: 'Estirar las piernas', in_minutes: 1 / 60 });

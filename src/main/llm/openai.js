@@ -2,13 +2,35 @@
 import { net } from 'electron';
 import { readSSE, httpError } from './sse.js';
 import { contentFilterMessage } from './azure.js';
+import { attachmentBase64 } from '../attachments.js';
+
+function imagePart(att) {
+  const data = attachmentBase64(att);
+  return data ? { type: 'image_url', image_url: { url: `data:${att.mime};base64,${data}` } } : { type: 'text', text: `[image: ${att.name} (missing)]` };
+}
 
 export function toOpenAIMessages(system, history) {
   const out = [];
   if (system) out.push({ role: 'system', content: system });
+  // Las imágenes de herramientas no caben en el mensaje «tool»: van en un mensaje de usuario
+  // justo después del bloque de resultados.
+  let pending = [];
+  const flush = () => {
+    if (!pending.length) return;
+    out.push({ role: 'user', content: [{ type: 'text', text: `Images returned by ${[...new Set(pending.map((p) => p.name))].join(', ')}:` }, ...pending.flatMap((p) => p.images.map(imagePart))] });
+    pending = [];
+  };
   for (const m of history) {
-    if (m.role === 'user') out.push({ role: 'user', content: m.content });
-    else if (m.role === 'assistant') {
+    if (m.role !== 'tool') flush();
+    if (m.role === 'user') {
+      if (!m.attachments?.length) out.push({ role: 'user', content: m.content });
+      else {
+        const parts = m.content ? [{ type: 'text', text: m.content }] : [];
+        for (const a of m.attachments) if (a.kind !== 'image') parts.push({ type: 'text', text: `Attached file: ${a.name}\n\n${a.text}` });
+        for (const a of m.attachments) if (a.kind === 'image') parts.push(imagePart(a));
+        out.push({ role: 'user', content: parts });
+      }
+    } else if (m.role === 'assistant') {
       const msg = { role: 'assistant', content: m.content || '' };
       if (m.toolCalls?.length) {
         msg.tool_calls = m.toolCalls.map((tc) => ({
@@ -21,8 +43,10 @@ export function toOpenAIMessages(system, history) {
       out.push(msg);
     } else if (m.role === 'tool') {
       out.push({ role: 'tool', tool_call_id: m.toolCallId, content: m.content || '(no output)' });
+      if (m.images?.length) pending.push({ name: m.name, images: m.images });
     }
   }
+  flush();
   return out;
 }
 

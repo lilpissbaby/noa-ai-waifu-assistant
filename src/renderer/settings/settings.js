@@ -355,6 +355,7 @@ const TABS = {
           h('div'),
           field(t('settings.general.hotkeyChat'), text('ui.hotkeyChat'), t('settings.general.hotkeyChatHelp')),
           field(t('settings.general.hotkeyTalk'), text('ui.hotkeyTalk'), t('settings.general.hotkeyTalkHelp')),
+          field(t('settings.general.hotkeyLook'), text('ui.hotkeyLook'), t('settings.general.hotkeyLookHelp')),
           h(
             'div',
             { class: 'full' },
@@ -478,6 +479,7 @@ const TABS = {
             itemCheck('profiles', i, 'toolsEnabled', t('settings.models.allowTools')),
             h('small', { class: 'muted' }, t('settings.models.allowToolsHelp')),
           ),
+          h('div', { class: 'full' }, itemCheck('profiles', i, 'vision', t('settings.models.vision')), h('small', { class: 'muted' }, t('settings.models.visionHelp'))),
           p.azurePolicies ? h('div', { class: 'full' }, azureBox(list, i)) : null,
         ),
         res,

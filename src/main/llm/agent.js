@@ -2,11 +2,12 @@
 import os from 'node:os';
 import { streamAnthropic } from './anthropic.js';
 import { streamOpenAI } from './openai.js';
-import { getLocale, localeTag, LANGUAGES } from '../../shared/i18n/index.js';
+import { getLocale, localeTag, LANGUAGES, t } from '../../shared/i18n/index.js';
 import { EmotionTagFilter, EMOTION_PROMPT, stripEmotionTags } from './emotion.js';
 import { activePersona, buildPersonaPrompt, effectiveFilters } from '../../shared/personas.js';
 import { azurePolicyFor } from './azure.js';
 import { listMemory, memoryPrompt } from '../productivity/memory.js';
+import { prepareImages, hasImages, attachmentUrl } from '../attachments.js';
 
 const MAX_STEPS = 10;
 
@@ -74,23 +75,31 @@ export async function runTurn({ cfg, profile, apiKey, history, toolbox, emit, si
 
   for (let step = 0; step < MAX_STEPS; step++) {
     emit({ type: 'step', step });
-    const window = trimHistory(history);
+    const window = prepareImages(trimHistory(history));
     // Las etiquetas de emoción se quitan del texto y se mandan aparte a la cara del avatar.
     const filter = new EmotionTagFilter();
     const pass = ({ text, emotions }) => {
       if (text) emit({ type: 'text', delta: text });
       for (const name of emotions) emit({ type: 'emotion', name });
     };
-    const result = await stream({
-      profile,
-      apiKey,
-      system,
-      history: window,
-      tools,
-      signal,
-      extraHeaders,
-      onText: (delta) => pass(filter.push(delta)),
-    });
+    let result;
+    try {
+      result = await stream({
+        profile,
+        apiKey,
+        system,
+        history: window,
+        tools,
+        signal,
+        extraHeaders,
+        onText: (delta) => pass(filter.push(delta)),
+      });
+    } catch (e) {
+      // Un 400 con imágenes suele ser un modelo sin visión: se dice claro, con el detalle del proveedor.
+      if (hasImages(window) && [400, 415, 422].includes(e.status) && !e.contentFilter)
+        throw Object.assign(new Error(t('errors.visionUnsupported', { model: profile.model, detail: e.message })), { status: e.status });
+      throw e;
+    }
     pass(filter.flush());
     result.text = stripEmotionTags(result.text);
     const assistantMsg = { role: 'assistant', content: result.text, toolCalls: result.toolCalls, ts: Date.now() };
@@ -104,20 +113,25 @@ export async function runTurn({ cfg, profile, apiKey, history, toolbox, emit, si
       if (signal?.aborted) throw new DOMException('Cancelled', 'AbortError');
       emit({ type: 'tool_start', id: call.id, name: call.name, input: call.input });
       let content;
+      let images = null;
       let isError = false;
       try {
         const out = await toolbox.run(call.name, call.input, {
           signal,
           progress: (msg) => emit({ type: 'tool_progress', id: call.id, name: call.name, message: msg }),
         });
-        content = typeof out === 'string' ? out : JSON.stringify(out, null, 1);
+        // Herramientas que devuelven imágenes (captura de pantalla…): { content, images: [adjuntos] }.
+        if (out && typeof out === 'object' && Array.isArray(out.images)) {
+          images = out.images;
+          content = typeof out.content === 'string' ? out.content : JSON.stringify(out.content ?? '', null, 1);
+        } else content = typeof out === 'string' ? out : JSON.stringify(out, null, 1);
       } catch (e) {
         isError = true;
         content = `Error: ${e.message || e}`;
       }
       if (content.length > 16000) content = `${content.slice(0, 16000)}\n…(truncated)`;
-      history.push({ role: 'tool', toolCallId: call.id, name: call.name, content, isError, ts: Date.now() });
-      emit({ type: 'tool_end', id: call.id, name: call.name, ok: !isError, result: content.slice(0, 1200) });
+      history.push({ role: 'tool', toolCallId: call.id, name: call.name, content, isError, ts: Date.now(), ...(images?.length ? { images } : {}) });
+      emit({ type: 'tool_end', id: call.id, name: call.name, ok: !isError, result: content.slice(0, 1200), ...(images?.length ? { images: images.map(attachmentUrl) } : {}) });
     }
     if (finalText && !/\s$/.test(finalText)) {
       finalText += '\n\n';

@@ -31,6 +31,7 @@ export default {
     quit: '退出',
     importVrm: '导入 3D 模型…',
     persona: '角色',
+    look: '看看这个（截图）',
   },
   state: {
     missingConfig: '需要设置',
@@ -73,6 +74,9 @@ export default {
     zipUnsafe: '压缩包 {file} 含有不允许的路径或链接；未导入任何内容。',
     zipTooMany: '压缩包 {file} 中的文件太多。',
     zipCorrupt: '{file} 不是有效的 .zip 文件。',
+    visionUnsupported: '模型 {model} 没有接受图片，可能不支持图像。请换一个模型，或在它的配置中取消勾选“能看图片”。详情：{detail}',
+    screenCapture: '无法截取屏幕。',
+    attachmentTooBig: '{name} 太大（最多 20 MB）。',
   },
   labels: {
     transcription: '语音转写',
@@ -118,6 +122,11 @@ export default {
       title: '修改过滤设置',
       message: '{name} 想放宽自己的内容过滤：',
     },
+    screen: {
+      title: '查看你的屏幕',
+      message: '允许她截取屏幕并发送给模型吗？',
+      detail: '截图时会隐藏头像和聊天窗口。图片会发送给当前模型的提供商。',
+    },
   },
   avatar: {
     aria: '助手',
@@ -154,6 +163,7 @@ export default {
     note_append: '追加到笔记',
     note_read: '阅读笔记',
     note_search: '搜索笔记',
+    screen_capture: '查看屏幕',
   },
   md: {
     code: '代码',
@@ -193,6 +203,8 @@ export default {
       clipboard: '帮我总结一下剪贴板里的内容',
       what: '你能帮我做什么？',
     },
+    screenshotName: '截图 {time}',
+    removeAttachment: '移除',
   },
   settings: {
     windowTitle: 'Waifu Desk — 设置',
@@ -268,6 +280,8 @@ export default {
         '<b>单击</b> {name}：打开或关闭聊天 · <b>双击</b>：和她说话 · <b>拖动</b>：移动她 · <b>右键</b>：菜单（模型、皮肤、大小、语言…）。她也住在系统托盘里。',
       characterMoved: '助手的名字、性格、声音和过滤器现在都在<b>角色</b>标签页里。',
       openPersonas: '打开「角色」',
+      hotkeyLook: '“看看这个”快捷键',
+      hotkeyLookHelp: '截取屏幕并打开附带截图的聊天，方便你提问。',
     },
     models: {
       lead: '每个配置就是一个模型和它的 API 密钥。可在聊天窗口或头像菜单中切换。密钥加密保存在系统密钥库中。',
@@ -307,6 +321,8 @@ export default {
         unfiltered: '无过滤（需要微软批准）',
         fixed: '策略名称',
       },
+      vision: '能看图片',
+      visionHelp: '如果模型不支持图片请取消勾选：她就不会提出查看屏幕。',
     },
     voice: {
       lead: '听写（你说的话 → 文字）和助手的声音（文字 → 语音，口型同步）。',

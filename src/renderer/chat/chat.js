@@ -12,6 +12,60 @@ const btnSend = $('btnSend');
 const btnMic = $('btnMic');
 const profileSel = $('profile');
 const empty = $('empty');
+const attachBar = $('attachments');
+
+// Imágenes y archivos adjuntos (guardados en userData/attachments/ por el proceso principal).
+const attUrl = (a) => `app://local/user/attachments/${encodeURIComponent(a.file)}`;
+function attachmentsView(list, onRemove) {
+  const box = document.createElement('div');
+  box.className = 'atts';
+  list.forEach((a, i) => {
+    const item = document.createElement('div');
+    item.className = `att ${a.kind}`;
+    item.title = a.name;
+    if (a.kind === 'image') {
+      const img = document.createElement('img');
+      img.src = attUrl(a);
+      img.alt = a.name;
+      img.onclick = () => wd.invoke('chat:open-attachment', a.file);
+      item.append(img);
+    } else {
+      item.innerHTML = `${icons.file}<span></span>`;
+      item.querySelector('span').textContent = a.name;
+    }
+    if (onRemove) {
+      const x = document.createElement('button');
+      x.type = 'button';
+      x.className = 'x';
+      x.innerHTML = icons.close;
+      x.title = t('chat.removeAttachment');
+      x.onclick = () => onRemove(i);
+      item.append(x);
+    }
+    box.append(item);
+  });
+  return box;
+}
+
+let pending = [];
+function renderPending() {
+  attachBar.innerHTML = '';
+  attachBar.classList.toggle('hidden', !pending.length);
+  if (pending.length)
+    attachBar.append(
+      attachmentsView(pending, (i) => {
+        pending.splice(i, 1);
+        renderPending();
+      }),
+    );
+}
+function addPending(att) {
+  if (!att) return;
+  pending.push(att);
+  renderPending();
+  input.focus();
+}
+wd.on('chat:attach', addPending);
 
 $('btnNew').innerHTML = icons.plus;
 $('btnSettings').innerHTML = icons.settings;
@@ -40,7 +94,8 @@ function updateEmpty() {
 function addUser(m) {
   const el = document.createElement('div');
   el.className = 'msg user';
-  el.textContent = m.content;
+  if (m.attachments?.length) el.append(attachmentsView(m.attachments));
+  if (m.content) el.append(document.createTextNode(m.content));
   if (m.via === 'voice') el.insertAdjacentHTML('beforeend', '<span class="via">🎙</span>');
   log.append(el);
   updateEmpty();
@@ -155,7 +210,7 @@ function renderHistory(history) {
       }
     } else if (m.role === 'tool' && lastAssistant) {
       const tool = lastAssistant.tools.get(m.toolCallId);
-      if (tool) finishTool(tool, !m.isError, m.content);
+      if (tool) finishTool(tool, !m.isError, m.content, (m.images || []).map(attUrl));
     }
   }
   updateEmpty();
@@ -163,8 +218,14 @@ function renderHistory(history) {
   return lastAssistant; // respuesta del último turno (para continuarla si sigue en curso)
 }
 
-function finishTool(tool, ok, result) {
+function finishTool(tool, ok, result, images = []) {
   tool.el.classList.remove('run');
+  for (const url of images) {
+    const img = document.createElement('img');
+    img.className = 'tool-shot';
+    img.src = url;
+    tool.el.querySelector('button').after(img);
+  }
   tool.el.querySelector('.sub').textContent = summarizeInput(tool.name, tool.inp);
   tool.el.classList.add(ok ? 'ok' : 'err');
   tool.el.querySelector('.ico').innerHTML = ok ? icons.check : icons.alert;
@@ -189,6 +250,8 @@ function handleEvent(e) {
   }
   switch (e.type) {
     case 'reset':
+      pending = [];
+      renderPending();
       log.innerHTML = '';
       current = null;
       setBusy(false);
@@ -221,7 +284,7 @@ function handleEvent(e) {
     }
     case 'tool_end': {
       const tool = current?.tools.get(e.id);
-      if (tool) finishTool(tool, e.ok, e.result);
+      if (tool) finishTool(tool, e.ok, e.result, e.images || []);
       break;
     }
     case 'done':
@@ -328,11 +391,22 @@ input.addEventListener('input', autosize);
 
 function send(text) {
   const msg = (text ?? input.value).trim();
-  if (!msg) return;
+  if (!msg && !pending.length) return;
+  const atts = pending;
+  pending = [];
+  renderPending();
   input.value = '';
   autosize();
-  wd.invoke('chat:send', msg, 'text');
+  wd.invoke('chat:send', msg, 'text', atts);
 }
+
+// Pegar una imagen (captura del portapapeles) la adjunta.
+input.addEventListener('paste', async (e) => {
+  const files = [...(e.clipboardData?.files || [])].filter((f) => f.type.startsWith('image/'));
+  if (!files.length) return;
+  e.preventDefault();
+  for (const f of files) addPending(await wd.invoke('chat:attach-image', new Uint8Array(await f.arrayBuffer()), f.type, f.name || 'image.png').catch((err) => addError(err.message)));
+});
 
 input.addEventListener('keydown', (e) => {
   if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) {
@@ -384,6 +458,7 @@ log.addEventListener('click', (e) => {
   ready = true;
   for (const e of early.splice(0)) handleEvent(e);
   for (const evt of await wd.invoke('chat:pending')) addError(evt.message);
+  for (const att of await wd.invoke('chat:take-attachments')) addPending(att);
   showState({ state: await wd.invoke('chat:state'), label: '' });
   input.focus();
 })();

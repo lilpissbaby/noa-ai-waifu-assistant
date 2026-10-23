@@ -4,6 +4,10 @@ import { readSSE, httpError } from '../src/main/llm/sse.js';
 import { toAnthropicMessages, streamAnthropic } from '../src/main/llm/anthropic.js';
 import { toOpenAIMessages, streamOpenAI } from '../src/main/llm/openai.js';
 import { serve, sendSSE, json } from './helpers/http.mjs';
+import { runTurn } from '../src/main/llm/agent.js';
+import { setLocale, t } from '../src/shared/i18n/index.js';
+
+const IMG = { kind: 'image', file: 'x.png', mime: 'image/png', name: 'x.png', data: 'QUJD' };
 
 const HISTORY = [
   { role: 'user', content: 'crea una tarea' },
@@ -145,6 +149,76 @@ test('streamOpenAI(): Azure usa api-key, envía x-policy-id y traduce el bloqueo
     assert.equal(srv.requests[0].headers.authorization, undefined);
     assert.equal(srv.requests[0].headers['x-policy-id'], 'waifudesk-relaxed');
     await assert.rejects(streamOpenAI({ profile, apiKey: 'azkey', system: '', history: [] }), /Azure ha bloqueado[\s\S]*sexual/);
+  } finally {
+    await srv.close();
+  }
+});
+
+test('toAnthropicMessages(): imágenes y archivos adjuntos del usuario', () => {
+  const msgs = toAnthropicMessages([{ role: 'user', content: '¿qué ves?', attachments: [IMG, { kind: 'text', name: 'notas.txt', text: 'hola' }] }]);
+  assert.deepEqual(msgs[0].content, [
+    { type: 'image', source: { type: 'base64', media_type: 'image/png', data: 'QUJD' } },
+    { type: 'text', text: 'Attached file: notas.txt\n\nhola' },
+    { type: 'text', text: '¿qué ves?' },
+  ]);
+  // Fusión con un usuario anterior de solo texto.
+  const merged = toAnthropicMessages([{ role: 'user', content: 'a' }, { role: 'user', content: 'b', attachments: [IMG] }]);
+  assert.equal(merged.length, 1);
+  assert.deepEqual(merged[0].content.map((b) => b.type), ['text', 'image', 'text']);
+});
+
+test('toAnthropicMessages(): resultado de herramienta con imagen', () => {
+  const msgs = toAnthropicMessages([
+    { role: 'user', content: 'mira' },
+    { role: 'assistant', content: '', toolCalls: [{ id: 's1', name: 'screen_capture', input: {} }] },
+    { role: 'tool', toolCallId: 's1', name: 'screen_capture', content: 'Screenshot attached (10x10).', images: [IMG] },
+  ]);
+  assert.deepEqual(msgs[2].content[0], {
+    type: 'tool_result',
+    tool_use_id: 's1',
+    is_error: false,
+    content: [
+      { type: 'text', text: 'Screenshot attached (10x10).' },
+      { type: 'image', source: { type: 'base64', media_type: 'image/png', data: 'QUJD' } },
+    ],
+  });
+});
+
+test('toOpenAIMessages(): imagen del usuario como image_url y de herramienta en un mensaje user aparte', () => {
+  const msgs = toOpenAIMessages('s', [
+    { role: 'user', content: 'mira', attachments: [IMG] },
+    { role: 'assistant', content: '', toolCalls: [{ id: 's1', name: 'screen_capture', input: {} }, { id: 's2', name: 'get_current_time', input: {} }] },
+    { role: 'tool', toolCallId: 's1', name: 'screen_capture', content: 'Screenshot attached (10x10).', images: [IMG] },
+    { role: 'tool', toolCallId: 's2', name: 'get_current_time', content: '12:00' },
+    { role: 'assistant', content: 'Veo una ventana.' },
+  ]);
+  assert.deepEqual(msgs[1].content, [
+    { type: 'text', text: 'mira' },
+    { type: 'image_url', image_url: { url: 'data:image/png;base64,QUJD' } },
+  ]);
+  assert.deepEqual(msgs[3], { role: 'tool', tool_call_id: 's1', content: 'Screenshot attached (10x10).' });
+  assert.equal(msgs[4].role, 'tool');
+  assert.equal(msgs[5].role, 'user');
+  assert.deepEqual(msgs[5].content[1], { type: 'image_url', image_url: { url: 'data:image/png;base64,QUJD' } });
+  assert.match(msgs[5].content[0].text, /screen_capture/);
+  assert.equal(msgs[6].role, 'assistant');
+});
+
+test('runTurn(): si el modelo rechaza la imagen (HTTP 400) el error lo explica', async () => {
+  setLocale('es');
+  const srv = await serve((req, res) => json(res, { error: { message: 'image input is not supported for this model' } }, 400));
+  try {
+    await assert.rejects(
+      runTurn({
+        cfg: { assistant: { userName: '' }, personas: [{ id: 'n', name: 'Noa', personality: '' }], activePersonaId: 'n', content: {} },
+        profile: { kind: 'openai', baseUrl: srv.url, model: 'texto-solo', toolsEnabled: false },
+        apiKey: '',
+        history: [{ role: 'user', content: 'mira', attachments: [IMG] }],
+        toolbox: { list: [], run: async () => '' },
+        emit: () => {},
+      }),
+      (e) => e.message.startsWith(t('errors.visionUnsupported', { model: 'texto-solo', detail: '' }).slice(0, 20)) && e.message.includes('image input is not supported'),
+    );
   } finally {
     await srv.close();
   }
