@@ -4,7 +4,12 @@ import { setLocale } from '../src/shared/i18n/index.js';
 import { buildSystemPrompt, replyLanguage, repairHistory, trimHistory, runTurn } from '../src/main/llm/agent.js';
 import { serve, sendSSE } from './helpers/http.mjs';
 
-const cfg = (assistant = {}) => ({ assistant: { name: 'Noa', userName: 'mupsim', language: '', personality: 'P', extraInstructions: '', ...assistant } });
+const cfg = ({ name = 'Noa', personality = 'P', extraInstructions = '', ...assistant } = {}) => ({
+  assistant: { userName: 'mupsim', language: '', ...assistant },
+  personas: [{ id: 'noa', name, personality, extraInstructions }],
+  activePersonaId: 'noa',
+  content: { adultUnlockedAt: null },
+});
 
 test('replyLanguage(): el de la interfaz salvo que se escriba otro', () => {
   assert.equal(replyLanguage(cfg(), 'ru'), 'Russian (Русский)');
@@ -18,7 +23,7 @@ test('buildSystemPrompt(): idioma de respuesta, nombre y herramientas', () => {
   assert.match(p, /mupsim's computer/);
   assert.match(p, /Always reply in Ukrainian \(Українська\)/);
   assert.match(p, /You have tools to: manage tasks; open links\./);
-  assert.match(p, /EXTRA$/);
+  assert.match(p, /EXTRA\n[\s\S]*Hard limits/);
   assert.doesNotMatch(buildSystemPrompt(cfg(), [], 'es'), /You have tools/);
 });
 

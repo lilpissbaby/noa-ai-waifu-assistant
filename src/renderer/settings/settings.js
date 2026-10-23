@@ -1,6 +1,7 @@
 import { icons } from '../shared/icons.js';
 import { t, tHtml, setLocale, getLocale, SUPPORTED, LANGUAGES } from '../../shared/i18n/index.js';
 import { applyDom } from '../../shared/i18n/dom.js';
+import { assistantName } from '../../shared/personas.js';
 
 const wd = window.wd;
 const view = document.getElementById('view');
@@ -80,9 +81,6 @@ function text(path, { placeholder = '', type = 'text', onchange } = {}) {
       onchange?.(v);
     },
   });
-}
-function area(path, rows = 3, placeholder = '') {
-  return h('textarea', { rows, placeholder, value: getPath(pc.config, path) ?? '', oninput: (e) => save(path, e.target.value) });
 }
 function select(path, options, onchange) {
   const cur = getPath(pc.config, path);
@@ -229,14 +227,7 @@ const TABS = {
         h(
           'div',
           { class: 'grid' },
-          field(t('settings.general.assistantName'), text('assistant.name')),
           field(t('settings.general.userName'), text('assistant.userName', { placeholder: t('settings.general.userNamePlaceholder') })),
-          h('div', { class: 'full' }, field(t('settings.general.personality'), area('assistant.personality', 3))),
-          h(
-            'div',
-            { class: 'full' },
-            field(t('settings.general.extra'), area('assistant.extraInstructions', 4, t('settings.general.extraPlaceholder')), t('settings.general.extraHelp')),
-          ),
         ),
       ),
       card(
@@ -276,7 +267,7 @@ const TABS = {
         null,
         h('div', {
           class: 'desc',
-          html: tHtml('settings.general.howToText', { name: c.assistant.name }),
+          html: tHtml('settings.general.howToText', { name: assistantName(c) }),
         }),
       ),
       h('p', { class: 'muted small version' }, `Waifu Desk ${pc.version || ''}`),
@@ -394,7 +385,7 @@ const TABS = {
         ? h(
             'section',
             { class: 'card welcome' },
-            h('h2', {}, t('settings.models.welcomeTitle', { name: c.assistant.name })),
+            h('h2', {}, t('settings.models.welcomeTitle', { name: assistantName(c) })),
             h('p', { class: 'desc', html: t('settings.models.welcomeText') }),
           )
         : null,

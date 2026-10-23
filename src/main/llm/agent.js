@@ -4,6 +4,7 @@ import { streamAnthropic } from './anthropic.js';
 import { streamOpenAI } from './openai.js';
 import { getLocale, localeTag, LANGUAGES } from '../../shared/i18n/index.js';
 import { EmotionTagFilter, EMOTION_PROMPT, stripEmotionTags } from './emotion.js';
+import { activePersona, buildPersonaPrompt } from '../../shared/personas.js';
 
 const MAX_STEPS = 10;
 
@@ -18,14 +19,14 @@ export function replyLanguage(cfg, locale = getLocale()) {
 // El prompt de sistema va en inglés (lo entienden igual todos los modelos); la respuesta sale
 // en el idioma elegido.
 export function buildSystemPrompt(cfg, toolList, locale = getLocale()) {
-  const a = cfg.assistant;
   const now = new Date();
   const date = now.toLocaleString(localeTag(locale), { dateStyle: 'full', timeStyle: 'short' });
   const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
   const groups = [...new Set(toolList.map((t) => t.group).filter(Boolean))];
+  const persona = buildPersonaPrompt(activePersona(cfg), cfg).split('\n');
+  const [intro] = persona;
   const lines = [
-    `You are ${a.name}, an assistant shaped like an anime character who lives floating on the desktop of ${a.userName || 'your user'}'s computer.`,
-    `Personality: ${a.personality}`,
+    intro,
     `Always reply in ${replyLanguage(cfg, locale)} unless you are asked to use another language.`,
     'Many of your replies are read aloud: keep them short and natural (1-4 sentences) unless asked for detail.',
     'When you give code, commands, long lists or data, use markdown; only the plain text is spoken.',
@@ -39,7 +40,8 @@ export function buildSystemPrompt(cfg, toolList, locale = getLocale()) {
     );
   }
   if (cfg.ui?.emotions !== false) lines.push(EMOTION_PROMPT);
-  if (a.extraInstructions?.trim()) lines.push(a.extraInstructions.trim());
+  // Personalidad, filtros, instrucciones extra y, al final, los límites fijos.
+  lines.push(...persona.slice(1));
   return lines.join('\n');
 }
 

@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { resolveLocale, tIn, t } from '../shared/i18n/index.js';
+import { migratePersonas, normalizePersona } from '../shared/personas.js';
 
 export const userDir = () => app.getPath('userData');
 const configPath = () => path.join(userDir(), 'config.json');
@@ -47,12 +48,13 @@ export function defaultConfig(locale = resolveLocale('auto', systemLocales())) {
   return {
     version: 1,
     assistant: {
-      name: 'Noa',
       userName: '',
       language: '', // vacío = el idioma de la interfaz
-      personality: tIn(locale, 'defaults.personality'),
-      extraInstructions: '',
     },
+    // Personajes (src/shared/personas.js): forma de ser, filtros, voz y skin de cada uno.
+    personas: [normalizePersona({ id: 'noa', name: 'Noa', personality: tIn(locale, 'defaults.personality'), source: { kind: 'template', name: 'default' } })],
+    activePersonaId: 'noa',
+    content: { adultUnlockedAt: null },
     profiles: [
       { id: claudeId, ...presets.anthropic, name: 'Claude Sonnet', maxTokens: 4096, temperature: null },
       { id: 'hermes', ...presets.hermes, maxTokens: 4096, temperature: null },
@@ -119,8 +121,15 @@ export function loadConfig() {
   } catch {
     /* primera ejecución */
   }
-  cache = deepMerge(defaultConfig(), saved);
+  cache = deepMerge(defaultConfig(), migratePersonas(saved));
+  cache.personas = (cache.personas.length ? cache.personas : defaultConfig().personas).map(normalizePersona);
+  if (!cache.personas.some((p) => p.id === cache.activePersonaId)) cache.activePersonaId = cache.personas[0].id;
   return cache;
+}
+
+// Solo para los tests: obliga a releer config.json.
+export function resetConfigCache() {
+  cache = null;
 }
 
 export function saveConfig(next) {

@@ -14,6 +14,7 @@ import { testHermes } from './tools/hermes.js';
 import { testPaperclip } from './tools/paperclip.js';
 import { transcribe, synthesize, speakable, SentenceChunker } from './voice.js';
 import { isBundleAllowed } from './bundle-allowed.js';
+import { assistantName, activePersona } from '../shared/personas.js';
 import { listMotions, importMotion, updateMotion, deleteMotion } from './motions.js';
 import { APP_ROOT, listSkins, getSkin, saveSkin, deleteSkin, fetchImage, segmentModelStatus, downloadSegmentModel, stageVrm, downloadVrm, saveVrmSkin, clearVrmTmp } from './skins.js';
 import * as logger from './log.js';
@@ -173,7 +174,7 @@ function createChatWindow() {
     skipTaskbar: false,
     alwaysOnTop: cfg.ui.alwaysOnTop,
     backgroundColor: '#15121c',
-    title: t('chat.windowTitle', { name: cfg.assistant.name }),
+    title: t('chat.windowTitle', { name: assistantName(cfg) }),
     show: false,
     webPreferences: baseWebPrefs,
   });
@@ -271,7 +272,7 @@ function refreshTrayMenu() {
   const cfg = loadConfig();
   tray.setContextMenu(
     Menu.buildFromTemplate([
-      { label: t('tray.toggle', { name: cfg.assistant.name }), click: toggleAvatar },
+      { label: t('tray.toggle', { name: assistantName(cfg) }), click: toggleAvatar },
       { label: t('tray.openChat'), click: () => toggleChat(true) },
       { label: t('menu.talk'), click: () => sendTo('avatar', 'voice:record-toggle') },
       { type: 'separator' },
@@ -399,14 +400,15 @@ function applyLocale(cfg = loadConfig()) {
   if (userChange) adaptDefaultsToLocale(cfg, prev, next);
   if (wins.settings && !wins.settings.isDestroyed()) wins.settings.setTitle(t('settings.windowTitle'));
   if (wins.editor && !wins.editor.isDestroyed()) wins.editor.setTitle(t('editor.windowTitle'));
-  if (wins.chat && !wins.chat.isDestroyed()) wins.chat.setTitle(t('chat.windowTitle', { name: cfg.assistant.name }));
+  if (wins.chat && !wins.chat.isDestroyed()) wins.chat.setTitle(t('chat.windowTitle', { name: assistantName(cfg) }));
 }
 
 // Al cambiar de idioma, lo que sigue con el valor por defecto del idioma anterior pasa al nuevo:
 // la personalidad (si no la has tocado) y el idioma del dictado.
 function adaptDefaultsToLocale(cfg, prev, next) {
   const patch = {};
-  if (cfg.assistant.personality === tIn(prev, 'defaults.personality')) patch.assistant = { personality: tIn(next, 'defaults.personality') };
+  const persona = activePersona(cfg);
+  if (persona.personality === tIn(prev, 'defaults.personality')) patch.personas = cfg.personas.map((p) => (p.id === persona.id ? { ...p, personality: tIn(next, 'defaults.personality') } : p));
   if (cfg.voice.stt.language === prev) patch.voice = { stt: { language: next } };
   if (Object.keys(patch).length) patchConfig(patch);
 }

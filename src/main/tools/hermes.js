@@ -4,6 +4,7 @@ import { net } from 'electron';
 import { readSSE, httpError } from '../llm/sse.js';
 import { getSecret } from '../config.js';
 import { t } from '../../shared/i18n/index.js';
+import { assistantName } from '../../shared/personas.js';
 
 export function hermesTools(cfg) {
   const h = cfg.connectors.hermes;
@@ -38,7 +39,7 @@ export function hermesTools(cfg) {
               messages: [
                 {
                   role: 'system',
-                  content: `Request forwarded by ${cfg.assistant.name}, the user's desktop assistant. Return a clear, concise result.`,
+                  content: `Request forwarded by ${assistantName(cfg)}, the user's desktop assistant. Return a clear, concise result.`,
                 },
                 { role: 'user', content: context ? `${task}\n\nContext:\n${context}` : task },
               ],

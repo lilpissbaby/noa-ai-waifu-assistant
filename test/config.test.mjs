@@ -8,11 +8,14 @@ import { setLocale } from '../src/shared/i18n/index.js';
 
 test('defaultConfig(): textos por defecto en el idioma del sistema', () => {
   const ru = defaultConfig('ru');
-  assert.match(ru.assistant.personality, /остроумная/);
+  assert.match(ru.personas[0].personality, /остроумная/);
+  assert.equal(ru.personas[0].name, 'Noa');
+  assert.equal(ru.activePersonaId, ru.personas[0].id);
+  assert.equal(ru.content.adultUnlockedAt, null);
   assert.equal(ru.voice.stt.language, 'ru');
   assert.equal(ru.ui.language, 'auto');
   assert.equal(ru.assistant.language, '');
-  assert.match(defaultConfig('es').assistant.personality, /ingeniosa/);
+  assert.match(defaultConfig('es').personas[0].personality, /ingeniosa/);
 });
 
 test('effectiveLocale(): «auto» sigue al sistema y un idioma fijo manda', () => {
@@ -34,7 +37,7 @@ test('providerPresets(): el preset personalizado se traduce', () => {
 
 test('patchConfig(): mezcla en profundidad, sustituye arrays y guarda en disco', () => {
   const before = loadConfig();
-  assert.equal(before.assistant.name, 'Noa');
+  assert.equal(before.personas[0].name, 'Noa');
   patchConfig({ ui: { scale: 1.5 }, connectors: { webhooks: [{ id: 'w', name: 'a' }] } });
   const saved = JSON.parse(fs.readFileSync(path.join(__test.userData, 'config.json'), 'utf8'));
   assert.equal(saved.ui.scale, 1.5);
@@ -53,4 +56,19 @@ test('secretos: se guardan, se leen y se borran (sin almacén seguro, ofuscados)
   setSecret('profile:x', '');
   assert.equal(hasSecret('profile:x'), false);
   assert.equal(getSecret('profile:x'), '');
+});
+
+test('loadConfig(): una configuración de la 0.3 se migra a personajes', async () => {
+  const { resetConfigCache } = await import('../src/main/config.js');
+  fs.writeFileSync(path.join(__test.userData, 'config.json'), JSON.stringify({ assistant: { name: 'Kira', personality: 'Seria.', userName: 'mupsim' }, ui: { skinId: 'noa-3d' } }));
+  resetConfigCache();
+  const cfg = loadConfig();
+  assert.equal(cfg.personas.length, 1);
+  assert.equal(cfg.personas[0].name, 'Kira');
+  assert.equal(cfg.personas[0].personality, 'Seria.');
+  assert.equal(cfg.activePersonaId, cfg.personas[0].id);
+  assert.equal(cfg.assistant.userName, 'mupsim');
+  assert.equal(cfg.ui.skinId, 'noa-3d');
+  fs.rmSync(path.join(__test.userData, 'config.json'));
+  resetConfigCache();
 });

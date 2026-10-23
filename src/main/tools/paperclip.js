@@ -2,6 +2,7 @@
 import { getSecret } from '../config.js';
 import { compact, jsonRequest, pick } from './util.js';
 import { t } from '../../shared/i18n/index.js';
+import { assistantName } from '../../shared/personas.js';
 
 const STATUSES = ['backlog', 'todo', 'in_progress', 'in_review', 'blocked', 'done', 'cancelled'];
 const PRIORITIES = ['critical', 'high', 'medium', 'low'];
@@ -177,7 +178,7 @@ export function paperclipTools(cfg) {
             {
               source: 'on_demand',
               triggerDetail: 'manual',
-              reason: reason || `Requested from ${cfg.assistant.name}`,
+              reason: reason || `Requested from ${assistantName(cfg)}`,
               ...(issueId ? { payload: { issueId } } : {}),
             },
             signal,

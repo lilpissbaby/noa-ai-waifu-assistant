@@ -2,6 +2,7 @@ import { renderMarkdown, escapeHtml } from '../shared/md.js';
 import { icons } from '../shared/icons.js';
 import { t, tHtml, setLocale, getLocale } from '../../shared/i18n/index.js';
 import { applyDom } from '../../shared/i18n/dom.js';
+import { assistantName } from '../../shared/personas.js';
 
 const wd = window.wd;
 const $ = (id) => document.getElementById(id);
@@ -274,11 +275,11 @@ function applyConfig(pc) {
   const localeChanged = pc.locale !== getLocale();
   setLocale(pc.locale);
   applyDom();
-  $('assistantName').textContent = cfg.assistant.name;
-  document.title = t('chat.windowTitle', { name: cfg.assistant.name });
+  $('assistantName').textContent = assistantName(cfg);
+  document.title = t('chat.windowTitle', { name: assistantName(cfg) });
   $('hello').innerHTML = cfg.assistant.userName
-    ? tHtml('chat.helloUser', { user: cfg.assistant.userName, name: cfg.assistant.name })
-    : tHtml('chat.hello', { name: cfg.assistant.name });
+    ? tHtml('chat.helloUser', { user: cfg.assistant.userName, name: assistantName(cfg) })
+    : tHtml('chat.hello', { name: assistantName(cfg) });
   setBusy(busy);
   if (localeChanged) {
     showState(lastState);

@@ -112,10 +112,16 @@ export default async function smoke(api) {
       await sleep(1500);
       const r = await av.webContents.executeJavaScript(`(async () => {
         const r = window.__wd.renderer, st = window.__wd.stage;
-        const h = r.headAnchorCss();
         const f0 = st.frames;
         await new Promise((ok) => setTimeout(ok, 1000));
-        return { alpha: h ? r.alphaAtCss(h[0], h[1] + 25, 2) : -1, ms: r.avgRenderMs(), running: st.running, fps: st.frames - f0, rects: r.shapeRects(6, 4).length };
+        // Sin GPU cada fotograma tarda cientos de ms: se espera a que la máscara refleje la silueta.
+        let alpha = -1;
+        for (let i = 0; i < 40 && !(alpha > 40); i++) {
+          const hh = r.headAnchorCss();
+          alpha = hh ? r.alphaAtCss(hh[0], hh[1] + 25, 2) : -1;
+          if (!(alpha > 40)) await new Promise((ok) => setTimeout(ok, 250));
+        }
+        return { alpha, ms: r.avgRenderMs(), running: st.running, fps: st.frames - f0, rects: r.shapeRects(6, 4).length };
       })()`);
       if (!(r.alpha > 40)) problems.push(`3D: la waifu no se ve bajo la cabeza (alfa ${r.alpha})`);
       if (!r.running) problems.push('3D: el bucle de animación no está en marcha');
@@ -131,7 +137,7 @@ export default async function smoke(api) {
   }
 
   // Al cambiar de idioma, la personalidad por defecto sigue al idioma (acabamos en chino).
-  if (api.loadConfig().assistant.personality !== tIn(SUPPORTED.at(-1), 'defaults.personality')) problems.push('la personalidad por defecto no cambió de idioma');
+  if (api.loadConfig().personas[0].personality !== tIn(SUPPORTED.at(-1), 'defaults.personality')) problems.push('la personalidad por defecto no cambió de idioma');
 
   // Conversación completa en español: llamada a herramienta + respuesta en streaming.
   await setLanguage(api, 'es');

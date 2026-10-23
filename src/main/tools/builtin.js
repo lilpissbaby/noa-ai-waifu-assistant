@@ -4,6 +4,7 @@ import { shell, clipboard, Notification } from 'electron';
 import { execFile } from 'node:child_process';
 import os from 'node:os';
 import { t, localeTag } from '../../shared/i18n/index.js';
+import { assistantName } from '../../shared/personas.js';
 
 export function builtinTools(cfg) {
   const tools = [
@@ -82,7 +83,7 @@ export function builtinTools(cfg) {
       },
       confirm: (input) => ({
         title: t('confirm.command.title'),
-        message: t('confirm.command.message', { name: cfg.assistant.name }),
+        message: t('confirm.command.message', { name: assistantName(cfg) }),
         detail: `${input.command}${input.cwd ? `\n\n${t('confirm.command.folder', { path: input.cwd })}` : ''}`,
         allowAlways: false,
       }),
