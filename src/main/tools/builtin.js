@@ -38,7 +38,7 @@ export function builtinTools(cfg) {
       group: 'read and write the clipboard',
       description: 'Reads the text currently in the user\'s clipboard.',
       schema: { type: 'object', properties: {} },
-      run: async () => clipboard.readText().slice(0, 12000) || '(clipboard is empty)',
+      run: async () => (await clipboard.readText()).slice(0, 12000) || '(clipboard is empty)',
     },
     {
       name: 'clipboard_write',
@@ -46,7 +46,7 @@ export function builtinTools(cfg) {
       description: "Copies text to the user's clipboard.",
       schema: { type: 'object', properties: { text: { type: 'string' } }, required: ['text'] },
       run: async ({ text }) => {
-        clipboard.writeText(String(text ?? ''));
+        await clipboard.writeText(String(text ?? ''));
         return 'Copied to the clipboard';
       },
     },

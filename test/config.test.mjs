@@ -72,3 +72,10 @@ test('loadConfig(): una configuración de la 0.3 se migra a personajes', async (
   fs.rmSync(path.join(__test.userData, 'config.json'));
   resetConfigCache();
 });
+
+test('patchConfig: null explícito sustituye una lista (volver a las acciones de serie)', () => {
+  patchConfig({ productivity: { quickActions: [{ id: 'a', name: 'A', prompt: '{text}', copyResult: false }] } });
+  assert.equal(loadConfig().productivity.quickActions.length, 1);
+  patchConfig({ productivity: { quickActions: null } });
+  assert.equal(loadConfig().productivity.quickActions, null);
+});

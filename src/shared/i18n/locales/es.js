@@ -300,6 +300,8 @@ export default {
       openPersonas: 'Abrir Personajes',
       hotkeyLook: 'Atajo «Mira esto»',
       hotkeyLookHelp: 'Captura la pantalla y abre el chat con la imagen adjunta para preguntarle.',
+      hotkeyQuick: 'Atajo de acciones rápidas',
+      hotkeyQuickHelp: 'Con un texto copiado, abre el menú de acciones junto al cursor.',
     },
     models: {
       lead: 'Cada perfil es un modelo con su API key. Cambia de uno a otro desde el chat o el menú del avatar. Las claves se guardan cifradas con el almacén seguro del sistema.',
@@ -625,6 +627,14 @@ export default {
       foldersDesc: 'Las únicas carpetas donde puede listar, buscar y leer archivos (texto, PDF y Word). Para escribir siempre te pide permiso. También puedes arrastrar archivos al chat.',
       foldersEmpty: 'Ninguna: no puede tocar tus archivos.',
       addFolder: 'Añadir carpeta…',
+      quickTitle: 'Acciones rápidas',
+      quickDesc: 'Copia un texto, pulsa el atajo ({hotkey}) y elige qué hacer con él. En el texto de la orden, {text} es lo copiado y {language} el idioma de las respuestas.',
+      quickName: 'Nombre',
+      quickPrompt: 'Orden',
+      quickCopy: 'Copiar el resultado al portapapeles',
+      quickAdd: 'Añadir acción',
+      quickReset: 'Restaurar las de serie',
+      quickNew: 'Nueva acción',
     },
   },
   editor: {
@@ -856,5 +866,33 @@ export default {
   reminders: {
     fire: 'Recordatorio: {text}',
     late: 'Recordatorio con retraso (era para las {time}): {text}',
+  },
+  quickActions: {
+    translate: {
+      name: 'Traducir',
+      prompt: "Traduce este texto al {language} (si ya está en {language}, tradúcelo al inglés). Responde solo con la traducción:\n\n{text}",
+    },
+    summarize: {
+      name: 'Resumir',
+      prompt: "Resume este texto en pocas frases:\n\n{text}",
+    },
+    correct: {
+      name: 'Corregir',
+      prompt: "Corrige la ortografía y la gramática de este texto sin cambiar su tono ni su idioma. Responde solo con el texto corregido:\n\n{text}",
+    },
+    explain: {
+      name: 'Explicar',
+      prompt: "Explícame esto de forma sencilla:\n\n{text}",
+    },
+    reply: {
+      name: 'Responder',
+      prompt: "Escribe una respuesta breve y amable a este mensaje, en su mismo idioma. Responde solo con la respuesta:\n\n{text}",
+    },
+  },
+  quick: {
+    menuTitle: 'Con el texto copiado…',
+    edit: 'Editar acciones…',
+    empty: 'Copia primero un texto (Ctrl+C) y vuelve a pulsar el atajo.',
+    copied: 'Copiado al portapapeles',
   },
 };

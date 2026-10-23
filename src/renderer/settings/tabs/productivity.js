@@ -1,6 +1,7 @@
 // Ajustes → Productividad: cómo avisa la asistente y lo que tiene pendiente (recordatorios).
 // Cada bloque es una función que devuelve una tarjeta; las tareas siguientes añaden las suyas.
 import { localeTag } from '../../../shared/i18n/index.js';
+import { actionsFor } from '../../../shared/quick-actions.js';
 
 let unsubscribe = null;
 
@@ -174,7 +175,128 @@ function foldersCard(ui) {
   );
 }
 
-export const PRODUCTIVITY_SECTIONS = [noticesCard, remindersCard, memoryCard, notesCard, foldersCard];
+function quickActionsCard(ui) {
+  const { t, card, h, wd, icons, field, getLocale } = ui;
+  const cfg = ui.getPc().config;
+  const actions = actionsFor(cfg, getLocale()).map((a) => ({ ...a }));
+  const box = h('div', { class: 'quick-list' });
+  let timer = null;
+  const store = (now = false) => {
+    clearTimeout(timer);
+    ui.markEdit();
+    timer = setTimeout(
+      async () => {
+        ui.setPc(await wd.invoke('cfg:patch', { productivity: { quickActions: actions } }));
+        ui.markEdit();
+        ui.toast(t('settings.saved'));
+      },
+      now ? 0 : 450,
+    );
+  };
+  const paint = () => {
+    box.innerHTML = '';
+    actions.forEach((a, i) =>
+      box.append(
+        h(
+          'div',
+          { class: 'quick-item' },
+          h(
+            'div',
+            { class: 'grid' },
+            field(
+              t('settings.productivity.quickName'),
+              h('input', {
+                type: 'text',
+                value: a.name,
+                oninput: (e) => {
+                  a.name = e.target.value;
+                  store();
+                },
+              }),
+            ),
+            h(
+              'div',
+              { class: 'row', style: 'align-self:end;justify-content:space-between;flex-wrap:nowrap' },
+              ui.h(
+                'label',
+                { class: 'check' },
+                h('input', {
+                  type: 'checkbox',
+                  checked: a.copyResult,
+                  onchange: (e) => {
+                    a.copyResult = e.target.checked;
+                    store(true);
+                  },
+                }),
+                t('settings.productivity.quickCopy'),
+              ),
+              h('button', {
+                class: 'btn ghost danger',
+                html: icons.trash,
+                title: t('settings.common.delete'),
+                onclick: () => {
+                  actions.splice(i, 1);
+                  store(true);
+                  paint();
+                },
+              }),
+            ),
+            h(
+              'div',
+              { class: 'full' },
+              field(
+                t('settings.productivity.quickPrompt'),
+                h('textarea', {
+                  rows: 3,
+                  value: a.prompt,
+                  oninput: (e) => {
+                    a.prompt = e.target.value;
+                    store();
+                  },
+                }),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  };
+  paint();
+  return card(
+    t('settings.productivity.quickTitle'),
+    t('settings.productivity.quickDesc', { hotkey: cfg.ui.hotkeyQuick || '—' }),
+    box,
+    h(
+      'div',
+      { class: 'row', style: 'margin-top:10px' },
+      h(
+        'button',
+        {
+          class: 'btn',
+          onclick: () => {
+            actions.push({ id: `custom-${Date.now().toString(36)}`, name: t('settings.productivity.quickNew'), prompt: '{text}', copyResult: false });
+            store(true);
+            paint();
+          },
+        },
+        t('settings.productivity.quickAdd'),
+      ),
+      h(
+        'button',
+        {
+          class: 'btn ghost',
+          onclick: async () => {
+            ui.setPc(await wd.invoke('cfg:patch', { productivity: { quickActions: null } }));
+            ui.render();
+          },
+        },
+        t('settings.productivity.quickReset'),
+      ),
+    ),
+  );
+}
+
+export const PRODUCTIVITY_SECTIONS = [noticesCard, remindersCard, memoryCard, notesCard, foldersCard, quickActionsCard];
 
 export function productivityTab(ui) {
   return [ui.h('h1', {}, ui.t('settings.nav.productivity')), ui.h('p', { class: 'lead' }, ui.t('settings.productivity.lead')), ...PRODUCTIVITY_SECTIONS.map((section) => section(ui))];

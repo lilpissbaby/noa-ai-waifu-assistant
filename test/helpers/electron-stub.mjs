@@ -33,9 +33,12 @@ export const net = { fetch: (...args) => globalThis.fetch(...args) };
 
 export const shell = { openExternal: async () => {}, openPath: async () => '' };
 
+// Como en Electron 44: el portapapeles del proceso principal es asíncrono.
 export const clipboard = {
-  readText: () => __test.clipboard,
-  writeText: (s) => (__test.clipboard = s),
+  readText: async () => __test.clipboard,
+  writeText: async (s) => {
+    __test.clipboard = s;
+  },
 };
 
 export class Notification {

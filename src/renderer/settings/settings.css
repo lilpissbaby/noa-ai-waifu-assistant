@@ -449,3 +449,15 @@ details.help ol {
 .piper-catalog .template-row {
   margin-bottom: 10px;
 }
+
+/* Acciones rápidas */
+.quick-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.quick-item {
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}

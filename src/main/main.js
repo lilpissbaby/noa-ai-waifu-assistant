@@ -1,11 +1,11 @@
 // Waifu Desk — proceso principal de Electron.
-import { app, BrowserWindow, ipcMain, protocol, net, screen, Tray, Menu, nativeImage, globalShortcut, dialog, session, shell, Notification, desktopCapturer } from 'electron';
+import { app, BrowserWindow, ipcMain, protocol, net, screen, Tray, Menu, nativeImage, globalShortcut, dialog, session, shell, Notification, desktopCapturer, clipboard } from 'electron';
 import path from 'node:path';
 import fs from 'node:fs';
 import { pathToFileURL } from 'node:url';
 import { loadConfig, patchConfig, saveConfig, getSecret, setSecret, hasSecret, secureStorageAvailable, userDir, uid, providerPresets, effectiveLocale } from './config.js';
 import { t, tIn, setLocale, getLocale, localeTag, languageFromName, SUPPORTED, LANGUAGES } from '../shared/i18n/index.js';
-import { runTurn } from './llm/agent.js';
+import { runTurn, replyLanguage } from './llm/agent.js';
 import { listAnthropicModels } from './llm/anthropic.js';
 import { listOpenAIModels } from './llm/openai.js';
 import { buildToolbox } from './tools/index.js';
@@ -23,6 +23,7 @@ import { Reminders } from './productivity/reminders.js';
 import { listMemory, forgetMemory } from './productivity/memory.js';
 import { saveImageAttachment, attachmentsDir, clearAttachments } from './attachments.js';
 import { attachmentsFromPaths } from './productivity/docs.js';
+import { actionsFor, composeAction, clipboardText } from '../shared/quick-actions.js';
 import { notesDir } from './tools/notes.js';
 import { listVoices, fetchCatalog, catalogForLanguage, installFromCatalog, importVoiceFiles, deleteVoice } from './voices.js';
 import { APP_ROOT, listSkins, getSkin, saveSkin, deleteSkin, fetchImage, segmentModelStatus, downloadSegmentModel, stageVrm, downloadVrm, saveVrmSkin, clearVrmTmp } from './skins.js';
@@ -452,6 +453,7 @@ function registerShortcuts() {
   tryReg(cfg.ui.hotkeyChat, () => toggleChat());
   tryReg(cfg.ui.hotkeyTalk, () => sendTo('avatar', 'voice:record-toggle'));
   tryReg(cfg.ui.hotkeyLook, lookAtScreen);
+  tryReg(cfg.ui.hotkeyQuick, showQuickMenu);
 }
 
 // Seguimiento del cursor para que gire un poco la cabeza.
@@ -641,6 +643,41 @@ async function lookAtScreen() {
   }
 }
 
+// ---------------------------------------------------------------- acciones rápidas
+// Atajo global: menú junto al cursor con lo que se puede hacer con el texto copiado.
+// Electron 44: clipboard.readText/writeText devuelven promesas.
+async function runQuickAction(action) {
+  const cfg = loadConfig();
+  const msg = composeAction(action, await clipboard.readText(), { language: replyLanguage(cfg) });
+  if (!msg) return sendTo('avatar', 'avatar:announce', { text: t('quick.empty') });
+  toggleChat(true);
+  return sendMessage(msg, 'text', {
+    onDone: (reply) => {
+      if (!action.copyResult || !reply?.trim()) return;
+      clipboard.writeText(clipboardText(reply)).then(() => sendTo('avatar', 'avatar:announce', { text: t('quick.copied') }));
+    },
+  });
+}
+
+async function showQuickMenu() {
+  const text = (await clipboard.readText()).trim();
+  if (!text) return sendTo('avatar', 'avatar:announce', { text: t('quick.empty') });
+  const cfg = loadConfig();
+  const snippet = text.replace(/\s+/g, ' ');
+  const menu = Menu.buildFromTemplate([
+    { label: `${t('quick.menuTitle')} «${snippet.length > 40 ? `${snippet.slice(0, 39)}…` : snippet}»`, enabled: false },
+    { type: 'separator' },
+    ...actionsFor(cfg, getLocale()).map((a) => ({ label: a.name, click: () => runQuickAction(a) })),
+    { type: 'separator' },
+    { label: t('quick.edit'), click: () => openWindow('settings', { query: { tab: 'productivity' } }) },
+  ]);
+  const av = wins.avatar;
+  if (!av || av.isDestroyed()) return;
+  const pt = screen.getCursorScreenPoint();
+  const b = av.getBounds();
+  menu.popup({ window: av, x: pt.x - b.x, y: pt.y - b.y });
+}
+
 // Adjuntos que llegan del chat: se aceptan solo los nuestros (imagen guardada) o texto acotado.
 function cleanAttachments(list) {
   const out = [];
@@ -792,7 +829,8 @@ function enqueueSpeech(sentence) {
   });
 }
 
-async function sendMessage(text, via = 'text', { attachments = [] } = {}) {
+// onDone(textoFinal): al terminar bien el turno (acciones rápidas que copian el resultado).
+async function sendMessage(text, via = 'text', { attachments = [], onDone = null } = {}) {
   text = String(text || '').trim();
   attachments = cleanAttachments(attachments);
   if (!text && !attachments.length) return;
@@ -849,9 +887,14 @@ async function sendMessage(text, via = 'text', { attachments = [] } = {}) {
 
   const done = (async () => {
     try {
-      await runTurn({ cfg, profile, apiKey, history, toolbox, emit, signal: ctrl.signal });
+      const final = await runTurn({ cfg, profile, apiKey, history, toolbox, emit, signal: ctrl.signal });
       chunker?.flush();
       chatEvent({ type: 'done' });
+      try {
+        onDone?.(final);
+      } catch (e) {
+        logger.warn(`al terminar: ${e.message}`);
+      }
       setState('idle');
     } catch (e) {
       const aborted = ctrl.signal.aborted || e.name === 'AbortError';
@@ -1257,6 +1300,8 @@ function runAutomation(file) {
     runTool: (name, input) => buildToolbox(loadConfig(), null, services).run(name, input),
     captureScreen,
     lookAtScreen,
+    runQuickAction,
+    clipboard,
     broadcast,
     publicConfig,
     loadConfig,

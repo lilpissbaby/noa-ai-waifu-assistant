@@ -216,6 +216,19 @@ export default async function smoke(api) {
     if (!got.includes('Ventas del trimestre: 42')) problems.push(`archivos: el PDF no llegó al modelo (${got.slice(0, 200)})`);
   }
 
+  // Acción rápida «Traducir» sobre el portapapeles: se compone el mensaje y se copia la respuesta.
+  await api.clipboard.writeText('Good morning team, the release went fine');
+  const done5 = waitForChat(api, (e) => e.type === 'done' || e.type === 'error');
+  const translate = (api.loadConfig().productivity.quickActions || (await import('../../src/shared/quick-actions.js')).defaultActions('es')).find((a) => a.id === 'translate');
+  await api.runQuickAction(translate);
+  await done5;
+  await sleep(300);
+  const lastUser = await api.wins.chat.webContents.executeJavaScript(`[...document.querySelectorAll('.msg.user')].at(-1)?.textContent || ''`);
+  if (!lastUser.includes('Good morning team') || !lastUser.startsWith('Traduce')) problems.push(`acciones rápidas: mensaje inesperado ${JSON.stringify(lastUser.slice(0, 80))}`);
+  await sleep(300);
+  const copied = await api.clipboard.readText();
+  if (!copied.startsWith('¡Hola! Soy Noa')) problems.push(`acciones rápidas: el portapapeles no tiene la respuesta (${copied.slice(0, 60)})`);
+
   // Recordatorio de 1 s: llega como aviso al chat y al bocadillo del avatar.
   const announced = waitForChat(api, (e) => e.type === 'announce');
   const rem = await api.runTool('reminder_create', { text: 'Estirar las piernas', in_minutes: 1 / 60 });

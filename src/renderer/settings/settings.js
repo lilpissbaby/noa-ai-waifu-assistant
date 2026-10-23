@@ -356,6 +356,7 @@ const TABS = {
           field(t('settings.general.hotkeyChat'), text('ui.hotkeyChat'), t('settings.general.hotkeyChatHelp')),
           field(t('settings.general.hotkeyTalk'), text('ui.hotkeyTalk'), t('settings.general.hotkeyTalkHelp')),
           field(t('settings.general.hotkeyLook'), text('ui.hotkeyLook'), t('settings.general.hotkeyLookHelp')),
+          field(t('settings.general.hotkeyQuick'), text('ui.hotkeyQuick'), t('settings.general.hotkeyQuickHelp')),
           h(
             'div',
             { class: 'full' },

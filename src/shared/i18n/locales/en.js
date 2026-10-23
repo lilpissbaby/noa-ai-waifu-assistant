@@ -299,6 +299,8 @@ export default {
       openPersonas: 'Open Characters',
       hotkeyLook: '“Look at this” shortcut',
       hotkeyLookHelp: 'Takes a screenshot and opens the chat with it attached so you can ask about it.',
+      hotkeyQuick: 'Quick actions shortcut',
+      hotkeyQuickHelp: 'With some text copied, opens the actions menu next to the cursor.',
     },
     models: {
       lead: 'Each profile is a model with its own API key. Switch between them from the chat or the avatar menu. Keys are stored encrypted in the system keychain.',
@@ -622,6 +624,14 @@ export default {
       foldersDesc: 'The only folders where she can list, search and read files (text, PDF and Word). Writing always asks you first. You can also drag files into the chat.',
       foldersEmpty: 'None: she cannot touch your files.',
       addFolder: 'Add folder…',
+      quickTitle: 'Quick actions',
+      quickDesc: 'Copy some text, press the shortcut ({hotkey}) and choose what to do with it. In the instruction, {text} is what you copied and {language} the reply language.',
+      quickName: 'Name',
+      quickPrompt: 'Instruction',
+      quickCopy: 'Copy the result to the clipboard',
+      quickAdd: 'Add action',
+      quickReset: 'Restore the defaults',
+      quickNew: 'New action',
     },
   },
   editor: {
@@ -853,5 +863,33 @@ export default {
   reminders: {
     fire: 'Reminder: {text}',
     late: 'Late reminder (it was for {time}): {text}',
+  },
+  quickActions: {
+    translate: {
+      name: 'Translate',
+      prompt: "Translate this text into {language} (if it is already in {language}, translate it into Spanish). Reply only with the translation:\n\n{text}",
+    },
+    summarize: {
+      name: 'Summarize',
+      prompt: "Summarize this text in a few sentences:\n\n{text}",
+    },
+    correct: {
+      name: 'Proofread',
+      prompt: "Fix the spelling and grammar of this text without changing its tone or language. Reply only with the corrected text:\n\n{text}",
+    },
+    explain: {
+      name: 'Explain',
+      prompt: "Explain this to me in simple terms:\n\n{text}",
+    },
+    reply: {
+      name: 'Reply',
+      prompt: "Write a short, friendly reply to this message, in its same language. Reply only with the answer:\n\n{text}",
+    },
+  },
+  quick: {
+    menuTitle: 'With the copied text…',
+    edit: 'Edit actions…',
+    empty: 'Copy some text first (Ctrl+C) and press the shortcut again.',
+    copied: 'Copied to the clipboard',
   },
 };

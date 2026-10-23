@@ -103,6 +103,7 @@ export function defaultConfig(locale = resolveLocale('auto', systemLocales())) {
       memory: true, // recuerda datos del usuario entre conversaciones (userData/memory.json)
       notesDir: '', // vacío = userData/notes
       folders: [], // carpetas donde puede listar, buscar, leer y (confirmando) escribir
+      quickActions: null, // null = las de serie (traducidas); si el usuario las edita, su lista
     },
     // Movimientos importados asignados a cada estado o gesto de las skins 3D (null = el propio).
     motions: { assign: { idle: null, thinking: null, listening: null, working: null, talking: null, greet: null, happy: null, talkGesture: [] } },
@@ -117,13 +118,14 @@ export function defaultConfig(locale = resolveLocale('auto', systemLocales())) {
       hotkeyChat: 'Control+Alt+Space',
       hotkeyTalk: 'Control+Alt+V',
       hotkeyLook: 'Control+Alt+S', // «Mira esto»: captura la pantalla y la adjunta al chat
+      hotkeyQuick: 'Control+Alt+Q', // acciones rápidas sobre el texto copiado
       startWithSystem: false,
     },
   };
 }
 
 function deepMerge(base, extra) {
-  if (Array.isArray(base) || Array.isArray(extra)) return extra ?? base;
+  if (Array.isArray(base) || Array.isArray(extra)) return extra === undefined ? base : extra;
   if (base && typeof base === 'object' && extra && typeof extra === 'object') {
     const out = { ...base };
     for (const k of Object.keys(extra)) out[k] = k in base ? deepMerge(base[k], extra[k]) : extra[k];

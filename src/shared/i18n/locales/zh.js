@@ -292,6 +292,8 @@ export default {
       openPersonas: '打开「角色」',
       hotkeyLook: '“看看这个”快捷键',
       hotkeyLookHelp: '截取屏幕并打开附带截图的聊天，方便你提问。',
+      hotkeyQuick: '快捷操作快捷键',
+      hotkeyQuickHelp: '复制文字后，在光标旁打开操作菜单。',
     },
     models: {
       lead: '每个配置就是一个模型和它的 API 密钥。可在聊天窗口或头像菜单中切换。密钥加密保存在系统密钥库中。',
@@ -605,6 +607,14 @@ export default {
       foldersDesc: '她只能在这些文件夹中列出、搜索和读取文件（文本、PDF 和 Word）。写入前总会先问你。你也可以把文件拖进聊天。',
       foldersEmpty: '没有：她无法访问你的文件。',
       addFolder: '添加文件夹…',
+      quickTitle: '快捷操作',
+      quickDesc: '复制一段文字，按下快捷键（{hotkey}），然后选择要做什么。在指令中，{text} 代表复制的内容，{language} 代表回复语言。',
+      quickName: '名称',
+      quickPrompt: '指令',
+      quickCopy: '把结果复制到剪贴板',
+      quickAdd: '添加操作',
+      quickReset: '恢复默认',
+      quickNew: '新操作',
     },
   },
   editor: {
@@ -836,5 +846,33 @@ export default {
   reminders: {
     fire: '提醒：{text}',
     late: '迟到的提醒（原定 {time}）：{text}',
+  },
+  quickActions: {
+    translate: {
+      name: '翻译',
+      prompt: "把这段文字翻译成{language}（如果已经是{language}，就翻译成英语）。只回复译文：\n\n{text}",
+    },
+    summarize: {
+      name: '总结',
+      prompt: "用几句话总结这段文字：\n\n{text}",
+    },
+    correct: {
+      name: '校对',
+      prompt: "修正这段文字的拼写和语法，不要改变语气和语言。只回复修改后的文字：\n\n{text}",
+    },
+    explain: {
+      name: '解释',
+      prompt: "用简单的话给我解释一下：\n\n{text}",
+    },
+    reply: {
+      name: '回复',
+      prompt: "用同一种语言给这条消息写一个简短友好的回复。只回复内容本身：\n\n{text}",
+    },
+  },
+  quick: {
+    menuTitle: '对复制的文字…',
+    edit: '编辑操作…',
+    empty: '请先复制一段文字（Ctrl+C），再按一次快捷键。',
+    copied: '已复制到剪贴板',
   },
 };
