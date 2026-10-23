@@ -107,6 +107,10 @@ export default {
       wake: 'Wake up agent {id}?',
     },
     webhook: 'Trigger “{name}”?',
+    persona: {
+      title: 'Change her filters',
+      message: '{name} wants to loosen her content filters:',
+    },
   },
   avatar: {
     aria: 'Assistant',
@@ -471,6 +475,14 @@ export default {
         sarcastica: 'Sarcastic',
         romantica: 'Romantic',
       },
+      importCard: 'Import card (SillyTavern)',
+      cardFiles: 'Character cards',
+      cardImported: 'Character “{name}” imported.',
+      cardError: {
+        notCard: "That file isn't a character card.",
+        tooBig: 'The card is larger than 5 MB.',
+      },
+      makeSkin: 'Create a 2D skin from its image',
     },
   },
   editor: {

@@ -207,6 +207,33 @@ const ui = {
   setPc: (next) => (pc = next),
   render: () => render(),
   markEdit: () => (lastLocalEdit = Date.now()),
+  // Botones extra bajo la lista de personajes: importar tarjeta y crear skin con su imagen.
+  listExtras: (personas) => {
+    const editing = personas.find((p) => p.avatar && p.id === pc.config.activePersonaId) || personas.find((p) => p.avatar);
+    return [
+      h(
+        'div',
+        { class: 'row', style: 'margin-top:10px' },
+        h(
+          'button',
+          {
+            class: 'btn',
+            id: 'importCard',
+            onclick: async () => {
+              const r = await wd.invoke('persona:import-card');
+              if (!r) return;
+              if (r.error) return toast(t(`settings.personas.cardError.${r.error}`));
+              pc = await wd.invoke('cfg:get');
+              toast(t('settings.personas.cardImported', { name: r.persona.name }));
+              render();
+            },
+          },
+          t('settings.personas.importCard'),
+        ),
+        editing ? h('button', { class: 'btn ghost', onclick: () => wd.invoke('win:open', 'editor', { fromPersona: editing.id }) }, t('settings.personas.makeSkin')) : null,
+      ),
+    ];
+  },
 };
 
 // ---------------------------------------------------------------- pestañas

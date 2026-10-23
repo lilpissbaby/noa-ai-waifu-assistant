@@ -467,6 +467,13 @@ wd.on('cfg:changed', (pc) => applyLocale(pc.locale));
 // ---------------------------------------------------------------- arranque / editar una existente
 (async () => {
   applyLocale((await wd.invoke('cfg:get')).locale);
+  // Desde Ajustes → Personajes: crear una skin con la imagen de una tarjeta.
+  const fromPersona = params.get('fromPersona');
+  if (fromPersona) {
+    const r = await wd.invoke('persona:avatar', fromPersona);
+    if (r) await loadFromDataUrl(r.dataUrl, r.name);
+    return;
+  }
   if (!editId) return;
   const s = await wd.invoke('skin:get', editId);
   if (!s || s.id !== editId) return;

@@ -111,6 +111,10 @@ export default {
       wake: 'Разбудить агента {id}?',
     },
     webhook: 'Запустить «{name}»?',
+    persona: {
+      title: 'Изменить фильтры',
+      message: '{name} хочет ослабить свои фильтры контента:',
+    },
   },
   avatar: {
     aria: 'Ассистент',
@@ -479,6 +483,14 @@ export default {
         sarcastica: 'Саркастичная',
         romantica: 'Романтичная',
       },
+      importCard: 'Импорт карточки (SillyTavern)',
+      cardFiles: 'Карточки персонажей',
+      cardImported: 'Персонаж «{name}» импортирован.',
+      cardError: {
+        notCard: 'Этот файл не карточка персонажа.',
+        tooBig: 'Карточка больше 5 МБ.',
+      },
+      makeSkin: 'Создать 2D-скин из её картинки',
     },
   },
   editor: {

@@ -111,3 +111,33 @@ test('webhooks: GET con query string y POST con payload', async () => {
     await srv.close();
   }
 });
+
+test('persona: endurecer no pide permiso; relajar sí; +18 sin desbloqueo falla y abre Ajustes', async () => {
+  const { patchConfig, loadConfig } = await import('../src/main/config.js');
+  setLocale('es');
+  patchConfig({ personas: [{ id: 'a', name: 'Ana', personality: 'x', filters: { language: 'mild' } }, { id: 'b', name: 'Bea', personality: 'y' }], activePersonaId: 'a', content: { adultUnlockedAt: null } });
+  const opened = [];
+  const switched = [];
+  const services = { openWindow: (...a) => opened.push(a), switchPersona: (id) => switched.push(id), configChanged: () => {} };
+  const box = buildToolbox(loadConfig(), () => null, services);
+  const before = __test.dialogs.length;
+  await box.run('persona_update', { filters: { language: 'avoid' }, personality: 'Seria.' });
+  assert.equal(__test.dialogs.length, before, 'endurecer no pregunta');
+  assert.equal(loadConfig().personas[0].filters.language, 'avoid');
+  assert.equal(loadConfig().personas[0].personality, 'Seria.');
+
+  __test.dialogResponses.push(1); // Deny
+  await assert.rejects(box.run('persona_update', { filters: { language: 'free' } }), /denegado|denied/i);
+  assert.equal(loadConfig().personas[0].filters.language, 'avoid');
+
+  const n = __test.dialogs.length;
+  await assert.rejects(box.run('persona_update', { filters: { sexual: 'explicit' } }), /unlock adult content/);
+  assert.equal(__test.dialogs.length, n, 'no pregunta si no se puede');
+  assert.deepEqual(opened.at(-1), ['settings', { query: { tab: 'personas' } }]);
+
+  assert.match(await box.run('persona_switch', { name: 'bea' }), /Bea/);
+  assert.deepEqual(switched, ['b']);
+  const list = await box.run('persona_list', {});
+  assert.equal(list.length, 2);
+  await assert.rejects(box.run('persona_switch', { name: 'Zoe' }), /Ana, Bea/);
+});

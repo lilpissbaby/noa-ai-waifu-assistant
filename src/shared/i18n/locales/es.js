@@ -108,6 +108,10 @@ export default {
       wake: '¿Despertar al agente {id}?',
     },
     webhook: '¿Lanzar «{name}»?',
+    persona: {
+      title: 'Cambiar sus filtros',
+      message: '{name} quiere relajar sus filtros de contenido:',
+    },
   },
   avatar: {
     aria: 'Asistente',
@@ -474,6 +478,14 @@ export default {
         sarcastica: 'Sarcástica',
         romantica: 'Romántica',
       },
+      importCard: 'Importar tarjeta (SillyTavern)',
+      cardFiles: 'Tarjetas de personaje',
+      cardImported: 'Personaje «{name}» importado.',
+      cardError: {
+        notCard: 'Ese archivo no es una tarjeta de personaje.',
+        tooBig: 'La tarjeta pesa más de 5 MB.',
+      },
+      makeSkin: 'Crear skin 2D con su imagen',
     },
   },
   editor: {

@@ -101,6 +101,10 @@ export default {
       wake: '要唤醒智能体 {id} 吗？',
     },
     webhook: '要触发“{name}”吗？',
+    persona: {
+      title: '修改过滤设置',
+      message: '{name} 想放宽自己的内容过滤：',
+    },
   },
   avatar: {
     aria: '助手',
@@ -454,6 +458,14 @@ export default {
         sarcastica: '毒舌',
         romantica: '浪漫',
       },
+      importCard: '导入角色卡（SillyTavern）',
+      cardFiles: '角色卡',
+      cardImported: '已导入角色「{name}」。',
+      cardError: {
+        notCard: '这个文件不是角色卡。',
+        tooBig: '角色卡超过 5 MB。',
+      },
+      makeSkin: '用它的图片做 2D 皮肤',
     },
   },
   editor: {

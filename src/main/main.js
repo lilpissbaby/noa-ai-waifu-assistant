@@ -16,6 +16,7 @@ import { transcribe, synthesize, speakable, SentenceChunker } from './voice.js';
 import { isBundleAllowed } from './bundle-allowed.js';
 import { assistantName, activePersona, effectiveTts } from '../shared/personas.js';
 import { listMotions, importMotion, updateMotion, deleteMotion } from './motions.js';
+import { parseCard, cardToPersona, MAX_CARD_BYTES } from './persona-cards.js';
 import { APP_ROOT, listSkins, getSkin, saveSkin, deleteSkin, fetchImage, segmentModelStatus, downloadSegmentModel, stageVrm, downloadVrm, saveVrmSkin, clearVrmTmp } from './skins.js';
 import * as logger from './log.js';
 
@@ -541,6 +542,42 @@ function switchPersona(id, { greet = true } = {}) {
   return persona;
 }
 
+// Lo que necesitan algunas herramientas de este proceso (ver tools/index.js).
+const services = {
+  switchPersona,
+  openWindow,
+  configChanged: () => broadcast('cfg:changed', publicConfig()),
+};
+
+// Importa una tarjeta de SillyTavern como personaje nuevo (la imagen va a userData/personas/).
+async function importPersonaCard(parent) {
+  const r = await dialog.showOpenDialog(parent, {
+    title: t('settings.personas.importCard'),
+    filters: [{ name: t('settings.personas.cardFiles'), extensions: ['png', 'json'] }],
+    properties: ['openFile'],
+  });
+  if (r.canceled || !r.filePaths[0]) return null;
+  const file = r.filePaths[0];
+  if (fs.statSync(file).size > MAX_CARD_BYTES) return { error: 'tooBig' };
+  let card;
+  try {
+    card = parseCard(fs.readFileSync(file), path.basename(file));
+  } catch (e) {
+    return { error: e.code || 'notCard' };
+  }
+  const cfg = loadConfig();
+  const persona = cardToPersona(card, { userName: cfg.assistant.userName });
+  if (card.image) {
+    const dir = path.join(userDir(), 'personas');
+    fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(path.join(dir, `${persona.id}.png`), card.image);
+    persona.avatar = `app://local/user/personas/${persona.id}.png`;
+  }
+  patchConfig({ personas: [...cfg.personas, persona] });
+  broadcast('cfg:changed', publicConfig());
+  return { persona };
+}
+
 function personaMenu(cfg) {
   return cfg.personas.map((p) => ({ label: p.name, type: 'radio', checked: p.id === cfg.activePersonaId, click: () => switchPersona(p.id) }));
 }
@@ -634,7 +671,7 @@ async function sendMessage(text, via = 'text') {
   const speak = cfg.voice.speakReplies === 'always' || (cfg.voice.speakReplies === 'voice' && via === 'voice');
   const chunker = speak ? new SentenceChunker(enqueueSpeech) : null;
   const ctrl = new AbortController();
-  const toolbox = buildToolbox(cfg, () => wins.chat || wins.avatar);
+  const toolbox = buildToolbox(cfg, () => wins.chat || wins.avatar, services);
   setState('thinking');
   chatEvent({ type: 'assistant_start', profile: { name: profile.name, model: profile.model } });
 
@@ -724,7 +761,7 @@ function registerIpc() {
     return mcpStatus();
   });
   ipcMain.handle('mcp:status', () => mcpStatus());
-  ipcMain.handle('tools:list', () => buildToolbox(loadConfig()).list.map((tool) => ({ name: tool.name, group: tool.group, description: tool.description })));
+  ipcMain.handle('tools:list', () => buildToolbox(loadConfig(), null, services).list.map((tool) => ({ name: tool.name, group: tool.group, description: tool.description })));
 
   ipcMain.handle('chat:history', () => ({ messages: history, seq: chatSeq, busy: !!current, partialText: current ? partialText : '' }));
   ipcMain.handle('chat:pending', () => pendingChatEvents.splice(0));
@@ -790,6 +827,14 @@ function registerIpc() {
     return true;
   });
   ipcMain.handle('persona:unlock-adult', (e) => unlockAdult(BrowserWindow.fromWebContents(e.sender)));
+  ipcMain.handle('persona:import-card', (e) => importPersonaCard(BrowserWindow.fromWebContents(e.sender)));
+  // Imagen de la tarjeta como data URL, para crear una skin 2D con ella en el editor.
+  ipcMain.handle('persona:avatar', (_e, id) => {
+    const p = loadConfig().personas.find((x) => x.id === id);
+    const file = path.join(userDir(), 'personas', `${id}.png`);
+    if (!p || !fs.existsSync(file)) return null;
+    return { name: p.name, dataUrl: `data:image/png;base64,${fs.readFileSync(file).toString('base64')}` };
+  });
   ipcMain.handle('persona:lock-adult', () => {
     patchConfig({ content: { adultUnlockedAt: null } });
     broadcast('cfg:changed', publicConfig());
