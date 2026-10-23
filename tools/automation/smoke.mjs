@@ -8,6 +8,7 @@ import { CATALOGS, SUPPORTED, tIn } from '../../src/shared/i18n/index.js';
 import { startMockServer, mockConfigPatch } from './mock-server.mjs';
 import { sleep, waitForWindow, waitForChat, setLanguage } from './common.mjs';
 import { piperCheck } from './piper-check.mjs';
+import { makePdf } from '../../test/helpers/pdf.mjs';
 
 // Cualquier texto con forma de clave («chat.algo», «settings.x.y»), exista o no en el catálogo.
 const NAMESPACES = [...new Set(Object.keys(CATALOGS.es).map((k) => k.split('.')[0]))].join('|');
@@ -198,6 +199,22 @@ export default async function smoke(api) {
   await sleep(300);
   const shotDom = await api.wins.chat.webContents.executeJavaScript(`!!document.querySelector('.tool.ok .tool-shot')`);
   if (!shotDom) problems.push('pantalla: el chat no muestra la miniatura de la captura');
+
+  // Archivos soltados en el chat: un .txt y un PDF llegan al modelo como texto.
+  fs.writeFileSync(path.join(api.userDir(), 'lista.txt'), 'Comprar leche y pilas AA');
+  fs.writeFileSync(path.join(api.userDir(), 'informe.pdf'), makePdf('Ventas del trimestre: 42'));
+  const attached = await api.wins.chat.webContents.executeJavaScript(
+    `wd.invoke('chat:attach-files', ${JSON.stringify([path.join(api.userDir(), 'lista.txt'), path.join(api.userDir(), 'informe.pdf')])})`,
+  );
+  if (attached.error || attached.attachments?.length !== 2) problems.push(`archivos: no se adjuntaron ${JSON.stringify(attached)}`);
+  else {
+    const done4 = waitForChat(api, (e) => e.type === 'done' || e.type === 'error');
+    await api.wins.chat.webContents.executeJavaScript(`wd.invoke('chat:send', 'Resúmeme esto', 'text', ${JSON.stringify(attached.attachments)})`);
+    await done4;
+    const got = mock.files.join('\n');
+    if (!got.includes('Comprar leche y pilas AA')) problems.push('archivos: el .txt no llegó al modelo');
+    if (!got.includes('Ventas del trimestre: 42')) problems.push(`archivos: el PDF no llegó al modelo (${got.slice(0, 200)})`);
+  }
 
   // Recordatorio de 1 s: llega como aviso al chat y al bocadillo del avatar.
   const announced = waitForChat(api, (e) => e.type === 'announce');

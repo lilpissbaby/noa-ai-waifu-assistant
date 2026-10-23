@@ -400,12 +400,40 @@ function send(text) {
   wd.invoke('chat:send', msg, 'text', atts);
 }
 
-// Pegar una imagen (captura del portapapeles) la adjunta.
-input.addEventListener('paste', async (e) => {
-  const files = [...(e.clipboardData?.files || [])].filter((f) => f.type.startsWith('image/'));
+// Archivos pegados o soltados: los que tienen ruta (del explorador) los lee el proceso principal;
+// las imágenes sin ruta (capturas en el portapapeles) se mandan en bytes.
+async function attachFiles(files) {
+  const withPath = [];
+  for (const f of files) {
+    const p = wd.pathForFile(f);
+    if (p) withPath.push(p);
+    else if (f.type.startsWith('image/')) addPending(await wd.invoke('chat:attach-image', new Uint8Array(await f.arrayBuffer()), f.type, f.name || 'image.png').catch((err) => addError(err.message)));
+  }
+  if (!withPath.length) return;
+  const r = await wd.invoke('chat:attach-files', withPath);
+  if (r.error) addError(r.error);
+  for (const att of r.attachments || []) addPending(att);
+}
+input.addEventListener('paste', (e) => {
+  const files = [...(e.clipboardData?.files || [])];
   if (!files.length) return;
   e.preventDefault();
-  for (const f of files) addPending(await wd.invoke('chat:attach-image', new Uint8Array(await f.arrayBuffer()), f.type, f.name || 'image.png').catch((err) => addError(err.message)));
+  attachFiles(files);
+});
+document.addEventListener('dragover', (e) => {
+  if (![...(e.dataTransfer?.types || [])].includes('Files')) return;
+  e.preventDefault();
+  document.body.classList.add('dropping');
+});
+document.addEventListener('dragleave', (e) => {
+  if (!e.relatedTarget) document.body.classList.remove('dropping');
+});
+document.addEventListener('drop', (e) => {
+  document.body.classList.remove('dropping');
+  const files = [...(e.dataTransfer?.files || [])];
+  if (!files.length) return;
+  e.preventDefault();
+  attachFiles(files);
 });
 
 input.addEventListener('keydown', (e) => {

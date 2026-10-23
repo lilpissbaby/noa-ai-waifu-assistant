@@ -10,6 +10,7 @@ import { reminderTools } from './reminders.js';
 import { memoryTools } from './memory.js';
 import { noteTools } from './notes.js';
 import { screenTools } from './screen.js';
+import { fileTools } from './files.js';
 import { loadConfig, patchConfig } from '../config.js';
 import { t } from '../../shared/i18n/index.js';
 
@@ -20,6 +21,7 @@ export function buildToolbox(cfg, getParentWindow, services = {}) {
     ...(cfg.productivity?.memory !== false ? memoryTools() : []),
     ...noteTools(cfg),
     ...screenTools(cfg, services),
+    ...fileTools(cfg),
     ...hermesTools(cfg), ...paperclipTools(cfg), ...webhookTools(cfg), ...mcpTools(cfg)];
   const byName = new Map(all.map((tool) => [tool.name, tool]));
 

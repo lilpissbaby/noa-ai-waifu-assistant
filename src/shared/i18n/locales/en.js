@@ -77,6 +77,7 @@ export default {
     visionUnsupported: 'The model {model} did not accept the image; it may not support images. Try another model or untick “Can see images” in its profile. Details: {detail}',
     screenCapture: 'I could not capture the screen.',
     attachmentTooBig: '{name} is too large (20 MB at most).',
+    attachmentUnreadable: 'I could not read the file: {message}',
   },
   labels: {
     transcription: 'Transcription',
@@ -133,6 +134,11 @@ export default {
       message: 'Let her take a screenshot and send it to the model?',
       detail: 'The avatar and the chat are hidden while capturing. The image is sent to the active model’s provider.',
     },
+    filesWrite: {
+      title: 'Write a file',
+      create: 'Create the file {path}?',
+      replace: 'Overwrite the file {path}? Its current content will be lost.',
+    },
   },
   avatar: {
     aria: 'Assistant',
@@ -170,6 +176,10 @@ export default {
     note_read: 'Read note',
     note_search: 'Search notes',
     screen_capture: 'See the screen',
+    files_list: 'List folder',
+    files_search: 'Search files',
+    files_read: 'Read file',
+    files_write: 'Write file',
   },
   md: {
     code: 'code',
@@ -608,6 +618,10 @@ export default {
       notesDirHelp: 'Empty = the app folder. You can use your Obsidian vault.',
       pickFolder: 'Choose folder…',
       openFolder: 'Open folder',
+      foldersTitle: 'Authorized folders',
+      foldersDesc: 'The only folders where she can list, search and read files (text, PDF and Word). Writing always asks you first. You can also drag files into the chat.',
+      foldersEmpty: 'None: she cannot touch your files.',
+      addFolder: 'Add folder…',
     },
   },
   editor: {

@@ -1,11 +1,19 @@
 // Puente seguro entre las páginas y el proceso principal.
-const { contextBridge, ipcRenderer } = require('electron');
+const { contextBridge, ipcRenderer, webUtils } = require('electron');
 
 const ALLOWED = ['cfg:', 'chat:', 'voice:', 'skin:', 'win:', 'avatar:', 'tts:', 'models:', 'test:', 'mcp:', 'tools:', 'app:', 'persona:', 'productivity:'];
 const ok = (ch) => typeof ch === 'string' && ALLOWED.some((p) => ch.startsWith(p));
 
 contextBridge.exposeInMainWorld('wd', {
   platform: process.platform,
+  // Ruta real de un File arrastrado o pegado (Electron ya no la pone en file.path).
+  pathForFile: (file) => {
+    try {
+      return webUtils.getPathForFile(file) || '';
+    } catch {
+      return '';
+    }
+  },
   invoke: (ch, ...args) => (ok(ch) ? ipcRenderer.invoke(ch, ...args) : Promise.reject(new Error(`Canal no permitido: ${ch}`))),
   send: (ch, ...args) => {
     if (ok(ch)) ipcRenderer.send(ch, ...args);

@@ -78,6 +78,7 @@ export default {
     visionUnsupported: 'El modelo {model} no ha aceptado la imagen; puede que no vea imágenes. Prueba con otro modelo o desmarca «Puede ver imágenes» en su perfil. Detalle: {detail}',
     screenCapture: 'No he podido capturar la pantalla.',
     attachmentTooBig: '{name} es demasiado grande (máximo 20 MB).',
+    attachmentUnreadable: 'No he podido leer el archivo: {message}',
   },
   labels: {
     transcription: 'Transcripción',
@@ -134,6 +135,11 @@ export default {
       message: '¿Dejas que haga una captura de tu pantalla y la envíe al modelo?',
       detail: 'El avatar y el chat se ocultan durante la captura. La imagen se envía al proveedor del modelo activo.',
     },
+    filesWrite: {
+      title: 'Escribir un archivo',
+      create: '¿Creo el archivo {path}?',
+      replace: '¿Sobrescribo el archivo {path}? Se perderá su contenido actual.',
+    },
   },
   avatar: {
     aria: 'Asistente',
@@ -171,6 +177,10 @@ export default {
     note_read: 'Leer nota',
     note_search: 'Buscar notas',
     screen_capture: 'Ver la pantalla',
+    files_list: 'Ver carpeta',
+    files_search: 'Buscar archivos',
+    files_read: 'Leer archivo',
+    files_write: 'Escribir archivo',
   },
   md: {
     code: 'código',
@@ -611,6 +621,10 @@ export default {
       notesDirHelp: 'Vacío = la carpeta de la app. Puedes poner la de tu bóveda de Obsidian.',
       pickFolder: 'Elegir carpeta…',
       openFolder: 'Abrir carpeta',
+      foldersTitle: 'Carpetas autorizadas',
+      foldersDesc: 'Las únicas carpetas donde puede listar, buscar y leer archivos (texto, PDF y Word). Para escribir siempre te pide permiso. También puedes arrastrar archivos al chat.',
+      foldersEmpty: 'Ninguna: no puede tocar tus archivos.',
+      addFolder: 'Añadir carpeta…',
     },
   },
   editor: {

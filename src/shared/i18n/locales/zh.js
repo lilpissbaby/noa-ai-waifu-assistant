@@ -77,6 +77,7 @@ export default {
     visionUnsupported: '模型 {model} 没有接受图片，可能不支持图像。请换一个模型，或在它的配置中取消勾选“能看图片”。详情：{detail}',
     screenCapture: '无法截取屏幕。',
     attachmentTooBig: '{name} 太大（最多 20 MB）。',
+    attachmentUnreadable: '无法读取文件：{message}',
   },
   labels: {
     transcription: '语音转写',
@@ -127,6 +128,11 @@ export default {
       message: '允许她截取屏幕并发送给模型吗？',
       detail: '截图时会隐藏头像和聊天窗口。图片会发送给当前模型的提供商。',
     },
+    filesWrite: {
+      title: '写入文件',
+      create: '要创建文件 {path} 吗？',
+      replace: '要覆盖文件 {path} 吗？它现在的内容会丢失。',
+    },
   },
   avatar: {
     aria: '助手',
@@ -164,6 +170,10 @@ export default {
     note_read: '阅读笔记',
     note_search: '搜索笔记',
     screen_capture: '查看屏幕',
+    files_list: '查看文件夹',
+    files_search: '搜索文件',
+    files_read: '读取文件',
+    files_write: '写入文件',
   },
   md: {
     code: '代码',
@@ -591,6 +601,10 @@ export default {
       notesDirHelp: '留空 = 应用自己的文件夹。也可以用你的 Obsidian 库。',
       pickFolder: '选择文件夹…',
       openFolder: '打开文件夹',
+      foldersTitle: '授权的文件夹',
+      foldersDesc: '她只能在这些文件夹中列出、搜索和读取文件（文本、PDF 和 Word）。写入前总会先问你。你也可以把文件拖进聊天。',
+      foldersEmpty: '没有：她无法访问你的文件。',
+      addFolder: '添加文件夹…',
     },
   },
   editor: {

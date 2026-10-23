@@ -608,3 +608,11 @@ body[data-state='error'] .dot {
   border-radius: 8px;
   border: 1px solid var(--line-2);
 }
+body.dropping .composer .box {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 30%, transparent);
+}
+body.dropping .log {
+  outline: 2px dashed color-mix(in srgb, var(--accent) 60%, transparent);
+  outline-offset: -8px;
+}

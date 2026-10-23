@@ -22,6 +22,7 @@ import { setAnnouncer } from './bus.js';
 import { Reminders } from './productivity/reminders.js';
 import { listMemory, forgetMemory } from './productivity/memory.js';
 import { saveImageAttachment, attachmentsDir, clearAttachments } from './attachments.js';
+import { attachmentsFromPaths } from './productivity/docs.js';
 import { notesDir } from './tools/notes.js';
 import { listVoices, fetchCatalog, catalogForLanguage, installFromCatalog, importVoiceFiles, deleteVoice } from './voices.js';
 import { APP_ROOT, listSkins, getSkin, saveSkin, deleteSkin, fetchImage, segmentModelStatus, downloadSegmentModel, stageVrm, downloadVrm, saveVrmSkin, clearVrmTmp } from './skins.js';
@@ -924,6 +925,15 @@ function registerIpc() {
     const list = composerAttachments;
     composerAttachments = [];
     return list;
+  });
+  // Archivos soltados o pegados en el chat: imágenes → adjunto de imagen; documentos → su texto.
+  ipcMain.handle('chat:attach-files', async (_e, paths) => {
+    const list = (Array.isArray(paths) ? paths : []).filter((p) => typeof p === 'string' && path.isAbsolute(p)).slice(0, 10);
+    try {
+      return { attachments: await attachmentsFromPaths(list) };
+    } catch (err) {
+      return { error: err.code === 'tooBig' ? t('errors.attachmentTooBig', { name: err.file }) : t('errors.attachmentUnreadable', { message: err.message }) };
+    }
   });
   ipcMain.handle('chat:attach-image', (_e, bytes, mime, name) => {
     const buf = Buffer.from(bytes);

@@ -121,7 +121,60 @@ function notesCard(ui) {
   );
 }
 
-export const PRODUCTIVITY_SECTIONS = [noticesCard, remindersCard, memoryCard, notesCard];
+function foldersCard(ui) {
+  const { t, card, h, wd, icons } = ui;
+  const list = h('div', { class: 'voice-list', id: 'folderList' });
+  const folders = () => [...(ui.getPc().config.productivity.folders || [])];
+  const store = async (next) => {
+    ui.markEdit();
+    ui.setPc(await wd.invoke('cfg:patch', { productivity: { folders: next } }));
+    paint();
+  };
+  const paint = () => {
+    list.innerHTML = '';
+    const all = folders();
+    if (!all.length) list.append(h('p', { class: 'small muted' }, t('settings.productivity.foldersEmpty')));
+    all.forEach((f, i) =>
+      list.append(
+        h(
+          'div',
+          { class: 'voice-row' },
+          h('code', {}, f),
+          h('button', {
+            class: 'btn ghost danger',
+            html: icons.trash,
+            title: t('settings.common.delete'),
+            onclick: () => store(all.filter((_, j) => j !== i)),
+          }),
+        ),
+      ),
+    );
+  };
+  paint();
+  return card(
+    t('settings.productivity.foldersTitle'),
+    t('settings.productivity.foldersDesc'),
+    list,
+    h(
+      'div',
+      { class: 'row', style: 'margin-top:10px' },
+      h(
+        'button',
+        {
+          class: 'btn',
+          id: 'addFolder',
+          onclick: async () => {
+            const dir = await wd.invoke('productivity:pick-folder', t('settings.productivity.foldersTitle'));
+            if (dir && !folders().includes(dir)) store([...folders(), dir]);
+          },
+        },
+        t('settings.productivity.addFolder'),
+      ),
+    ),
+  );
+}
+
+export const PRODUCTIVITY_SECTIONS = [noticesCard, remindersCard, memoryCard, notesCard, foldersCard];
 
 export function productivityTab(ui) {
   return [ui.h('h1', {}, ui.t('settings.nav.productivity')), ui.h('p', { class: 'lead' }, ui.t('settings.productivity.lead')), ...PRODUCTIVITY_SECTIONS.map((section) => section(ui))];
