@@ -74,7 +74,7 @@ export function defaultConfig(locale = resolveLocale('auto', systemLocales())) {
     voice: {
       stt: { provider: 'groq', baseUrl: 'https://api.groq.com/openai/v1', model: 'whisper-large-v3-turbo', language: locale },
       tts: {
-        mode: 'system', // system | openai | elevenlabs | off
+        mode: 'system', // system | piper | openai | elevenlabs | off
         baseUrl: 'https://api.openai.com/v1',
         model: 'gpt-4o-mini-tts',
         voice: 'nova',
@@ -83,6 +83,9 @@ export function defaultConfig(locale = resolveLocale('auto', systemLocales())) {
         systemVoice: '',
         rate: 1.05,
         pitch: 1.25,
+        piperVoice: '', // carpeta en userData/voices/
+        piperSpeaker: 0,
+        piperRate: 1,
       },
       speakReplies: 'voice', // voice (solo si hablé yo) | always | never
       autoStopOnSilence: true,

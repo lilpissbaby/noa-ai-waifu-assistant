@@ -1,0 +1,185 @@
+{
+ "es_ES-davefx-medium": {
+  "key": "es_ES-davefx-medium",
+  "name": "davefx",
+  "language": {
+   "code": "es_ES",
+   "family": "es",
+   "region": "ES",
+   "name_native": "Español",
+   "name_english": "Spanish",
+   "country_english": "Spain"
+  },
+  "quality": "medium",
+  "num_speakers": 1,
+  "speaker_id_map": {},
+  "files": {
+   "es/es_ES/davefx/medium/es_ES-davefx-medium.onnx": {
+    "size_bytes": 63201294,
+    "md5_digest": "00000000000000000000000000000000"
+   },
+   "es/es_ES/davefx/medium/es_ES-davefx-medium.onnx.json": {
+    "size_bytes": 4885,
+    "md5_digest": "11111111111111111111111111111111"
+   },
+   "es/es_ES/davefx/medium/MODEL_CARD": {
+    "size_bytes": 281,
+    "md5_digest": "22222222222222222222222222222222"
+   }
+  },
+  "aliases": []
+ },
+ "es_ES-sharvard-medium": {
+  "key": "es_ES-sharvard-medium",
+  "name": "sharvard",
+  "language": {
+   "code": "es_ES",
+   "family": "es",
+   "region": "ES",
+   "name_native": "Español",
+   "name_english": "Spanish",
+   "country_english": "Spain"
+  },
+  "quality": "medium",
+  "num_speakers": 2,
+  "speaker_id_map": {
+   "s0": 0,
+   "s1": 1
+  },
+  "files": {
+   "es/es_ES/sharvard/medium/es_ES-sharvard-medium.onnx": {
+    "size_bytes": 63201294,
+    "md5_digest": "00000000000000000000000000000000"
+   },
+   "es/es_ES/sharvard/medium/es_ES-sharvard-medium.onnx.json": {
+    "size_bytes": 4885,
+    "md5_digest": "11111111111111111111111111111111"
+   },
+   "es/es_ES/sharvard/medium/MODEL_CARD": {
+    "size_bytes": 281,
+    "md5_digest": "22222222222222222222222222222222"
+   }
+  },
+  "aliases": []
+ },
+ "es_MX-claude-high": {
+  "key": "es_MX-claude-high",
+  "name": "claude",
+  "language": {
+   "code": "es_MX",
+   "family": "es",
+   "region": "MX",
+   "name_native": "Español",
+   "name_english": "Spanish",
+   "country_english": "Mexico"
+  },
+  "quality": "high",
+  "num_speakers": 1,
+  "speaker_id_map": {},
+  "files": {
+   "es/es_MX/claude/high/es_MX-claude-high.onnx": {
+    "size_bytes": 63201294,
+    "md5_digest": "00000000000000000000000000000000"
+   },
+   "es/es_MX/claude/high/es_MX-claude-high.onnx.json": {
+    "size_bytes": 4885,
+    "md5_digest": "11111111111111111111111111111111"
+   },
+   "es/es_MX/claude/high/MODEL_CARD": {
+    "size_bytes": 281,
+    "md5_digest": "22222222222222222222222222222222"
+   }
+  },
+  "aliases": []
+ },
+ "en_US-amy-low": {
+  "key": "en_US-amy-low",
+  "name": "amy",
+  "language": {
+   "code": "en_US",
+   "family": "en",
+   "region": "US",
+   "name_native": "English",
+   "name_english": "English",
+   "country_english": "United States"
+  },
+  "quality": "low",
+  "num_speakers": 1,
+  "speaker_id_map": {},
+  "files": {
+   "en/en_US/amy/low/en_US-amy-low.onnx": {
+    "size_bytes": 63201294,
+    "md5_digest": "00000000000000000000000000000000"
+   },
+   "en/en_US/amy/low/en_US-amy-low.onnx.json": {
+    "size_bytes": 4885,
+    "md5_digest": "11111111111111111111111111111111"
+   },
+   "en/en_US/amy/low/MODEL_CARD": {
+    "size_bytes": 281,
+    "md5_digest": "22222222222222222222222222222222"
+   }
+  },
+  "aliases": []
+ },
+ "de_DE-thorsten-medium": {
+  "key": "de_DE-thorsten-medium",
+  "name": "thorsten",
+  "language": {
+   "code": "de_DE",
+   "family": "de",
+   "region": "DE",
+   "name_native": "Deutsch",
+   "name_english": "German",
+   "country_english": "Germany"
+  },
+  "quality": "medium",
+  "num_speakers": 1,
+  "speaker_id_map": {},
+  "files": {
+   "de/de_DE/thorsten/medium/de_DE-thorsten-medium.onnx": {
+    "size_bytes": 63201294,
+    "md5_digest": "00000000000000000000000000000000"
+   },
+   "de/de_DE/thorsten/medium/de_DE-thorsten-medium.onnx.json": {
+    "size_bytes": 4885,
+    "md5_digest": "11111111111111111111111111111111"
+   },
+   "de/de_DE/thorsten/medium/MODEL_CARD": {
+    "size_bytes": 281,
+    "md5_digest": "22222222222222222222222222222222"
+   }
+  },
+  "aliases": []
+ },
+ "ru_RU-irina-medium": {
+  "key": "ru_RU-irina-medium",
+  "name": "irina",
+  "language": {
+   "code": "ru_RU",
+   "family": "ru",
+   "region": "RU",
+   "name_native": "Русский",
+   "name_english": "Russian",
+   "country_english": "Russia"
+  },
+  "quality": "medium",
+  "num_speakers": 1,
+  "speaker_id_map": {},
+  "files": {
+   "ru/ru_RU/irina/medium/ru_RU-irina-medium.onnx": {
+    "size_bytes": 63201294,
+    "md5_digest": "00000000000000000000000000000000"
+   },
+   "ru/ru_RU/irina/medium/ru_RU-irina-medium.onnx.json": {
+    "size_bytes": 4885,
+    "md5_digest": "11111111111111111111111111111111"
+   },
+   "ru/ru_RU/irina/medium/MODEL_CARD": {
+    "size_bytes": 281,
+    "md5_digest": "22222222222222222222222222222222"
+   }
+  },
+  "aliases": []
+ }
+}

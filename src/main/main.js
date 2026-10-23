@@ -17,7 +17,8 @@ import { isBundleAllowed } from './bundle-allowed.js';
 import { assistantName, activePersona, effectiveTts } from '../shared/personas.js';
 import { listMotions, importMotion, updateMotion, deleteMotion } from './motions.js';
 import { parseCard, cardToPersona, MAX_CARD_BYTES } from './persona-cards.js';
-import { piperRuntimeStatus, downloadPiperRuntime, piperRuntimeUrl } from './piper-runtime.js';
+import { piperRuntimeStatus, downloadPiperRuntime, piperRuntimeUrl, PIPER_WASM } from './piper-runtime.js';
+import { listVoices, fetchCatalog, catalogForLanguage, installFromCatalog, importVoiceFiles, deleteVoice } from './voices.js';
 import { APP_ROOT, listSkins, getSkin, saveSkin, deleteSkin, fetchImage, segmentModelStatus, downloadSegmentModel, stageVrm, downloadVrm, saveVrmSkin, clearVrmTmp } from './skins.js';
 import * as logger from './log.js';
 
@@ -630,6 +631,16 @@ function piperVoice(tts) {
   return { key, modelUrl: `${base}model.onnx`, configUrl: `${base}model.onnx.json`, rate: Number(tts.piperRate) || 1, speaker: Number(tts.piperSpeaker) || 0 };
 }
 
+// La primera voz Piper que se instala pasa a ser la elegida si aún no había ninguna.
+function adoptPiperVoice(voice) {
+  const cfg = loadConfig();
+  if (voice && !cfg.voice.tts.piperVoice) {
+    patchConfig({ voice: { tts: { piperVoice: voice.key } } });
+    broadcast('cfg:changed', publicConfig());
+  }
+  return voice;
+}
+
 function testTts(text) {
   ttsGen++;
   ttsChain = Promise.resolve();
@@ -839,6 +850,48 @@ function registerIpc() {
     const sender = e.sender;
     return downloadPiperRuntime((p) => !sender.isDestroyed() && sender.send('voice:piper-runtime-progress', p));
   });
+  ipcMain.handle('voice:piper-list', () => ({ runtime: { ...piperRuntimeStatus(), sizeMB: PIPER_WASM.sizeMB }, voices: listVoices() }));
+  ipcMain.handle('voice:piper-catalog', async (_e, { force = false, language = '' } = {}) => {
+    try {
+      const all = await fetchCatalog({ force });
+      const languages = [...new Map(all.map((v) => [v.family, v.languageName.replace(/\s*\(.*\)$/, '')])).entries()].sort((a, b) => a[0].localeCompare(b[0]));
+      return { entries: catalogForLanguage(all, language), languages };
+    } catch (e) {
+      return { error: e.message };
+    }
+  });
+  ipcMain.handle('voice:piper-install', async (e, key) => {
+    const sender = e.sender;
+    try {
+      const voice = await installFromCatalog(key, (p) => !sender.isDestroyed() && sender.send('voice:piper-install-progress', { key, p }));
+      return { voice: adoptPiperVoice(voice) };
+    } catch (err) {
+      return { error: err.message };
+    }
+  });
+  ipcMain.handle('voice:piper-import', async (e, paths) => {
+    if (!Array.isArray(paths)) {
+      const r = await dialog.showOpenDialog(BrowserWindow.fromWebContents(e.sender), {
+        title: t('settings.voice.piper.import'),
+        filters: [{ name: t('settings.voice.piper.files'), extensions: ['onnx', 'json', 'zip'] }],
+        properties: ['openFile', 'multiSelections'],
+      });
+      if (r.canceled || !r.filePaths.length) return null;
+      paths = r.filePaths;
+    }
+    try {
+      const voices = await importVoiceFiles(paths);
+      adoptPiperVoice(voices[0]);
+      return { voices };
+    } catch (err) {
+      return { error: err.message };
+    }
+  });
+  ipcMain.handle('voice:piper-delete', (_e, key) => {
+    deleteVoice(key);
+    return listVoices();
+  });
+  ipcMain.handle('voice:system-voices', () => process.platform === 'win32' && shell.openExternal('ms-settings:speech'));
   ipcMain.on('tts:piper-error', (_e, message) => {
     logger.warn(`Piper: ${message}`);
     chatEvent({ type: 'notice', level: 'warn', message: t('errors.voice', { message }) });

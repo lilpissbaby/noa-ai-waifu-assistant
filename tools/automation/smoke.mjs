@@ -7,6 +7,7 @@ import path from 'node:path';
 import { CATALOGS, SUPPORTED, tIn } from '../../src/shared/i18n/index.js';
 import { startMockServer, mockConfigPatch } from './mock-server.mjs';
 import { sleep, waitForWindow, waitForChat, setLanguage } from './common.mjs';
+import { piperCheck } from './piper-check.mjs';
 
 // Cualquier texto con forma de clave («chat.algo», «settings.x.y»), exista o no en el catálogo.
 const NAMESPACES = [...new Set(Object.keys(CATALOGS.es).map((k) => k.split('.')[0]))].join('|');
@@ -186,8 +187,17 @@ export default async function smoke(api) {
   if (end2.type === 'error') problems.push(`paperclip: ${end2.message}`);
   if (mock.issues[0]?.title !== 'Migrar Postgres a la 17') problems.push(`paperclip: no se creó la tarea ${JSON.stringify(mock.issues)}`);
 
+  // Voces locales Piper con una voz real (el CI la descarga de los releases de Piper).
+  const piperVoice = process.env.WAIFU_TEST_PIPER_VOICE;
+  if (piperVoice) await piperCheck(api, piperVoice, problems, check);
+
   problems.push(...consoleErrors);
-  const result = { ok: problems.length === 0, locales: SUPPORTED, problems };
+  const result = {
+    ok: problems.length === 0,
+    locales: SUPPORTED,
+    problems,
+    message: `✓ Prueba de humo superada (${SUPPORTED.join(', ')})${piperVoice ? ' + voz Piper' : ' — sin voz Piper de prueba (WAIFU_TEST_PIPER_VOICE)'}`,
+  };
   console.log(`SMOKE_RESULT ${JSON.stringify(result)}`);
   await mock.close();
   api.app.exit(result.ok ? 0 : 1);

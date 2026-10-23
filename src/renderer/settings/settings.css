@@ -407,3 +407,45 @@ details.help ol {
   border: 1px dashed var(--line-2);
   border-radius: 10px;
 }
+
+/* Voces Piper */
+.small {
+  font-size: 12.5px;
+}
+.err-text {
+  color: var(--err);
+}
+.piper h3 {
+  margin: 16px 0 8px;
+  font-size: 14px;
+}
+.piper-runtime {
+  padding: 12px 14px;
+  border: 1px dashed var(--line-2);
+  border-radius: 10px;
+}
+.voice-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 340px;
+  overflow-y: auto;
+}
+.voice-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+.voice-row.active {
+  border-color: var(--accent);
+}
+.voice-row > div:first-child {
+  min-width: 0;
+}
+.piper-catalog .template-row {
+  margin-bottom: 10px;
+}

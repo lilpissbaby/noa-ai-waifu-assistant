@@ -3,6 +3,7 @@ import { t, tHtml, setLocale, getLocale, SUPPORTED, LANGUAGES } from '../../shar
 import { applyDom } from '../../shared/i18n/dom.js';
 import { assistantName } from '../../shared/personas.js';
 import { personasTab } from './tabs/personas.js';
+import { piperSection, piperPersonaVoice } from './tabs/piper.js';
 
 const wd = window.wd;
 const view = document.getElementById('view');
@@ -236,6 +237,13 @@ function azureBox(list, i) {
 }
 
 // Ayudantes que reciben las pestañas que viven en tabs/*.js.
+// Frase de prueba de la voz, con el nombre del personaje activo.
+function samplePhrase() {
+  const name = assistantName(pc.config);
+  const user = pc.config.assistant.userName;
+  return user ? t('settings.voice.testPhraseUser', { user, name }) : t('settings.voice.testPhrase', { name });
+}
+
 const ui = {
   h,
   card,
@@ -250,6 +258,13 @@ const ui = {
   setPc: (next) => (pc = next),
   render: () => render(),
   markEdit: () => (lastLocalEdit = Date.now()),
+  save: (path, value, delay) => save(path, value, delay),
+  text: (path, opts) => text(path, opts),
+  samplePhrase: () => samplePhrase(),
+  get extraVoiceModes() {
+    return [['piper', t('settings.personas.voicePiper')]];
+  },
+  renderExtraVoice: (box, editing, persist) => editing.voice?.mode === 'piper' && piperPersonaVoice(ui, box, editing, persist),
   // Botones extra bajo la lista de personajes: importar tarjeta y crear skin con su imagen.
   listExtras: (personas) => {
     const editing = personas.find((p) => p.avatar && p.id === pc.config.activePersonaId) || personas.find((p) => p.avatar);
@@ -544,6 +559,10 @@ const TABS = {
             field(t('settings.voice.pitch'), text('voice.tts.pitch', { type: 'number' }), t('settings.voice.pitchHelp')),
           ),
         );
+        if (pc.platform === 'win32')
+          ttsBox.append(h('div', { class: 'row', style: 'margin-top:10px' }, h('button', { class: 'btn ghost', onclick: () => wd.invoke('voice:system-voices') }, t('settings.voice.systemMore'))));
+      } else if (mode === 'piper') {
+        ttsBox.append(piperSection(ui));
       } else if (mode === 'openai') {
         ttsBox.append(
           h(
@@ -580,11 +599,8 @@ const TABS = {
               'button',
               {
                 class: 'btn',
-                onclick: () => {
-                  const a = pc.config.assistant;
-                  const phrase = a.userName ? t('settings.voice.testPhraseUser', { user: a.userName, name: a.name }) : t('settings.voice.testPhrase', { name: a.name });
-                  runTest(ttsRes, async () => (await wd.invoke('voice:test-tts', phrase), t('settings.voice.playing')));
-                },
+                id: 'testTts',
+                onclick: () => runTest(ttsRes, async () => (await wd.invoke('voice:test-tts', samplePhrase()), t('settings.voice.playing'))),
                 html: `${icons.play} ${esc(t('settings.voice.test'))}`,
               },
             ),
@@ -642,6 +658,7 @@ const TABS = {
               'voice.tts.mode',
               [
                 ['system', t('settings.voice.ttsSystem')],
+                ['piper', t('settings.voice.ttsPiper')],
                 ['openai', t('settings.voice.ttsOpenai')],
                 ['elevenlabs', 'ElevenLabs'],
                 ['off', t('settings.voice.ttsOff')],

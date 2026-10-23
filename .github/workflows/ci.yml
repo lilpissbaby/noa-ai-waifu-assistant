@@ -35,7 +35,12 @@ jobs:
       - run: npm test
       - name: Dependencias para Electron sin pantalla
         run: sudo apt-get update -q && sudo apt-get install -y -q xvfb
-      - name: Prueba de humo (5 idiomas + conversación con herramientas)
+      - name: Voz Piper de prueba (releases de Piper en GitHub)
+        run: |
+          mkdir -p "$RUNNER_TEMP/piper-voice"
+          curl -sSfL https://github.com/rhasspy/piper/releases/download/v0.0.2/voice-es-mls_9972-low.tar.gz | tar xz -C "$RUNNER_TEMP/piper-voice"
+          echo "WAIFU_TEST_PIPER_VOICE=$RUNNER_TEMP/piper-voice" >> "$GITHUB_ENV"
+      - name: Prueba de humo (5 idiomas + conversación con herramientas + voz Piper)
         run: xvfb-run -a -s "-screen 0 1920x1080x24" npm run smoke
 
   windows:
