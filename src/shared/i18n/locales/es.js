@@ -188,6 +188,7 @@ export default {
     calendar_events: 'Mirar la agenda',
     web_fetch: 'Leer página web',
     web_search: 'Buscar en la web',
+    paperclip_watch: 'Paperclip · vigilar tarea',
   },
   md: {
     code: 'código',
@@ -666,6 +667,12 @@ export default {
         brave: 'Clave en api-dashboard.search.brave.com. Déjalo vacío para usar la dirección oficial.',
         tavily: 'Clave en app.tavily.com. Déjalo vacío para usar la dirección oficial.',
       },
+      agentsTitle: 'Avisos de agentes',
+      agentsDesc: 'Las tareas de Paperclip que crea o comenta se vigilan y te avisa cuando terminan, se bloquean o piden revisión. Las tareas largas de Hermes pueden ir en segundo plano y te avisa al acabar.',
+      agentsPoll: 'Mirar cada (minutos)',
+      agentsEmpty: 'No hay tareas vigiladas.',
+      agentsStatus: 'Estado: {status}',
+      agentsUnwatch: 'Dejar de vigilar',
     },
   },
   editor: {
@@ -925,5 +932,15 @@ export default {
     edit: 'Editar acciones…',
     empty: 'Copia primero un texto (Ctrl+C) y vuelve a pulsar el atajo.',
     copied: 'Copiado al portapapeles',
+  },
+  agents: {
+    paperclip: {
+      done: 'Paperclip: la tarea {issue} está terminada.',
+      blocked: 'Paperclip: la tarea {issue} se ha bloqueado y necesita ayuda.',
+      in_review: 'Paperclip: la tarea {issue} está lista para revisar.',
+      cancelled: 'Paperclip: la tarea {issue} se ha cancelado.',
+    },
+    backgroundDone: '{label} ha terminado: {result}',
+    backgroundFailed: '{label} ha fallado: {message}',
   },
 };

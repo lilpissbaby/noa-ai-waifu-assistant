@@ -191,6 +191,7 @@ export default {
     calendar_events: 'Календар',
     web_fetch: 'Прочитати сторінку',
     web_search: 'Пошук в інтернеті',
+    paperclip_watch: 'Paperclip · стежити за завданням',
   },
   md: {
     code: 'код',
@@ -671,6 +672,12 @@ export default {
         brave: 'Ключ — на api-dashboard.search.brave.com. Залиште порожнім для офіційної адреси.',
         tavily: 'Ключ — на app.tavily.com. Залиште порожнім для офіційної адреси.',
       },
+      agentsTitle: 'Сповіщення від агентів',
+      agentsDesc: 'Завдання Paperclip, які вона створює чи коментує, відстежуються, і вона повідомляє, коли їх виконано, заблоковано або вони чекають перевірки. Довгі завдання Hermes можуть іти у фоні — вона повідомить, коли вони завершаться.',
+      agentsPoll: 'Перевіряти кожні (хвилин)',
+      agentsEmpty: 'Відстежуваних завдань немає.',
+      agentsStatus: 'Статус: {status}',
+      agentsUnwatch: 'Припинити відстеження',
     },
   },
   editor: {
@@ -930,5 +937,15 @@ export default {
     edit: 'Змінити дії…',
     empty: 'Спершу скопіюйте текст (Ctrl+C) і знову натисніть сполучення.',
     copied: 'Скопійовано в буфер обміну',
+  },
+  agents: {
+    paperclip: {
+      done: 'Paperclip: завдання {issue} виконано.',
+      blocked: 'Paperclip: завдання {issue} заблоковане й потребує допомоги.',
+      in_review: 'Paperclip: завдання {issue} готове до перевірки.',
+      cancelled: 'Paperclip: завдання {issue} скасовано.',
+    },
+    backgroundDone: '{label} — готово: {result}',
+    backgroundFailed: '{label} — помилка: {message}',
   },
 };

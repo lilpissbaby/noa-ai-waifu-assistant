@@ -187,6 +187,7 @@ export default {
     calendar_events: 'Calendar',
     web_fetch: 'Read web page',
     web_search: 'Web search',
+    paperclip_watch: 'Paperclip · watch task',
   },
   md: {
     code: 'code',
@@ -663,6 +664,12 @@ export default {
         brave: 'Get a key at api-dashboard.search.brave.com. Leave it empty to use the official address.',
         tavily: 'Get a key at app.tavily.com. Leave it empty to use the official address.',
       },
+      agentsTitle: 'Agent notices',
+      agentsDesc: 'Paperclip tasks she creates or comments on are watched, and she tells you when they are done, blocked or need review. Long Hermes tasks can run in the background and she lets you know when they finish.',
+      agentsPoll: 'Check every (minutes)',
+      agentsEmpty: 'No watched tasks.',
+      agentsStatus: 'Status: {status}',
+      agentsUnwatch: 'Stop watching',
     },
   },
   editor: {
@@ -922,5 +929,15 @@ export default {
     edit: 'Edit actions…',
     empty: 'Copy some text first (Ctrl+C) and press the shortcut again.',
     copied: 'Copied to the clipboard',
+  },
+  agents: {
+    paperclip: {
+      done: 'Paperclip: task {issue} is done.',
+      blocked: 'Paperclip: task {issue} is blocked and needs help.',
+      in_review: 'Paperclip: task {issue} is ready for review.',
+      cancelled: 'Paperclip: task {issue} was cancelled.',
+    },
+    backgroundDone: '{label} finished: {result}',
+    backgroundFailed: '{label} failed: {message}',
   },
 };

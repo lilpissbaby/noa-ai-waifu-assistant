@@ -11,7 +11,8 @@ import { listOpenAIModels } from './llm/openai.js';
 import { buildToolbox } from './tools/index.js';
 import { syncMcp, mcpStatus, closeAllMcp } from './tools/mcp.js';
 import { testHermes } from './tools/hermes.js';
-import { testPaperclip } from './tools/paperclip.js';
+import { testPaperclip, paperclipApi } from './tools/paperclip.js';
+import { PaperclipWatcher } from './productivity/watchers.js';
 import { transcribe, synthesize, speakable, SentenceChunker } from './voice.js';
 import { isBundleAllowed, isUserAllowed } from './bundle-allowed.js';
 import { assistantName, activePersona, effectiveTts } from '../shared/personas.js';
@@ -587,8 +588,53 @@ const reminders = new Reminders({
   onChange: (list) => broadcast('productivity:reminders', list),
 });
 
+// ---------------------------------------------------------------- avisos de agentes
+// Tareas de Paperclip vigiladas: se consultan cada productivity.agentPollMin minutos.
+const watcher = new PaperclipWatcher({
+  file: path.join(userDir(), 'watch.json'),
+  getIssue: (id) => paperclipApi(loadConfig().connectors.paperclip).call('GET', `/issues/${encodeURIComponent(id)}`),
+  onChange: (issue, from, to) => announce({ kind: 'agent', text: t(`agents.paperclip.${to}`, { issue: [issue.identifier, issue.title].filter(Boolean).join(' · ') || issue.id }) }),
+});
+function watchIssue(id, status, title) {
+  watcher.watch(id, status, title);
+  broadcast('productivity:watched', watcher.list());
+}
+async function pollAgents() {
+  const pc = loadConfig().connectors.paperclip;
+  if (!pc?.enabled || !pc.baseUrl || !watcher.list().length) return [];
+  const changes = await watcher.poll();
+  if (changes.length) broadcast('productivity:watched', watcher.list());
+  return changes;
+}
+let agentPollTimer = null;
+function scheduleAgentPoll() {
+  clearTimeout(agentPollTimer);
+  const min = Math.max(1, Number(loadConfig().productivity.agentPollMin) || 2);
+  agentPollTimer = setTimeout(async () => {
+    await pollAgents().catch((e) => logger.warn(`Paperclip: ${e.message}`));
+    scheduleAgentPoll();
+  }, min * 60000);
+}
+
+// Trabajo largo (Hermes en segundo plano…): al terminar, su resultado va al chat y se anuncia.
+function runBackground(label, factory) {
+  Promise.resolve()
+    .then(factory)
+    .then((result) => {
+      const text = typeof result === 'string' ? result : JSON.stringify(result, null, 1);
+      appendAssistantMessage(`**${label}**\n\n${text}`, { speak: false, notice: 'background' });
+      announce({ kind: 'agent', record: false, text: t('agents.backgroundDone', { label, result: text.replace(/\s+/g, ' ').slice(0, 160) }) });
+    })
+    .catch((e) => {
+      appendAssistantMessage(t('agents.backgroundFailed', { label, message: e.message || String(e) }), { speak: false, notice: 'background' });
+      announce({ kind: 'agent', record: false, text: t('agents.backgroundFailed', { label, message: e.message || String(e) }) });
+    });
+}
+
 // Lo que necesitan algunas herramientas de este proceso (ver tools/index.js).
 const services = {
+  watchIssue,
+  runBackground,
   switchPersona,
   openWindow,
   configChanged: () => broadcast('cfg:changed', publicConfig()),
@@ -1056,6 +1102,11 @@ function registerIpc() {
   ipcMain.handle('productivity:reminders', () => reminders.list());
   ipcMain.handle('productivity:reminder-cancel', (_e, id) => reminders.cancel(id));
   ipcMain.handle('productivity:memory', () => listMemory().reverse());
+  ipcMain.handle('productivity:watched', () => watcher.list());
+  ipcMain.handle('productivity:unwatch', (_e, id) => {
+    watcher.unwatch(id);
+    return watcher.list();
+  });
   ipcMain.handle('productivity:briefing-now', () => {
     runBriefing().catch((e) => logger.warn(`resumen: ${e.message}`));
     toggleChat(true);
@@ -1312,6 +1363,7 @@ app.whenReady().then(async () => {
     checkBriefing();
     setInterval(checkBriefing, 60000);
   }, 15000);
+  scheduleAgentPoll();
   step('bandeja', buildTray);
   step('ajustes de ventana', applyUiConfig);
   syncMcp(loadConfig()).catch((e) => logger.error('MCP', e));
@@ -1344,6 +1396,9 @@ function runAutomation(file) {
     runQuickAction,
     clipboard,
     runBriefing,
+    pollAgents,
+    watcher,
+    runBackground,
     broadcast,
     publicConfig,
     loadConfig,

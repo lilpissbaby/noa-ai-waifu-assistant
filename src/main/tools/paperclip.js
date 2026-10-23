@@ -20,7 +20,10 @@ const issueSummary = (i) =>
   pick(i, ['id', 'identifier', 'title', 'status', 'priority', 'assigneeAgentId', 'assigneeUserId', 'projectId', 'parentId', 'updatedAt']);
 const agentSummary = (a) => pick(a, ['id', 'name', 'shortname', 'role', 'title', 'status', 'reportsTo', 'adapterType']);
 
-export function paperclipTools(cfg) {
+const issueLabel = (i) => [i?.identifier, i?.title].filter(Boolean).join(' · ');
+
+// services.watchIssue(id, estado, etiqueta): las tareas creadas o comentadas se vigilan para avisar.
+export function paperclipTools(cfg, services = {}) {
   const pc = cfg.connectors.paperclip;
   if (!pc?.enabled || !pc.baseUrl || !pc.companyId) return [];
   const { call, companyPath } = paperclipApi(pc);
@@ -108,7 +111,9 @@ export function paperclipTools(cfg) {
       run: async (input, { signal }) => {
         const body = pick(input, ['title', 'description', 'priority', 'status', 'assigneeAgentId', 'projectId', 'parentId']);
         if (!body.status) body.status = 'todo';
-        return issueSummary(await call('POST', companyPath('/issues'), body, signal));
+        const issue = issueSummary(await call('POST', companyPath('/issues'), body, signal));
+        if (issue.id) services.watchIssue?.(issue.id, issue.status || body.status, issueLabel(issue));
+        return issue;
       },
     },
     {
@@ -153,8 +158,22 @@ export function paperclipTools(cfg) {
         required: ['issueId', 'body'],
       },
       confirm: (i) => ({ title: t('confirm.paperclip.commentTitle'), message: t('confirm.paperclip.comment', { id: i.issueId }), detail: String(i.body || '').slice(0, 600), allowAlways: true }),
-      run: async ({ issueId, body, reopen }, { signal }) =>
-        compact(await call('POST', `/issues/${encodeURIComponent(issueId)}/comments`, { body, ...(reopen ? { reopen: true } : {}) }, signal)),
+      run: async ({ issueId, body, reopen }, { signal }) => {
+        const r = compact(await call('POST', `/issues/${encodeURIComponent(issueId)}/comments`, { body, ...(reopen ? { reopen: true } : {}) }, signal));
+        services.watchIssue?.(issueId, null, '');
+        return r;
+      },
+    },
+    {
+      name: 'paperclip_watch',
+      group,
+      description: 'Watches a Paperclip task: the user gets a notice when it is done, blocked, needs review or is cancelled. Tasks you create or comment on are watched automatically.',
+      schema: { type: 'object', properties: { issueId: { type: 'string' } }, required: ['issueId'] },
+      run: async ({ issueId }, { signal }) => {
+        const issue = await call('GET', `/issues/${encodeURIComponent(issueId)}`, undefined, signal);
+        services.watchIssue?.(issue?.id || issueId, issue?.status || null, issueLabel(issue));
+        return `Watching ${issueLabel(issue) || issueId} (status ${issue?.status || 'unknown'}). The user will be notified when it changes to done, blocked, in_review or cancelled.`;
+      },
     },
     {
       name: 'paperclip_wakeup_agent',

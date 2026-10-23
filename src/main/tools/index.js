@@ -26,7 +26,7 @@ export function buildToolbox(cfg, getParentWindow, services = {}) {
     ...fileTools(cfg),
     ...calendarTools(cfg, services),
     ...webTools(cfg, services),
-    ...hermesTools(cfg), ...paperclipTools(cfg), ...webhookTools(cfg), ...mcpTools(cfg)];
+    ...hermesTools(cfg, services), ...paperclipTools(cfg, services), ...webhookTools(cfg), ...mcpTools(cfg)];
   const byName = new Map(all.map((tool) => [tool.name, tool]));
 
   async function run(name, input, ctx) {

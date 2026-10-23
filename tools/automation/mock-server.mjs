@@ -163,6 +163,10 @@ export async function startMockServer({ delay = 0 } = {}) {
       return json(issue);
     }
     if (url.pathname === '/api/companies/c1/issues') return json(issues);
+    if (/^\/api\/issues\/[^/]+$/.test(url.pathname)) {
+      const issue = issues.find((i) => i.id === decodeURIComponent(url.pathname.split('/').pop()));
+      return issue ? json(issue) : json({ error: 'not found' }, 404);
+    }
     if (/^\/api\/agents\/[^/]+\/wakeup$/.test(url.pathname)) return json({ ok: true, runId: 'r1' });
 
     json({ error: `mock: ${req.method} ${url.pathname}` }, 404);

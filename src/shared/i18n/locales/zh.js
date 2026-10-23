@@ -181,6 +181,7 @@ export default {
     calendar_events: '查看日程',
     web_fetch: '读取网页',
     web_search: '网页搜索',
+    paperclip_watch: 'Paperclip · 跟踪任务',
   },
   md: {
     code: '代码',
@@ -646,6 +647,12 @@ export default {
         brave: '在 api-dashboard.search.brave.com 获取密钥。留空即使用官方地址。',
         tavily: '在 app.tavily.com 获取密钥。留空即使用官方地址。',
       },
+      agentsTitle: '智能体通知',
+      agentsDesc: '她创建或评论过的 Paperclip 任务会被跟踪，完成、被阻塞或待审核时会通知你。Hermes 的长任务可以在后台运行，完成后她会告诉你。',
+      agentsPoll: '检查间隔（分钟）',
+      agentsEmpty: '没有正在跟踪的任务。',
+      agentsStatus: '状态：{status}',
+      agentsUnwatch: '停止跟踪',
     },
   },
   editor: {
@@ -905,5 +912,15 @@ export default {
     edit: '编辑操作…',
     empty: '请先复制一段文字（Ctrl+C），再按一次快捷键。',
     copied: '已复制到剪贴板',
+  },
+  agents: {
+    paperclip: {
+      done: 'Paperclip：任务 {issue} 已完成。',
+      blocked: 'Paperclip：任务 {issue} 被阻塞，需要帮助。',
+      in_review: 'Paperclip：任务 {issue} 已可以审核。',
+      cancelled: 'Paperclip：任务 {issue} 已取消。',
+    },
+    backgroundDone: '{label} 已完成：{result}',
+    backgroundFailed: '{label} 失败：{message}',
   },
 };

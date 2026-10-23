@@ -107,6 +107,7 @@ export function defaultConfig(locale = resolveLocale('auto', systemLocales())) {
       calendars: [], // [{ id, name, url | file }] (.ics; Google/Outlook: enlace privado iCal)
       briefing: { enabled: false, time: '08:30', days: [1, 2, 3, 4, 5] }, // resumen diario
       search: { provider: 'none', baseUrl: '' }, // none | searxng | brave | tavily (clave en el secreto «search»)
+      agentPollMin: 2, // cada cuánto se miran las tareas de Paperclip vigiladas
     },
     // Movimientos importados asignados a cada estado o gesto de las skins 3D (null = el propio).
     motions: { assign: { idle: null, thinking: null, listening: null, working: null, talking: null, greet: null, happy: null, talkGesture: [] } },

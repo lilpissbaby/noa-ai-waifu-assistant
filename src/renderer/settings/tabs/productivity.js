@@ -434,7 +434,38 @@ function webCard(ui) {
   );
 }
 
-export const PRODUCTIVITY_SECTIONS = [noticesCard, remindersCard, calendarsCard, briefingCard, webCard, memoryCard, notesCard, foldersCard, quickActionsCard];
+function agentsCard(ui) {
+  const { t, card, h, wd, icons, field } = ui;
+  const list = h('div', { class: 'voice-list', id: 'watchList' });
+  const paint = (items) => {
+    list.innerHTML = '';
+    if (!items.length) list.append(h('p', { class: 'small muted' }, t('settings.productivity.agentsEmpty')));
+    for (const w of items)
+      list.append(
+        h(
+          'div',
+          { class: 'voice-row' },
+          h('div', {}, h('strong', {}, w.title || w.id), h('div', { class: 'small muted' }, w.status ? t('settings.productivity.agentsStatus', { status: w.status }) : '')),
+          h('button', {
+            class: 'btn ghost danger',
+            html: icons.trash,
+            title: t('settings.productivity.agentsUnwatch'),
+            onclick: async () => paint(await wd.invoke('productivity:unwatch', w.id)),
+          }),
+        ),
+      );
+  };
+  wd.invoke('productivity:watched').then(paint);
+  wd.on('productivity:watched', (items) => list.isConnected && paint(items));
+  return card(
+    t('settings.productivity.agentsTitle'),
+    t('settings.productivity.agentsDesc'),
+    h('div', { class: 'grid' }, field(t('settings.productivity.agentsPoll'), ui.text('productivity.agentPollMin', { type: 'number' }))),
+    list,
+  );
+}
+
+export const PRODUCTIVITY_SECTIONS = [noticesCard, remindersCard, calendarsCard, briefingCard, agentsCard, webCard, memoryCard, notesCard, foldersCard, quickActionsCard];
 
 export function productivityTab(ui) {
   return [ui.h('h1', {}, ui.t('settings.nav.productivity')), ui.h('p', { class: 'lead' }, ui.t('settings.productivity.lead')), ...PRODUCTIVITY_SECTIONS.map((section) => section(ui))];

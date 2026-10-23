@@ -188,6 +188,21 @@ export default async function smoke(api) {
   if (end2.type === 'error') problems.push(`paperclip: ${end2.message}`);
   if (mock.issues[0]?.title !== 'Migrar Postgres a la 17') problems.push(`paperclip: no se creó la tarea ${JSON.stringify(mock.issues)}`);
 
+  // Avisos de agentes: la tarea creada queda vigilada; cuando pasa a «done» llega un aviso.
+  if (!api.watcher.list().some((w) => w.id === 'i7')) problems.push(`agentes: la tarea creada no se vigila ${JSON.stringify(api.watcher.list())}`);
+  else {
+    mock.issues[0].status = 'done';
+    const doneNotice = waitForChat(api, (e) => e.type === 'announce' && /PAP-7/.test(e.text));
+    const changes = await api.pollAgents();
+    await doneNotice.catch(() => problems.push('agentes: no llegó el aviso de tarea terminada'));
+    if (changes.length !== 1 || api.watcher.list().length) problems.push(`agentes: cambios inesperados ${JSON.stringify(changes)}`);
+  }
+  // Hermes en segundo plano: responde al momento y el resultado llega después al chat.
+  const bg = waitForChat(api, (e) => e.type === 'assistant_message' && /12 containers/.test(e.text));
+  const started = await api.runTool('hermes_task', { task: 'docker ps', background: true });
+  if (!/background/.test(started)) problems.push(`hermes: no se lanzó en segundo plano (${started})`);
+  await bg.catch(() => problems.push('hermes: el resultado en segundo plano no llegó al chat'));
+
   // Ver la pantalla: la herramienta captura (aprobada de antemano) y la imagen llega al modelo.
   api.patchConfig({ tools: { autoApprove: { screen_capture: true } } });
   const done3 = waitForChat(api, (e) => e.type === 'done' || e.type === 'error', 30000);
