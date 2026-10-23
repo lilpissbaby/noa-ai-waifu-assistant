@@ -23,7 +23,15 @@ export function checkHttpUrl(url) {
 // Direcciones de la red local o del propio equipo (para pedir permiso antes de leerlas).
 export function isPrivateHost(hostname) {
   const h = String(hostname).toLowerCase().replace(/^\[|\]$/g, '');
-  if (h.includes(':')) return h === '::1' || h === '::' || /^fe[89ab]/.test(h) || /^f[cd]/.test(h) || h.startsWith('::ffff:127.') || h.startsWith('::ffff:10.') || h.startsWith('::ffff:192.168.');
+  if (h.includes(':')) {
+    // IPv4 dentro de IPv6 (::ffff:a.b.c.d o ::a.b.c.d, que la URL escribe en hexadecimal): se mira la IPv4.
+    const mapped = /^::(?:ffff:)?(?:(\d+\.\d+\.\d+\.\d+)|([0-9a-f]{1,4}):([0-9a-f]{1,4}))$/.exec(h);
+    if (mapped) {
+      const v4 = mapped[1] || [parseInt(mapped[2], 16) >> 8, parseInt(mapped[2], 16) & 255, parseInt(mapped[3], 16) >> 8, parseInt(mapped[3], 16) & 255].join('.');
+      return isPrivateHost(v4);
+    }
+    return h === '::1' || h === '::' || /^fe[89ab]/.test(h) || /^f[cd]/.test(h);
+  }
   const v4 = h.match(/^(\d+)\.(\d+)\.(\d+)\.(\d+)$/);
   if (v4) {
     const [a, b] = [Number(v4[1]), Number(v4[2])];

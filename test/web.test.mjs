@@ -96,6 +96,10 @@ test('web_search solo existe con un buscador configurado', () => {
 test('isPrivateHost y permiso para leer la red local', async () => {
   const { isPrivateHost } = await import('../src/main/productivity/web.js');
   for (const h of ['localhost', 'nas.local', 'router', '192.168.1.1', '10.0.0.5', '172.20.1.1', '127.0.0.1', '169.254.169.254', '[::1]', 'fe80::1', 'fd12::3', 'app.localhost']) assert.equal(isPrivateHost(h), true, h);
+  // IPv4 dentro de IPv6: la URL las normaliza a hexadecimal ([::ffff:127.0.0.1] → [::ffff:7f00:1]).
+  for (const u of ['http://[::ffff:127.0.0.1]/', 'http://[::ffff:192.168.1.1]/', 'http://[::ffff:10.0.0.5]/', 'http://[::ffff:169.254.169.254]/', 'http://[::ffff:172.16.0.1]/', 'http://[::127.0.0.1]/'])
+    assert.equal(isPrivateHost(new URL(u).hostname), true, u);
+  assert.equal(isPrivateHost(new URL('http://[::ffff:8.8.8.8]/').hostname), false);
   for (const h of ['example.com', '8.8.8.8', '172.32.0.1', '2001:db8::1', '[2606:4700::1111]', 'tenebrum.online']) assert.equal(isPrivateHost(h), false, h);
   const [fetchTool] = webTools({ productivity: {} }, {});
   assert.ok(fetchTool.confirm({ url: 'http://192.168.1.1/admin' }));

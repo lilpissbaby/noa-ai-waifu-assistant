@@ -75,6 +75,7 @@ export async function runTurn({ cfg, profile, apiKey, history, toolbox, emit, si
 
   for (let step = 0; step < MAX_STEPS; step++) {
     emit({ type: 'step', step });
+    if (step > 0) repairHistory(history); // por si llegó un aviso mientras corrían las herramientas
     const window = prepareImages(trimHistory(history));
     // Las etiquetas de emoción se quitan del texto y se mandan aparte a la cara del avatar.
     const filter = new EmotionTagFilter();
@@ -142,17 +143,30 @@ export async function runTurn({ cfg, profile, apiKey, history, toolbox, emit, si
 }
 
 // Si un turno se canceló a mitad, quedan llamadas a herramientas sin resultado y la API las rechaza.
+// Además, un mensaje del asistente que llegó mientras corría una herramienta (un aviso, el saludo de
+// un personaje…) se mueve detrás de los resultados: la llamada y su resultado tienen que ir seguidos.
+const isLoose = (m) => m.role === 'assistant' && !m.toolCalls?.length;
 export function repairHistory(history) {
   for (let i = 0; i < history.length; i++) {
     const m = history[i];
     if (m.role !== 'assistant' || !m.toolCalls?.length) continue;
+    const ids = new Set(m.toolCalls.map((t) => t.id));
     const missing = new Map(m.toolCalls.map((t) => [t.id, t.name]));
+    const moved = [];
     let j = i + 1;
-    while (j < history.length && history[j].role === 'tool') missing.delete(history[j++].toolCallId);
-    if (!missing.size) continue;
+    while (j < history.length) {
+      if (history[j].role === 'tool') {
+        missing.delete(history[j++].toolCallId);
+        continue;
+      }
+      let k = j;
+      while (k < history.length && isLoose(history[k])) k++;
+      if (k === j || k >= history.length || history[k].role !== 'tool' || !ids.has(history[k].toolCallId)) break;
+      moved.push(...history.splice(j, k - j));
+    }
     const fill = [...missing].map(([id, name]) => ({ role: 'tool', toolCallId: id, name, content: '(cancelled by the user)', isError: true }));
-    history.splice(j, 0, ...fill);
-    i = j + fill.length - 1;
+    history.splice(j, 0, ...fill, ...moved);
+    i = j + fill.length + moved.length - 1;
   }
 }
 

@@ -135,6 +135,15 @@ test('persona: endurecer no pide permiso; relajar sí; +18 sin desbloqueo falla 
   assert.equal(__test.dialogs.length, n, 'no pregunta si no se puede');
   assert.deepEqual(opened.at(-1), ['settings', { query: { tab: 'personas' } }]);
 
+  // Con un nivel +18 ya guardado y el contenido adulto bloqueado, los demás cambios siguen funcionando.
+  patchConfig({ personas: loadConfig().personas.map((p) => (p.id === 'a' ? { ...p, filters: { ...p.filters, sexual: 'explicit' } } : p)) });
+  const box2 = buildToolbox(loadConfig(), () => null, services);
+  const opened0 = opened.length;
+  await box2.run('persona_update', { filters: { language: 'avoid' }, personality: 'Muy seria.' });
+  assert.equal(loadConfig().personas[0].personality, 'Muy seria.');
+  assert.equal(opened.length, opened0, 'no abre Ajustes');
+  await assert.rejects(box2.run('persona_update', { filters: { sexual: 'suggestive' } }), /unlock adult content/);
+
   assert.match(await box.run('persona_switch', { name: 'bea' }), /Bea/);
   assert.deepEqual(switched, ['b']);
   const list = await box.run('persona_list', {});

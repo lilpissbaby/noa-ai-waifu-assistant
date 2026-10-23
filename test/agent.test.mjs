@@ -40,6 +40,52 @@ test('repairHistory(): rellena resultados de herramientas que faltan', () => {
   assert.equal(h[4].content, 'y');
 });
 
+test('repairHistory(): un aviso que llegó mientras corría una herramienta pasa detrás de su resultado', () => {
+  const notice = { role: 'assistant', content: 'Recordatorio: llamar a Ana', notice: 'reminder' };
+  const h = [
+    { role: 'user', content: 'x' },
+    { role: 'assistant', content: '', toolCalls: [{ id: 'a', name: 'n1' }, { id: 'b', name: 'n2' }] },
+    { role: 'tool', toolCallId: 'a', name: 'n1', content: 'ok' },
+    notice,
+    { role: 'tool', toolCallId: 'b', name: 'n2', content: 'ok' },
+  ];
+  repairHistory(h);
+  assert.deepEqual(
+    h.map((m) => m.role + (m.toolCallId ? `:${m.toolCallId}` : '')),
+    ['user', 'assistant', 'tool:a', 'tool:b', 'assistant'],
+  );
+  assert.equal(h[4], notice);
+  assert.ok(!h.some((m) => m.content === '(cancelled by the user)'), 'no inventa resultados');
+});
+
+test('runTurn(): un aviso durante la herramienta no separa la llamada de su resultado', async () => {
+  setLocale('es');
+  let call = 0;
+  const srv = await serve((req, res) => {
+    call++;
+    if (call === 1) return sendSSE(res, [{ choices: [{ delta: { tool_calls: [{ index: 0, id: 'c1', function: { name: 'slow', arguments: '{}' } }] } }] }, '[DONE]']);
+    return sendSSE(res, [{ choices: [{ delta: { content: 'Hecho.' } }] }, '[DONE]']);
+  });
+  try {
+    const history = [{ role: 'user', content: 'hazlo' }];
+    const toolbox = {
+      list: [{ name: 'slow', description: 'slow', schema: { type: 'object', properties: {} }, group: 'g' }],
+      // Mientras corre, llega un recordatorio (announce lo mete en el historial).
+      run: async () => {
+        history.push({ role: 'assistant', content: 'Recordatorio: llamar a Ana', notice: 'reminder' });
+        return 'ok';
+      },
+    };
+    await runTurn({ cfg: cfg(), profile: { kind: 'openai', baseUrl: srv.url, model: 'm', toolsEnabled: true }, apiKey: '', history, toolbox, emit: () => {} });
+    const msgs = srv.requests[1].body.messages;
+    const at = msgs.findIndex((m) => m.tool_calls?.length);
+    assert.equal(msgs[at + 1].role, 'tool', 'el resultado va justo después de la llamada');
+    assert.ok(msgs.some((m) => m.role === 'assistant' && m.content === 'Recordatorio: llamar a Ana'), 'el aviso sigue en el historial');
+  } finally {
+    await srv.close();
+  }
+});
+
 test('trimHistory(): recorta empezando siempre en un mensaje del usuario', () => {
   const h = [];
   for (let i = 0; i < 40; i++) h.push({ role: 'user', content: `u${i}` }, { role: 'assistant', content: `a${i}` });

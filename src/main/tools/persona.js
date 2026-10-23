@@ -12,7 +12,9 @@ function cleanFilters(f = {}) {
   return out;
 }
 
-const needsUnlock = (filters) => ADULT.includes(filters.sexual) && !loadConfig().content?.adultUnlockedAt;
+// Solo cuenta lo que se pide ahora: un nivel +18 que ya estaba guardado no bloquea otros cambios
+// (sin desbloqueo no se aplica: ver effectiveFilters).
+const needsUnlock = (requested) => ADULT.includes(requested.sexual) && !loadConfig().content?.adultUnlockedAt;
 
 export function personaTools(cfg, services = {}) {
   return [
@@ -56,7 +58,7 @@ export function personaTools(cfg, services = {}) {
       confirm: (input) => {
         const p = activePersona(loadConfig());
         const f = cleanFilters(input.filters);
-        if (needsUnlock({ ...p.filters, ...f })) return null; // run() explica que hace falta el desbloqueo
+        if (needsUnlock(f)) return null; // run() explica que hace falta el desbloqueo
         const looser = Object.keys(f).filter((k) => isLooser(k, p.filters[k], f[k]));
         if (!looser.length) return null;
         return {
@@ -70,7 +72,7 @@ export function personaTools(cfg, services = {}) {
         const c = loadConfig();
         const p = activePersona(c);
         const f = cleanFilters(input.filters);
-        if (needsUnlock({ ...p.filters, ...f })) {
+        if (needsUnlock(f)) {
           services.openWindow?.('settings', { query: { tab: 'personas' } });
           throw new Error('The user must unlock adult content in Settings → Characters first. Settings has been opened for them.');
         }
