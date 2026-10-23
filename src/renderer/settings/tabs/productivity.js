@@ -296,7 +296,112 @@ function quickActionsCard(ui) {
   );
 }
 
-export const PRODUCTIVITY_SECTIONS = [noticesCard, remindersCard, memoryCard, notesCard, foldersCard, quickActionsCard];
+// Los enlaces iCal privados llevan un secreto en la ruta: solo se enseña el servidor y el final.
+function maskUrl(u) {
+  try {
+    const url = new URL(String(u).replace(/^webcal:/i, 'https:'));
+    return `${url.host}/…/${url.pathname.split('/').pop()}`;
+  } catch {
+    return '…';
+  }
+}
+
+function calendarsCard(ui) {
+  const { t, card, h, wd, icons, field } = ui;
+  const list = h('div', { class: 'voice-list', id: 'calendarList' });
+  const cals = () => [...(ui.getPc().config.productivity.calendars || [])];
+  const store = async (next) => {
+    ui.markEdit();
+    ui.setPc(await wd.invoke('cfg:patch', { productivity: { calendars: next } }));
+    paint();
+  };
+  const paint = () => {
+    list.innerHTML = '';
+    const all = cals();
+    if (!all.length) list.append(h('p', { class: 'small muted' }, t('settings.productivity.calendarsEmpty')));
+    for (const c of all)
+      list.append(
+        h(
+          'div',
+          { class: 'voice-row' },
+          h('div', {}, h('strong', {}, c.name), h('div', { class: 'small muted' }, c.file || maskUrl(c.url))),
+          h('button', { class: 'btn ghost danger', html: icons.trash, title: t('settings.common.delete'), onclick: () => store(all.filter((x) => x.id !== c.id)) }),
+        ),
+      );
+  };
+  paint();
+  const name = h('input', { type: 'text', placeholder: t('settings.productivity.calendarName') });
+  const url = h('input', { type: 'text', placeholder: 'https://calendar.google.com/calendar/ical/…/basic.ics' });
+  const newId = () => `cal-${Date.now().toString(36)}`;
+  return card(
+    t('settings.productivity.calendarsTitle'),
+    t('settings.productivity.calendarsDesc'),
+    list,
+    h('div', { class: 'grid', style: 'margin-top:10px' }, field(t('settings.productivity.calendarName'), name), field(t('settings.productivity.calendarUrl'), url)),
+    h(
+      'div',
+      { class: 'row', style: 'margin-top:10px' },
+      h(
+        'button',
+        {
+          class: 'btn',
+          onclick: () => {
+            const u = url.value.trim();
+            if (!/^(https?|webcal):\/\//i.test(u)) return ui.toast(t('settings.productivity.calendarBadUrl'));
+            store([...cals(), { id: newId(), name: name.value.trim() || t('settings.productivity.calendarDefault'), url: u }]);
+          },
+        },
+        t('settings.productivity.calendarAddUrl'),
+      ),
+      h(
+        'button',
+        {
+          class: 'btn ghost',
+          onclick: async () => {
+            const file = await wd.invoke('productivity:pick-ics');
+            if (file) store([...cals(), { id: newId(), name: name.value.trim() || file.split(/[\\/]/).pop().replace(/\.ics$/i, ''), file }]);
+          },
+        },
+        t('settings.productivity.calendarAddFile'),
+      ),
+    ),
+  );
+}
+
+function briefingCard(ui) {
+  const { t, card, h, wd, field } = ui;
+  const b = ui.getPc().config.productivity.briefing;
+  const days = [...(b.days || [])];
+  const dayBoxes = h(
+    'div',
+    { class: 'row days' },
+    [1, 2, 3, 4, 5, 6, 7].map((d) =>
+      h(
+        'label',
+        { class: 'check' },
+        h('input', {
+          type: 'checkbox',
+          checked: days.includes(d),
+          onchange: (e) => {
+            const next = e.target.checked ? [...new Set([...days, d])].sort() : days.filter((x) => x !== d);
+            days.splice(0, days.length, ...next);
+            ui.save('productivity.briefing.days', [...days], 0);
+          },
+        }),
+        new Date(2026, 0, 4 + d).toLocaleDateString(localeTag(), { weekday: 'short' }),
+      ),
+    ),
+  );
+  return card(
+    t('settings.productivity.briefingTitle'),
+    t('settings.productivity.briefingDesc'),
+    ui.check('productivity.briefing.enabled', t('settings.productivity.briefingOn')),
+    h('div', { class: 'grid', style: 'margin-top:10px' }, field(t('settings.productivity.briefingTime'), ui.text('productivity.briefing.time', { type: 'time' })), field(t('settings.productivity.briefingDays'), dayBoxes)),
+    h('div', { class: 'row', style: 'margin-top:10px' }, h('button', { class: 'btn', onclick: () => wd.invoke('productivity:briefing-now') }, t('settings.productivity.briefingNow'))),
+  );
+}
+
+export const PRODUCTIVITY_SECTIONS = [noticesCard, remindersCard, calendarsCard, briefingCard, memoryCard, notesCard, foldersCard, quickActionsCard];
 
 export function productivityTab(ui) {
   return [ui.h('h1', {}, ui.t('settings.nav.productivity')), ui.h('p', { class: 'lead' }, ui.t('settings.productivity.lead')), ...PRODUCTIVITY_SECTIONS.map((section) => section(ui))];

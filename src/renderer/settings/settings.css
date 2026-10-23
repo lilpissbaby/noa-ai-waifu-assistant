@@ -461,3 +461,8 @@ details.help ol {
   border: 1px solid var(--line);
   border-radius: 10px;
 }
+
+.row.days {
+  gap: 4px 12px;
+  flex-wrap: wrap;
+}

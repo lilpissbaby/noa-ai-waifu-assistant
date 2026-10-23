@@ -24,6 +24,7 @@ import { listMemory, forgetMemory } from './productivity/memory.js';
 import { saveImageAttachment, attachmentsDir, clearAttachments } from './attachments.js';
 import { attachmentsFromPaths } from './productivity/docs.js';
 import { actionsFor, composeAction, clipboardText } from '../shared/quick-actions.js';
+import { briefingDue, dayKey, BRIEFING_PROMPT } from './productivity/briefing.js';
 import { notesDir } from './tools/notes.js';
 import { listVoices, fetchCatalog, catalogForLanguage, installFromCatalog, importVoiceFiles, deleteVoice } from './voices.js';
 import { APP_ROOT, listSkins, getSkin, saveSkin, deleteSkin, fetchImage, segmentModelStatus, downloadSegmentModel, stageVrm, downloadVrm, saveVrmSkin, clearVrmTmp } from './skins.js';
@@ -557,12 +558,15 @@ function switchPersona(id, { greet = true } = {}) {
 // ---------------------------------------------------------------- avisos
 // Un aviso (recordatorio, resumen, tarea terminada…) sale en el bocadillo y en el chat, y según
 // productivity.notify también como notificación del sistema y en voz alta.
-function announce({ text, kind = 'reminder', speak = true }) {
+// record = false: el texto ya está en el chat (p. ej. la respuesta del resumen diario).
+function announce({ text, kind = 'reminder', speak = true, record = true }) {
   const cfg = loadConfig();
   const mode = cfg.productivity.notify;
-  history.push({ role: 'assistant', content: text, ts: Date.now(), notice: kind });
-  saveHistory();
-  chatEvent({ type: 'announce', kind, text });
+  if (record) {
+    history.push({ role: 'assistant', content: text, ts: Date.now(), notice: kind });
+    saveHistory();
+    chatEvent({ type: 'announce', kind, text });
+  }
   sendTo('avatar', 'avatar:announce', { text, kind });
   if (mode !== 'silent' && Notification.isSupported()) {
     const n = new Notification({ title: assistantName(cfg), body: text.length > 240 ? `${text.slice(0, 237)}…` : text, silent: mode === 'speak' });
@@ -641,6 +645,30 @@ async function lookAtScreen() {
     logger.warn(`captura: ${e.message}`);
     chatEvent({ type: 'notice', level: 'warn', message: e.message });
   }
+}
+
+// ---------------------------------------------------------------- resumen diario
+// Se comprueba cada minuto; la última fecha hecha se guarda para no repetirlo.
+const briefingState = path.join(userDir(), 'briefing.json');
+const lastBriefing = () => {
+  try {
+    return JSON.parse(fs.readFileSync(briefingState, 'utf8')).lastRunDay || null;
+  } catch {
+    return null;
+  }
+};
+function runBriefing(now = new Date()) {
+  fs.writeFileSync(briefingState, JSON.stringify({ lastRunDay: dayKey(now) }));
+  const date = now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+  return sendMessage(BRIEFING_PROMPT(date), 'internal', {
+    hidden: true,
+    onDone: (reply) => reply?.trim() && announce({ text: reply.trim(), kind: 'briefing', record: false }),
+  });
+}
+function checkBriefing() {
+  if (current) return; // no interrumpe una respuesta en curso: se mira otra vez en un minuto
+  const now = new Date();
+  if (briefingDue(now, loadConfig().productivity.briefing, lastBriefing())) runBriefing(now).catch((e) => logger.warn(`resumen: ${e.message}`));
 }
 
 // ---------------------------------------------------------------- acciones rápidas
@@ -830,7 +858,8 @@ function enqueueSpeech(sentence) {
 }
 
 // onDone(textoFinal): al terminar bien el turno (acciones rápidas que copian el resultado).
-async function sendMessage(text, via = 'text', { attachments = [], onDone = null } = {}) {
+// hidden: petición interna (resumen diario…) que no se pinta en el chat ni se lee en voz alta.
+async function sendMessage(text, via = 'text', { attachments = [], onDone = null, hidden = false } = {}) {
   text = String(text || '').trim();
   attachments = cleanAttachments(attachments);
   if (!text && !attachments.length) return;
@@ -844,7 +873,7 @@ async function sendMessage(text, via = 'text', { attachments = [], onDone = null
 
   const cfg = loadConfig();
   const profile = cfg.profiles.find((p) => p.id === cfg.activeProfileId) || cfg.profiles[0];
-  const userMsg = { role: 'user', content: text, via, ts: Date.now(), ...(attachments.length ? { attachments } : {}) };
+  const userMsg = { role: 'user', content: text, via, ts: Date.now(), ...(attachments.length ? { attachments } : {}), ...(hidden ? { hidden: true } : {}) };
   history.push(userMsg);
   chatEvent({ type: 'user', message: userMsg });
 
@@ -857,7 +886,7 @@ async function sendMessage(text, via = 'text', { attachments = [], onDone = null
     return;
   }
 
-  const speak = cfg.voice.speakReplies === 'always' || (cfg.voice.speakReplies === 'voice' && via === 'voice');
+  const speak = !hidden && (cfg.voice.speakReplies === 'always' || (cfg.voice.speakReplies === 'voice' && via === 'voice'));
   const chunker = speak ? new SentenceChunker(enqueueSpeech) : null;
   const ctrl = new AbortController();
   const toolbox = buildToolbox(cfg, () => wins.chat || wins.avatar, services);
@@ -1027,6 +1056,14 @@ function registerIpc() {
   ipcMain.handle('productivity:reminders', () => reminders.list());
   ipcMain.handle('productivity:reminder-cancel', (_e, id) => reminders.cancel(id));
   ipcMain.handle('productivity:memory', () => listMemory().reverse());
+  ipcMain.handle('productivity:briefing-now', () => {
+    runBriefing().catch((e) => logger.warn(`resumen: ${e.message}`));
+    toggleChat(true);
+  });
+  ipcMain.handle('productivity:pick-ics', async (e) => {
+    const r = await dialog.showOpenDialog(BrowserWindow.fromWebContents(e.sender), { filters: [{ name: 'iCalendar', extensions: ['ics'] }], properties: ['openFile'] });
+    return r.canceled ? null : r.filePaths[0] || null;
+  });
   ipcMain.handle('productivity:memory-forget', (_e, id) => forgetMemory(id));
   ipcMain.handle('productivity:notes-dir', () => notesDir(loadConfig()));
   ipcMain.handle('productivity:open-notes', () => {
@@ -1271,6 +1308,10 @@ app.whenReady().then(async () => {
   step('avatar', createAvatarWindow);
   // Los recordatorios vencidos mientras la app estaba cerrada se anuncian cuando el avatar ya está.
   setTimeout(() => step('recordatorios', () => reminders.start()), 2500);
+  setTimeout(() => {
+    checkBriefing();
+    setInterval(checkBriefing, 60000);
+  }, 15000);
   step('bandeja', buildTray);
   step('ajustes de ventana', applyUiConfig);
   syncMcp(loadConfig()).catch((e) => logger.error('MCP', e));
@@ -1302,6 +1343,7 @@ function runAutomation(file) {
     lookAtScreen,
     runQuickAction,
     clipboard,
+    runBriefing,
     broadcast,
     publicConfig,
     loadConfig,

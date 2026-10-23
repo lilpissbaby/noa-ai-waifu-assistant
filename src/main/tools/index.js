@@ -11,6 +11,7 @@ import { memoryTools } from './memory.js';
 import { noteTools } from './notes.js';
 import { screenTools } from './screen.js';
 import { fileTools } from './files.js';
+import { calendarTools } from './calendar.js';
 import { loadConfig, patchConfig } from '../config.js';
 import { t } from '../../shared/i18n/index.js';
 
@@ -22,6 +23,7 @@ export function buildToolbox(cfg, getParentWindow, services = {}) {
     ...noteTools(cfg),
     ...screenTools(cfg, services),
     ...fileTools(cfg),
+    ...calendarTools(cfg, services),
     ...hermesTools(cfg), ...paperclipTools(cfg), ...webhookTools(cfg), ...mcpTools(cfg)];
   const byName = new Map(all.map((tool) => [tool.name, tool]));
 

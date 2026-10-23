@@ -80,6 +80,7 @@ export async function startMockServer({ delay = 0 } = {}) {
   const issues = [];
   const images = []; // data: URL de las imágenes recibidas (captura de pantalla)
   const files = []; // textos de archivos adjuntos recibidos
+  const briefings = []; // peticiones internas de resumen diario
   const server = http.createServer(async (req, res) => {
     let raw = '';
     for await (const c of req) raw += c;
@@ -98,7 +99,10 @@ export async function startMockServer({ delay = 0 } = {}) {
       const userText = Array.isArray(userContent) ? userContent.map((p) => p.text || '').join(' ') : userContent;
       const image = Array.isArray(last.content) ? last.content.find((p) => p.type === 'image_url') : null;
       const attached = Array.isArray(last.content) ? last.content.filter((p) => p.type === 'text' && p.text.startsWith('Attached file:')) : [];
-      if (last.role === 'user' && attached.length) {
+      if (last.role === 'user' && userText.startsWith('[Daily briefing]')) {
+        briefings.push(userText);
+        await streamText(send, L.hello, delay);
+      } else if (last.role === 'user' && attached.length) {
         files.push(...attached.map((p) => p.text));
         await streamText(send, L.hello, delay);
       } else if (last.role === 'user' && image) {
@@ -161,7 +165,7 @@ export async function startMockServer({ delay = 0 } = {}) {
       server.closeAllConnections?.(); // net.fetch deja conexiones keep-alive abiertas
       server.close(r);
     });
-  return { base, issues, images, files, close };
+  return { base, issues, images, files, briefings, close };
 }
 
 // Configuración que apunta todos los conectores al servidor simulado.

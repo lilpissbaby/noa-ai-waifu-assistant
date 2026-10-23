@@ -229,6 +229,27 @@ export default async function smoke(api) {
   const copied = await api.clipboard.readText();
   if (!copied.startsWith('¡Hola! Soy Noa')) problems.push(`acciones rápidas: el portapapeles no tiene la respuesta (${copied.slice(0, 60)})`);
 
+  // Agenda: un calendario .ics local con un evento de hoy; la herramienta lo devuelve.
+  const d0 = new Date();
+  const ymd = `${d0.getFullYear()}${String(d0.getMonth() + 1).padStart(2, '0')}${String(d0.getDate()).padStart(2, '0')}`;
+  const ics = path.join(api.userDir(), 'agenda.ics');
+  fs.writeFileSync(ics, ['BEGIN:VCALENDAR', 'VERSION:2.0', 'BEGIN:VEVENT', 'UID:smoke@waifu', `DTSTART;VALUE=DATE:${ymd}`, 'SUMMARY:Revisión del smoke', 'END:VEVENT', 'END:VCALENDAR'].join('\r\n'));
+  api.patchConfig({ productivity: { calendars: [{ id: 'smoke', name: 'Smoke', file: ics }] } });
+  const agenda = await api.runTool('calendar_events', {});
+  if (!agenda?.events?.some((e) => e.title === 'Revisión del smoke')) problems.push(`agenda: no devuelve el evento de hoy ${JSON.stringify(agenda).slice(0, 200)}`);
+
+  // Resumen diario: petición interna oculta; la respuesta sale en el chat y en el bocadillo.
+  const done6 = waitForChat(api, (e) => e.type === 'done' || e.type === 'error');
+  await api.runBriefing();
+  await done6;
+  await sleep(400);
+  if (mock.briefings.length !== 1) problems.push(`resumen: el modelo recibió ${mock.briefings.length} peticiones`);
+  const hiddenShown = await api.wins.chat.webContents.executeJavaScript(`[...document.querySelectorAll('.msg.user')].some((m) => m.textContent.includes('[Daily briefing]'))`);
+  if (hiddenShown) problems.push('resumen: la petición interna se ve en el chat');
+  const briefBubble = await api.wins.avatar.webContents.executeJavaScript(`document.querySelector('#bubble.announce:not(.hidden) #bubbleText')?.textContent || ''`);
+  if (!briefBubble.startsWith('¡Hola!')) problems.push(`resumen: el bocadillo no lo anuncia (${briefBubble})`);
+  api.patchConfig({ productivity: { calendars: [] } });
+
   // Recordatorio de 1 s: llega como aviso al chat y al bocadillo del avatar.
   const announced = waitForChat(api, (e) => e.type === 'announce');
   const rem = await api.runTool('reminder_create', { text: 'Estirar las piernas', in_minutes: 1 / 60 });

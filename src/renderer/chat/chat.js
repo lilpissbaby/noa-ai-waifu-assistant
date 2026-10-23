@@ -191,7 +191,9 @@ function renderHistory(history) {
   current = null;
   let lastAssistant = null;
   for (const m of history) {
-    if (m.role === 'user') {
+    if (m.role === 'user' && m.hidden) {
+      lastAssistant = null;
+    } else if (m.role === 'user') {
       addUser(m);
       lastAssistant = null;
     } else if (m.role === 'assistant' && m.notice) {
@@ -258,7 +260,7 @@ function handleEvent(e) {
       updateEmpty();
       break;
     case 'user':
-      addUser(e.message);
+      if (!e.message.hidden) addUser(e.message);
       break;
     case 'assistant_start':
       current = newAssistant();
