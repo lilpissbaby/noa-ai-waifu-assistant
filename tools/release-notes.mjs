@@ -22,7 +22,9 @@ if (start !== -1) {
   body = lines
     .slice(start + 1, end)
     .join('\n')
-    .replace(/\n {2,}(?=\S)/g, ' ') // une las líneas partidas de cada viñeta (las notas de GitHub respetan los saltos)
+    // Une las líneas partidas de cada viñeta (las notas de GitHub respetan los saltos), salvo las
+    // que empiezan una sub-viñeta.
+    .replace(/\n {2,}(?![-*+] |\d+\. )(?=\S)/g, ' ')
     .trim();
 }
 if (!body) body = `Waifu Desk ${version}.`;
