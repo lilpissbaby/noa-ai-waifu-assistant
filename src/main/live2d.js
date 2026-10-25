@@ -180,6 +180,22 @@ export function stageLive2d(srcPath) {
 
 const safeRel = (rel) => typeof rel === 'string' && rel && !isUnsafePath(rel) && !rel.includes('\\');
 
+// Mueve una carpeta; en Windows renombrar falla si el antivirus o alguien tiene abierto un archivo
+// recién creado (EPERM/EBUSY/EACCES): entonces se copia y se borra el original como se pueda.
+function moveDir(src, dest) {
+  try {
+    fs.renameSync(src, dest);
+  } catch (e) {
+    if (!['EPERM', 'EBUSY', 'EACCES', 'EXDEV', 'ENOTEMPTY'].includes(e.code)) throw e;
+    fs.cpSync(src, dest, { recursive: true });
+    try {
+      fs.rmSync(src, { recursive: true, force: true });
+    } catch {
+      /* lo borra clearLive2dTmp al arrancar */
+    }
+  }
+}
+
 // Guarda (o actualiza) la skin: skins/<id>/model/… + skin.json + miniatura.
 export function saveLive2dSkin({ id, tmpId, model, vts = null, name, framing, expressions, thumb }) {
   if (!safeRel(model) || (vts && !safeRel(vts))) throw fail('unsafe', t('errors.live2dUnsafe'));
@@ -191,7 +207,7 @@ export function saveLive2dSkin({ id, tmpId, model, vts = null, name, framing, ex
     if (!fs.existsSync(path.join(src, ...model.split('/')))) throw fail('noModel', t('errors.live2dNoModel'));
     fs.rmSync(path.join(dir, 'model'), { recursive: true, force: true });
     fs.mkdirSync(dir, { recursive: true });
-    fs.renameSync(src, path.join(dir, 'model'));
+    moveDir(src, path.join(dir, 'model'));
   } else if (!fs.existsSync(path.join(dir, 'model', ...model.split('/')))) throw fail('noModel', t('errors.live2dNoModel'));
   const files = { model: `model/${model}` };
   if (thumb && /^data:image\/png;base64,/.test(thumb)) {

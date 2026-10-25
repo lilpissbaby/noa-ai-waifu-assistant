@@ -144,6 +144,21 @@ test('importar modelos: zip con model3.json, Cubism 2, enlaces y guardar la skin
   assert.ok(fs.existsSync(path.join(__test.userData, 'skins', skin.id, 'model', 'Chica', 'chica.moc3')));
   assert.throws(() => saveLive2dSkin({ id: skin.id, model: '../../config.json' }), (e) => e.code === 'unsafe');
 
+  // En Windows mover la carpeta puede fallar (antivirus o archivos abiertos): entonces se copia.
+  const st2 = stageLive2d(zip);
+  const realRename = fs.renameSync;
+  fs.renameSync = () => {
+    throw Object.assign(new Error('EPERM: operation not permitted, rename'), { code: 'EPERM' });
+  };
+  let copied;
+  try {
+    copied = saveLive2dSkin({ tmpId: st2.tmpId, model: st2.models[0], name: 'Copia' });
+  } finally {
+    fs.renameSync = realRename;
+  }
+  assert.ok(fs.existsSync(path.join(__test.userData, 'skins', copied.id, 'model', 'Chica', 'chica.moc3')));
+  assert.ok(fs.existsSync(path.join(__test.userData, 'skins', copied.id, 'skin.json')));
+
   const old = path.join(dir, 'old.zip');
   fs.writeFileSync(old, makeZip([{ name: 'm/model.json', data: '{}' }, { name: 'm/m.moc', data: 'x' }]));
   assert.deepEqual(stageLive2d(old), { error: 'cubism2' });

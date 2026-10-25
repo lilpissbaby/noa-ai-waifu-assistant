@@ -19,12 +19,25 @@ export async function live2dCheck(api, fx, problems) {
   // Por el editor, como lo haría el usuario: ver, encuadrar, guardar y usar.
   const ed = api.openWindow('vrm-editor', { query: { kind: 'live2d' } });
   await waitForWindow(ed, '!!window.__wdVrmEditor && document.body.classList.contains("mode-live2d")', 20000);
+  // Errores con su pila (en el registro solo sale «cubism.min.js:1»).
+  const CATCH = "window.__errs = []; addEventListener('error', (e) => __errs.push(String(e.error?.stack || e.message))); addEventListener('unhandledrejection', (e) => __errs.push(String(e.reason?.stack || e.reason)))";
+  await ed.webContents.executeJavaScript(CATCH);
+  await api.wins.avatar.webContents.executeJavaScript(CATCH);
+  const errors = async (win) => (await win.webContents.executeJavaScript('window.__errs || []').catch(() => [])).slice(0, 3).join('\n  ');
   await ed.webContents.executeJavaScript(`window.__wdVrmEditor.fromStagedLive2d(${JSON.stringify(staged)})`);
   await waitForWindow(ed, "window.__wdVrmEditor.renderer?.kind === 'live2d' && !!window.__wdVrmEditor.renderer.skin", 60000);
   const params = await ed.webContents.executeJavaScript('document.querySelectorAll("#paramList .param").length');
   if (!(params > 10)) problems.push(`live2d: el editor no lista los parámetros (${params})`);
   await ed.webContents.executeJavaScript(`document.querySelector('[data-preset="half"]').click(); document.getElementById('btnSave').click()`);
-  await waitForWindow(ed, 'document.getElementById("saveStatus").classList.contains("ok")', 30000);
+  await waitForWindow(ed, '["ok", "err"].some((c) => document.getElementById("saveStatus").classList.contains(c))', 30000).catch(() => {});
+  const saved = await ed.webContents.executeJavaScript('({ ok: document.getElementById("saveStatus").classList.contains("ok"), text: document.getElementById("saveStatus").textContent })');
+  if (!saved.ok) {
+    problems.push(`live2d: no se guardó la skin («${saved.text}»)\n  editor: ${await errors(ed)}\n  avatar: ${await errors(api.wins.avatar)}`);
+    ed.close();
+    return null;
+  }
+  const edErrors = await errors(ed);
+  if (edErrors) problems.push(`live2d: errores en el editor\n  ${edErrors}`);
   ed.close();
   const skin = { id: api.loadConfig().ui.skinId };
   if (!/^live2d-/.test(skin.id)) problems.push(`live2d: el editor no puso la skin (${skin.id})`);
@@ -52,6 +65,8 @@ export async function live2dCheck(api, fx, problems) {
   await sleep(1200);
   const form1 = await av.webContents.executeJavaScript(`window.__wd.renderer.paramValue('ParamMouthForm') ?? 0`);
   if (!(form1 > form0 + 0.2)) problems.push(`live2d: la alegría no cambia la boca (${form0} → ${form1})`);
+  const avErrors = await errors(av);
+  if (avErrors) problems.push(`live2d: errores en el avatar\n  ${avErrors}`);
   // Ida y vuelta a 2D (canvas nuevo, sin errores).
   api.useSkin('default');
   await waitForWindow(av, "window.__wd.renderer?.kind === '2d' && !!window.__wd.renderer.skin", 20000);
