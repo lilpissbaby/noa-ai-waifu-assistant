@@ -167,12 +167,19 @@ test('importar modelos: zip con model3.json, Cubism 2, enlaces y guardar la skin
   assert.deepEqual(stageLive2d(bad), { error: 'unsafe' });
 
   // Core: desde el .zip del SDK (Core/live2dcubismcore.min.js) o el .js suelto; lo demás se rechaza.
-  const core = '/**\n * Live2D Cubism Core\n */\nvar Live2DCubismCore;';
+  const core = '/**\n * Live2D Cubism Core\n */\nvar Live2DCubismCore; function _csmGetDrawableRenderOrders(){}';
   const sdk = path.join(dir, 'CubismSdkForWeb-5-r.5.zip');
   fs.writeFileSync(sdk, makeZip([{ name: 'CubismSdkForWeb-5-r.5/Core/live2dcubismcore.min.js', data: core }]));
   assert.equal(coreStatus().ready, false);
   assert.equal(importCore(sdk).ready, true);
   assert.equal(coreStatus().url, 'app://local/user/runtime/live2d/live2dcubismcore.min.js');
+  // El Core de Cubism 5.3 (SDK 5-r.5 o posterior) cambió el orden de dibujo y el motor aún no lo admite.
+  const core53 = path.join(dir, 'core53.js');
+  fs.writeFileSync(core53, '/**\n * Live2D Cubism Core\n */\nvar Live2DCubismCore; function _csmGetRenderOrders(){}');
+  assert.throws(() => importCore(core53), (e) => e.code === 'coreTooNew');
+  assert.equal(coreStatus().ready, true, 'el Core bueno sigue instalado');
+  const { CORE_URLS } = await import('../src/main/live2d.js');
+  assert.ok(CORE_URLS.every((u) => !/5-r\.([5-9]|\d\d)/.test(u)), 'no descarga SDK 5-r.5 o posteriores');
   const fake = path.join(dir, 'virus.js');
   fs.writeFileSync(fake, 'alert(1)');
   assert.throws(() => importCore(fake), (e) => e.code === 'notCore');

@@ -8,7 +8,9 @@ import { userDir } from './config.js';
 import { readZip, isUnsafePath } from './zip.js';
 import { t } from '../shared/i18n/index.js';
 
-export const CORE_URLS = ['https://cubism.live2d.com/sdk-web/bin/CubismSdkForWeb-5-r.5.zip', 'https://cubism.live2d.com/sdk-web/bin/CubismSdkForWeb-5-r.4.zip'];
+// SDK 5-r.4 (y 5-r.3 de respaldo): el Core de Cubism 5.3 (SDK 5-r.5 en adelante) quitó
+// csmGetDrawableRenderOrders y el motor (untitled-pixi-live2d-engine 1.4) aún lo necesita.
+export const CORE_URLS = ['https://cubism.live2d.com/sdk-web/bin/CubismSdkForWeb-5-r.4.zip', 'https://cubism.live2d.com/sdk-web/bin/CubismSdkForWeb-5-r.3.zip'];
 export const LICENSE_URL = 'https://www.live2d.com/eula/live2d-proprietary-software-license-agreement_en.html';
 const CORE_FILE = 'live2dcubismcore.min.js';
 const MODEL_MAX_BYTES = 300 * 1024 * 1024;
@@ -43,9 +45,11 @@ export function coreStatus() {
   return { ready: true, url: `app://local/user/runtime/live2d/${CORE_FILE}`, version };
 }
 
-// Un Core válido empieza con su cabecera y define Live2DCubismCore.
+// Un Core válido empieza con su cabecera y define Live2DCubismCore. El de Cubism 5.3 o posterior
+// (csmGetRenderOrders en vez de csmGetDrawableRenderOrders) todavía no lo admite el motor.
 function checkCore(text) {
   if (!/Live2D Cubism Core/.test(text.slice(0, 2000)) || !/Live2DCubismCore/.test(text)) throw fail('notCore', t('errors.live2dNotCore'));
+  if (!text.includes('csmGetDrawableRenderOrders')) throw fail(text.includes('csmGetRenderOrders') ? 'coreTooNew' : 'notCore', t(text.includes('csmGetRenderOrders') ? 'errors.live2dCoreTooNew' : 'errors.live2dNotCore'));
 }
 
 function installCore(text, version) {

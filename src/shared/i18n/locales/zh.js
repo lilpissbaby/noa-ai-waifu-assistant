@@ -80,6 +80,7 @@ export default {
     attachmentTooBig: '{name} 太大（最多 20 MB）。',
     attachmentUnreadable: '无法读取文件：{message}',
     live2dNotCore: '这不是 Live2D 的 Cubism Core：请选择“Cubism SDK for Web”的 .zip 或 live2dcubismcore.min.js 文件。',
+    live2dCoreTooNew: '这个 Cubism Core 来自 Cubism 5.3（SDK 5-r.5 或更新），应用的 Live2D 引擎暂不支持。请使用“Cubism SDK for Web” 5-r.4，或点击“下载引擎”。',
     live2dUnsafe: '模型包含不允许的路径或链接，未导入。',
     live2dTooMany: '模型文件太多（最多 2000 个）。',
     live2dTooBig: '模型太大（最多 300 MB）。',

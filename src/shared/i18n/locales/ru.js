@@ -80,6 +80,7 @@ export default {
     attachmentTooBig: '{name} слишком большой (не более 20 МБ).',
     attachmentUnreadable: 'Не удалось прочитать файл: {message}',
     live2dNotCore: 'Это не Cubism Core от Live2D: выберите .zip «Cubism SDK for Web» или файл live2dcubismcore.min.js.',
+    live2dCoreTooNew: 'Этот Cubism Core из Cubism 5.3 (SDK 5-r.5 или новее), его движок Live2D в приложении пока не поддерживает. Используйте «Cubism SDK for Web» 5-r.4 или кнопку «Скачать движок».',
     live2dUnsafe: 'В модели есть недопустимые пути или ссылки; она не импортирована.',
     live2dTooMany: 'В модели слишком много файлов (не более 2000).',
     live2dTooBig: 'Модель слишком большая (не более 300 МБ).',

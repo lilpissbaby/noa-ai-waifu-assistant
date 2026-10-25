@@ -1,13 +1,14 @@
 #!/usr/bin/env node
 // Descarga lo necesario para probar Live2D (solo para la prueba de humo y el CI; nunca va al repo):
 //   - el «Cubism SDK for Web» oficial (de él se saca el Cubism Core, propietario de Live2D) y
-//   - el modelo de ejemplo Hiyori de github.com/Live2D/CubismWebSamples (rama develop).
+//   - el modelo de ejemplo Hiyori de github.com/Live2D/CubismWebSamples (etiqueta 5-r.4).
 // Uso: node tools/fetch-live2d-fixtures.mjs <carpeta>   → la prueba de humo usa WAIFU_TEST_LIVE2D_DIR=<carpeta>
 import fs from 'node:fs';
 import path from 'node:path';
 
-const SDK_URLS = ['https://cubism.live2d.com/sdk-web/bin/CubismSdkForWeb-5-r.5.zip', 'https://cubism.live2d.com/sdk-web/bin/CubismSdkForWeb-5-r.4.zip'];
-const HIYORI = 'https://raw.githubusercontent.com/Live2D/CubismWebSamples/develop/Samples/Resources/Hiyori/';
+// Los mismos SDK que descarga la app (CORE_URLS en src/main/live2d.js; ese módulo necesita Electron).
+const SDK_URLS = ['https://cubism.live2d.com/sdk-web/bin/CubismSdkForWeb-5-r.4.zip', 'https://cubism.live2d.com/sdk-web/bin/CubismSdkForWeb-5-r.3.zip'];
+const HIYORI = 'https://raw.githubusercontent.com/Live2D/CubismWebSamples/5-r.4/Samples/Resources/Hiyori/';
 
 const dir = path.resolve(process.argv[2] || 'live2d-fixtures');
 fs.mkdirSync(dir, { recursive: true });
@@ -40,6 +41,8 @@ for (const f of files) {
   fs.writeFileSync(to, await get(HIYORI + f.split('/').map(encodeURIComponent).join('/')));
 }
 console.log(`Hiyori: ${files.length} archivos en ${model}`);
-if (!sdkOk) {
+if (!sdkOk && !fs.existsSync(path.join(dir, 'live2dcubismcore.min.js'))) {
   console.warn('Sin SDK: la prueba de Live2D se omitirá (o pon live2dcubismcore.min.js en la carpeta).');
+  // En el CI es un fallo: la app descarga el Core de esas mismas direcciones.
+  if (process.env.CI) process.exit(1);
 }
