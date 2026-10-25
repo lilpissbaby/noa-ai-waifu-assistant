@@ -2,7 +2,7 @@
   "name": "waifu-desk",
   "productName": "Waifu Desk",
   "desktopName": "waifu-desk.desktop",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "AI assistant with a floating anime avatar on your desktop (Claude, OpenAI-compatible, Hermes, Paperclip, MCP)",
   "homepage": "https://github.com/lilpissbaby/noa-ai-waifu-assistant",
   "repository": {

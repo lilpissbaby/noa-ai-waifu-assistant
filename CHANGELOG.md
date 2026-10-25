@@ -4,6 +4,82 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). L
 [SemVer](https://semver.org/lang/es/). El workflow de releases publica el apartado de cada versión como notas de
 la release.
 
+## [0.4.0] - 2026-10-23
+
+### Añadido
+
+- **Personajes**: varios a la vez, cada uno con su forma de ser, contexto, saludo, ejemplos de diálogo,
+  instrucciones extra, voz y skin. Pestaña nueva en Ajustes, submenú «Personaje» en el menú de Noa y en la
+  bandeja, y herramientas para cambiarlo hablando («cámbiate a Rin», «sé más seria»). Plantillas (profesional,
+  alegre, tsundere, kuudere, dulce, sarcástica y romántica) en los cinco idiomas. La personalidad de 0.3 se
+  convierte sola en el primer personaje.
+- **Filtros de contenido** por personaje (lenguaje, violencia, política y religión, romance y contenido
+  sexual) y **modo +18** que hay que desbloquear en Ajustes. Límites fijos que ningún ajuste quita: personajes
+  adultos, nada sexual con menores ni con personas reales, nada de autolesiones ni de ayudar a hacer daño. Aviso
+  de que Claude y OpenAI no generan contenido explícito aunque se active.
+- **Tarjetas de SillyTavern** (`.png` V2/V3 o `.json`), con «Crear skin 2D con su imagen».
+- **Azure OpenAI**: perfil nuevo (cabecera `api-key`), política de contenido elegida en cada petición según el
+  personaje (`x-policy-id`), mensaje claro cuando el filtro de Azure bloquea algo y un Terraform en
+  `docs/azure/content-filters` que crea las políticas.
+- **Voces locales Piper**: neuronales, gratuitas y sin conexión. El motor (espeak-ng en WebAssembly, GPL) se
+  descarga una vez y se comprueba; las voces se instalan desde el catálogo de rhasspy/piper-voices (filtrado por
+  idioma, con comprobación md5) o se importan (`.onnx` + `.onnx.json` o `.zip`). Cada voz enseña su licencia,
+  y cada personaje puede tener la suya.
+- **Productividad** (pestaña nueva en Ajustes):
+  - Recordatorios y temporizadores, también repetitivos, con aviso de los perdidos al abrir la app.
+  - Avisos en el bocadillo y en el chat, con notificación y voz opcionales.
+  - Memoria sobre ti y notas en Markdown.
+  - «Mira esto» (`Ctrl+Alt+S`): captura la pantalla sin la waifu ni el chat y se la pasa al modelo.
+  - Acciones rápidas (`Ctrl+Alt+Q`) sobre el texto copiado: traducir, resumir, corregir, explicar y
+    responder, editables y ampliables.
+  - Archivos: adjuntar imágenes, texto, PDF y Word al chat (arrastrando o pegando), y leer, buscar y escribir
+    (con permiso) en las carpetas que autorices.
+  - Agenda con enlaces iCal o archivos `.ics` (recurrencias y zonas horarias, también las de Outlook) y resumen
+    diario a la hora que elijas.
+  - Leer páginas web y buscar con SearXNG, Brave Search o Tavily.
+  - Avisos cuando una tarea de Paperclip creada o comentada desde la app termina, se bloquea o pasa a revisión,
+    y tareas de Hermes en segundo plano que avisan al acabar.
+- **Imágenes en el chat** con los modelos que ven (Anthropic y compatibles con OpenAI), con miniaturas en el
+  chat; opción «Puede ver imágenes» en cada perfil.
+- **Avatares VTuber (Live2D)**: modelos Cubism 3, 4 y 5 (los de VTube Studio, Booth o nizima) como skin. Se
+  mueven como en VTube Studio con su `.vtube.json` (rangos, suavizado, respiración y expresiones) o con los
+  parámetros estándar de Cubism; caras según la emoción, saludo y encuadre. El Cubism Core (propietario de
+  Live2D) se descarga del SDK oficial 5-r.4 tras aceptar su licencia, o se importa. El Core de Cubism 5.3
+  (SDK 5-r.5) y los modelos exportados para Cubism 5.3 aún no son compatibles con el motor.
+- **Editor de modelos 3D y VTuber**: el editor 3D gana el modo Live2D (condiciones del modelo, configuración
+  de VTube Studio, encuadre, caras por emoción y deslizadores de parámetros).
+- Capturas nuevas en el README: estados Live2D, editor Live2D, un recordatorio y las pestañas Personajes,
+  Productividad y voces Piper.
+
+### Cambiado
+
+- El nombre y la personalidad pasan de Ajustes → General a Ajustes → Personajes.
+- pixi.js y el motor de Live2D se cargan como scripts clásicos solo cuando la skin es Live2D, sin tocar la CSP
+  (el diseño preveía el *import map*, pero su versión ESM necesita `unsafe-eval`).
+- Los `.zip` se leen con `node:zlib` en lugar de fflate (así se rechazan los enlaces simbólicos); el diseño
+  preveía fflate.
+- En Linux, «Mira esto» oculta un instante las ventanas de Noa para que no salgan en la captura (allí la
+  opacidad no se puede cambiar).
+- Un `null` en un ajuste de lista la sustituye (lo usa «Restaurar las de serie» de las acciones rápidas).
+- La prueba de humo cubre las pestañas nuevas en los cinco idiomas, el cambio de personaje, un recordatorio, la
+  captura de pantalla, adjuntos, una acción rápida, la agenda, la web, los avisos de agentes, una voz Piper real
+  que mueve la boca y un modelo Live2D de ejemplo (en el CI).
+- El CI enseña los fallos de los tests y de la prueba de humo como anotaciones de la ejecución.
+
+### Corregido
+
+- `clipboard_read` y `clipboard_write` fallaban con Electron 44 (el portapapeles ahora es asíncrono).
+- «Probar voz» usaba un nombre de asistente que ya no existía.
+
+### Seguridad
+
+- `app://local/user/` solo sirve las carpetas de contenido (skins, voces, adjuntos…), no los ajustes ni la
+  conversación.
+- Importaciones de `.zip` y carpetas sin rutas fuera ni enlaces simbólicos, con límites de tamaño y de número
+  de archivos; descargas por HTTPS con tamaño limitado y suma comprobada cuando la fuente la publica.
+- Archivos solo dentro de las carpetas autorizadas (resolviendo enlaces), escritura con confirmación, y
+  permiso antes de capturar la pantalla o leer direcciones de la red local.
+
 ## [0.3.0] - 2026-10-22
 
 ### Añadido

@@ -7,6 +7,10 @@ import { BrowserWindow } from 'electron';
 import { SUPPORTED, tIn } from '../../src/shared/i18n/index.js';
 import { startMockServer, mockConfigPatch } from './mock-server.mjs';
 import { sleep, waitForWindow, waitForChat, setLanguage } from './common.mjs';
+import { live2dFixtures } from './live2d-check.mjs';
+
+// Cierra una ventana y espera a que desaparezca (si no, openWindow podría reutilizarla a medio cerrar).
+const closed = (win) => new Promise((resolve) => (win.isDestroyed() ? resolve() : (win.once('closed', resolve), win.close())));
 
 const OUT = path.resolve(import.meta.dirname, '..', '..', 'docs', 'screenshots');
 
@@ -79,7 +83,7 @@ export default async function screenshots(api) {
   fs.mkdirSync(OUT, { recursive: true });
   const mock = await startMockServer();
   api.patchConfig(mockConfigPatch(mock.base));
-  api.patchConfig({ ui: { alwaysOnTop: false }, assistant: { personality: tIn('es', 'defaults.personality') }, voice: { stt: { language: 'es' } } });
+  api.patchConfig({ ui: { alwaysOnTop: false }, voice: { stt: { language: 'es' } } });
   api.applyUiConfig();
   api.broadcast('cfg:changed', api.publicConfig());
   const avatar = api.wins.avatar;
@@ -212,9 +216,93 @@ export default async function screenshots(api) {
   vrmEditor.focus();
   await sleep(6000);
   shot('vrm-editor.png', await png(vrmEditor));
-  vrmEditor.close();
+  await closed(vrmEditor);
+
+  // ------------------------------------------------ 2c. VTuber (Live2D) con el modelo de muestra Hiyori, si hay fixtures
+  const l2d = live2dFixtures(process.env.WAIFU_TEST_LIVE2D_DIR);
+  if (l2d) {
+    api.live2d.importCore(l2d.core);
+    const staged = api.live2d.stageLive2d(l2d.model);
+    // Como el usuario: por el editor (así la skin lleva su miniatura).
+    const l2new = api.openWindow('vrm-editor', { query: { kind: 'live2d' } });
+    await waitForWindow(l2new, '!!window.__wdVrmEditor && document.body.classList.contains("mode-live2d")', 20000);
+    await l2new.webContents.executeJavaScript(`window.__wdVrmEditor.fromStagedLive2d(${JSON.stringify(staged)})`);
+    await waitForWindow(l2new, "window.__wdVrmEditor.renderer?.kind === 'live2d' && !!window.__wdVrmEditor.renderer.skin", 60000);
+    await sleep(1500);
+    await l2new.webContents.executeJavaScript(`document.querySelector('[data-preset="half"]').click(); document.getElementById('btnSave').click()`);
+    await waitForWindow(l2new, 'document.getElementById("saveStatus").classList.contains("ok")', 30000);
+    await closed(l2new);
+    const l2skin = { id: api.loadConfig().ui.skinId };
+    await waitForWindow(avatar, "window.__wd.renderer?.kind === 'live2d' && !!window.__wd.renderer.skin", 60000);
+    await sleep(3000);
+    const shotsL2d = [
+      ['idle', '', '', null],
+      ['thinking', '', '', null],
+      ['talking', '', '', null],
+      ['idle', '', 'happy', null],
+      ['idle', '', '', { x: -2000, y: 120 }],
+    ];
+    const pngsL2d = [];
+    for (const [st, label, emo, cursor] of shotsL2d) {
+      api.setState(st, label);
+      if (st === 'talking') await avatar.webContents.executeJavaScript('window.__wd.behaviour.fakeTalkUntil = performance.now() + 60000');
+      if (emo) await avatar.webContents.executeJavaScript(`window.__wd.behaviour.setEmotion('${emo}', performance.now())`);
+      await avatar.webContents.executeJavaScript(`window.__wd.behaviour.cursor = ${JSON.stringify(cursor)}`);
+      await sleep(3500);
+      pngsL2d.push(await png(avatar));
+      await avatar.webContents.executeJavaScript("window.__wd.behaviour.fakeTalkUntil = 0; window.__wd.behaviour.setEmotion('neutral', performance.now()); window.__wd.behaviour.cursor = null");
+      await sleep(1200);
+    }
+    api.setState('idle');
+    const al = imageSize(pngsL2d[0]);
+    const pad = px(20);
+    const W = al.width * shotsL2d.length + pad * 2;
+    const H = al.height + px(40);
+    const labels = ['idle', 'thinking', 'talking', 'happy', 'look'];
+    shot(
+      'states-live2d.jpg',
+      await compose(W, H, [
+        { wallpaper: true },
+        ...pngsL2d.map((b, i) => ({ img: b, x: pad + i * al.width, y: px(4) })),
+        ...labels.map((l, i) => ({ text: l, x: pad + i * al.width + al.width / 2, y: H - px(12), font: `600 ${px(12)}px ui-monospace, monospace`, fill: '#b7aecb', align: 'center' })),
+      ]),
+    );
+    const l2ed = api.openWindow('vrm-editor', { query: { id: l2skin.id } });
+    l2ed.setSize(1180, 820);
+    await waitForWindow(l2ed, "window.__wdVrmEditor?.renderer?.kind === 'live2d' && !!window.__wdVrmEditor.renderer.skin", 60000);
+    await l2ed.webContents.executeJavaScript(`document.getElementById('paramBox').open = true`);
+    l2ed.show();
+    l2ed.focus();
+    await sleep(5000);
+    shot('live2d-editor.png', await png(l2ed));
+    await closed(l2ed);
+  } else api.logger.warn('capturas: Live2D omitido (WAIFU_TEST_LIVE2D_DIR)');
+
   api.useSkin('default');
   await waitForWindow(avatar, "window.__wd.renderer?.kind === '2d' && !!window.__wd.renderer.skin", 30000);
+
+  // ------------------------------------------------ 2d. un recordatorio: bocadillo + aviso en el chat
+  api.patchConfig({ productivity: { notify: 'silent' } });
+  api.newConversation();
+  await sleep(300);
+  api.announce({ kind: 'reminder', text: tIn('es', 'reminders.fire', { text: 'Llamar a Ana por lo del viaje (sale a las 19:30)' }) });
+  await sleep(900);
+  {
+    const avatarR = await png(avatar);
+    const chatR = await png(chat);
+    const ar = imageSize(avatarR);
+    const cr = imageSize(chatR);
+    const W = px(1040);
+    const H = px(760);
+    shot(
+      'reminder.jpg',
+      await compose(W, H, [
+        { wallpaper: true },
+        { img: chatR, x: W - ar.width - cr.width - px(48), y: H - cr.height - px(30), radius: px(12), shadow: px(40) },
+        { img: avatarR, x: W - ar.width - px(24), y: H - ar.height - px(10) },
+      ]),
+    );
+  }
 
   // ------------------------------------------------ 3. ajustes (con valores de ejemplo en vez de los del simulador)
   const realistic = mockConfigPatch(mock.base);
@@ -240,7 +328,52 @@ export default async function screenshots(api) {
     await sleep(wait);
     shot(name, await png(settings));
   };
-  for (const tab of ['general', 'models', 'voice', 'connectors']) await settingsShot(tab, `settings-${tab}.png`);
+  // Personajes de ejemplo: la de serie, una tsundere y una profesional.
+  const { personaFromTemplate } = await import('../../src/shared/personas.js');
+  const cfg0 = api.loadConfig();
+  api.patchConfig({ personas: [...cfg0.personas, personaFromTemplate('tsundere', 'es'), personaFromTemplate('profesional', 'es')] });
+  // Productividad con datos de ejemplo.
+  const at = (d, h, m = 0) => {
+    const x = new Date();
+    x.setDate(x.getDate() + d);
+    x.setHours(h, m, 0, 0);
+    return x;
+  };
+  api.reminders.add({ text: 'Llamar a Ana por lo del viaje', due: at(0, 19, 30) > new Date() ? at(0, 19, 30) : at(1, 19, 30) });
+  api.reminders.add({ text: 'Revisar las copias de seguridad del VPS', due: at(1, 9), repeat: 'weekdays' });
+  const { saveMemory } = await import('../../src/main/productivity/memory.js');
+  saveMemory('Su perro se llama Toby');
+  saveMemory('Trabaja con Paperclip y un Hermes en su VPS');
+  api.patchConfig({
+    productivity: {
+      notify: 'speak',
+      calendars: [{ id: 'cal-1', name: 'Trabajo', url: 'https://calendar.google.com/calendar/ical/ejemplo%40gmail.com/private-0123456789abcdef/basic.ics' }],
+      briefing: { enabled: true, time: '08:30', days: [1, 2, 3, 4, 5] },
+      search: { provider: 'searxng', baseUrl: 'https://searx.example.com' },
+      folders: [api.app.getPath('documents')],
+    },
+  });
+  // Voz con Piper si hay voz y motor de prueba (CI/local); el catálogo de ejemplo de los tests.
+  const piperVoice = process.env.WAIFU_TEST_PIPER_VOICE;
+  if (piperVoice) {
+    const { installPiperRuntime, downloadPiperRuntime } = await import('../../src/main/piper-runtime.js');
+    if (process.env.WAIFU_TEST_PIPER_RUNTIME) installPiperRuntime(fs.readFileSync(process.env.WAIFU_TEST_PIPER_RUNTIME));
+    else await downloadPiperRuntime().catch(() => {});
+    const { importVoiceFiles } = await import('../../src/main/voices.js');
+    const [voice] = await importVoiceFiles(fs.readdirSync(piperVoice).filter((f) => f.endsWith('.onnx')).map((f) => path.join(piperVoice, f)));
+    fs.copyFileSync(path.resolve(import.meta.dirname, '..', '..', 'test', 'fixtures', 'piper', 'voices-sample.json'), path.join(api.userDir(), 'voices', 'catalog.json'));
+    api.patchConfig({ voice: { tts: { mode: 'piper', piperVoice: voice.key } } });
+  }
+  api.broadcast('cfg:changed', api.publicConfig());
+  for (const tab of ['general', 'personas', 'models', 'voice', 'productivity', 'connectors']) await settingsShot(tab, `settings-${tab}.png`, tab === 'voice' || tab === 'productivity' ? 900 : 300);
+  // La pestaña de voz enseña la parte de Piper (más abajo).
+  if (piperVoice) {
+    await settings.webContents.executeJavaScript(`document.querySelector('[data-tab="voice"]').click()`);
+    await sleep(900);
+    await settings.webContents.executeJavaScript(`document.querySelector('.piper')?.scrollIntoView({ block: 'start' }); document.getElementById('view').scrollTop -= 110; document.getElementById('storageNote').style.visibility = 'hidden'`);
+    await sleep(300);
+    shot('settings-voice-piper.png', await png(settings));
+  }
   await settingsShot('automations', 'settings-automations.png', 700);
 
   // ------------------------------------------------ 4. editor de skins con un dibujo de fondo liso
