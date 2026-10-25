@@ -49,6 +49,8 @@ jobs:
         run: |
           xvfb-run -a -s "-screen 0 1920x1080x24" npm run smoke 2>&1 | tee "$RUNNER_TEMP/smoke.txt" || { node tools/ci-annotate.mjs "$RUNNER_TEMP/smoke.txt" "smoke (Linux)"; exit 1; }
           grep -h "✓\|omitid" "$RUNNER_TEMP/smoke.txt" | sed 's/^/::notice title=smoke (Linux)::/' || true
+          # Aquí tienen que haberse probado de verdad la voz Piper y Live2D.
+          grep -q "+ voz Piper.*+ Live2D" "$RUNNER_TEMP/smoke.txt" || { node tools/ci-annotate.mjs "$RUNNER_TEMP/smoke.txt" "smoke (Linux): sin Piper o sin Live2D"; exit 1; }
 
   windows:
     name: Tests y prueba de humo (Windows)
