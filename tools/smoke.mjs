@@ -26,7 +26,7 @@ const child = spawn(electron, args, {
 });
 
 let result = null;
-const limitMin = script.includes('screenshots') ? 15 : 8;
+const limitMin = script.includes('screenshots') ? 15 : script.includes('gallery') ? 30 : 8;
 const timer = setTimeout(() => {
   console.error(`✗ La automatización no terminó en ${limitMin} minutos`);
   child.kill();

@@ -2,8 +2,8 @@
   "name": "waifu-desk",
   "productName": "Waifu Desk",
   "desktopName": "waifu-desk.desktop",
-  "version": "0.4.0",
-  "description": "AI assistant with a floating anime avatar on your desktop (Claude, OpenAI-compatible, Hermes, Paperclip, MCP)",
+  "version": "0.5.0",
+  "description": "AI assistant with a floating anime avatar on your desktop (Claude, OpenAI-compatible, Hermes, Paperclip, GitHub, Home Assistant, MCP)",
   "homepage": "https://github.com/lilpissbaby/noa-ai-waifu-assistant",
   "repository": {
     "type": "git",
@@ -25,6 +25,10 @@
     "lint": "eslint .",
     "smoke": "node tools/smoke.mjs",
     "screenshots": "node tools/smoke.mjs tools/automation/screenshots.mjs --scale=2",
+    "docs:tools": "node --import ./test/setup.mjs tools/gen-tools-doc.mjs",
+    "docs:models": "node tools/gen-models-doc.mjs",
+    "gallery:fetch": "node tools/gallery-fetch.mjs",
+    "gallery:render": "node tools/smoke.mjs tools/automation/gallery.mjs",
     "dist:win": "electron-builder --win dir zip --publish never && node build/make-installer.mjs",
     "dist:linux": "electron-builder --linux --publish never",
     "skin:default": "python3 tools/draw_default_skin.py"

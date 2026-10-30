@@ -102,6 +102,7 @@ export async function runTurn({ cfg, profile, apiKey, history, toolbox, emit, si
       throw e;
     }
     pass(filter.flush());
+    if (result.usage && Object.keys(result.usage).length) emit({ type: 'usage', usage: result.usage });
     result.text = stripEmotionTags(result.text);
     const assistantMsg = { role: 'assistant', content: result.text, toolCalls: result.toolCalls, ts: Date.now() };
     history.push(assistantMsg);

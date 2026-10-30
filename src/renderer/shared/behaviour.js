@@ -70,8 +70,10 @@ export class Behaviour {
     const ms = now - this.t0;
     const st = this.state;
 
+    // Dormida (modo mascota): ojos cerrados, respiración lenta y cabeza algo caída.
+    const asleep = this.sleeping && st === 'idle';
     // respiración (más rápida si piensa o trabaja)
-    const breathSpeed = st === 'thinking' || st === 'working' ? 1.6 : 1;
+    const breathSpeed = asleep ? 0.6 : st === 'thinking' || st === 'working' ? 1.6 : 1;
     const breath = Math.sin(t * Math.PI * 2 * 0.26 * breathSpeed);
 
     // parpadeo con tiempos aleatorios, a veces doble
@@ -90,18 +92,19 @@ export class Behaviour {
         this.nextBlink = ms + 2200 + this.random() * 4200;
       }
     }
-    const blink = st === 'listening' ? Math.min(this.blinkValue, 0) : this.blinkValue;
+    const blink = asleep ? 1 : st === 'listening' ? Math.min(this.blinkValue, 0) : this.blinkValue;
 
     // mirada al cursor + balanceo + pose del estado (cada componente suavizado por separado)
     let nx = 0;
     let ny = 0;
-    if (this.cursor && head) {
+    if (this.cursor && head && !asleep) {
       nx = clamp1((this.cursor.x - head[0]) / 700);
       ny = clamp1((this.cursor.y - head[1]) / 500);
     }
     const sway = Math.sin(t * 0.55) * 0.025 + Math.sin(t * 1.3) * 0.008;
     let tilt = 0;
-    if (st === 'thinking') tilt = 0.06 + Math.sin(t * 2) * 0.01;
+    if (asleep) tilt = 0.09 + Math.sin(t * 0.8) * 0.01;
+    else if (st === 'thinking') tilt = 0.06 + Math.sin(t * 2) * 0.01;
     else if (st === 'listening') tilt = Math.sin(t * 3) * 0.012 - 0.04;
     const lift = st === 'thinking' ? 1 : 0;
     const s = this.smooth;

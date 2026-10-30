@@ -23,7 +23,7 @@ const PROMPTS = {
   zh: { paperclip: '在 Paperclip 里给 CTO 建个任务：把 Postgres 升级到 17，高优先级，然后唤醒它。', hermes: '让 Hermes 检查一下 VPS 上的容器' },
 };
 
-const png = async (win) => (await win.webContents.capturePage()).toPNG();
+export const png = async (win) => (await win.webContents.capturePage()).toPNG();
 const dataUrl = (buf) => `data:image/png;base64,${buf.toString('base64')}`;
 const save = (name, buf) => fs.writeFileSync(path.join(OUT, name), buf);
 
@@ -31,7 +31,7 @@ const save = (name, buf) => fs.writeFileSync(path.join(OUT, name), buf);
 // Por defecto en JPEG: los degradados del fondo pesan mucho en PNG.
 // layers: { wallpaper: true } | { img, x, y, w, h, radius, shadow } | { rect, x, y, w, h, radius, fill }
 //         | { text, x, y, font, fill, align }
-async function compose(width, height, layers, type = 'image/jpeg') {
+export async function compose(width, height, layers, type = 'image/jpeg') {
   const w = new BrowserWindow({ width: 200, height: 200, show: false, webPreferences: { offscreen: true } });
   await w.loadURL('data:text/html,<body></body>');
   const prepared = layers.map((l) => (l.img ? { ...l, img: dataUrl(l.img) } : l));
@@ -304,6 +304,115 @@ export default async function screenshots(api) {
     );
   }
 
+  // ------------------------------------------------ 2e. organización, monitor y móvil: datos de ejemplo, conversación y modo mascota
+  const dayStr = (d) => {
+    const x = new Date();
+    x.setDate(x.getDate() + d);
+    return `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, '0')}-${String(x.getDate()).padStart(2, '0')}`;
+  };
+  for (const tk of api.tasks.list({ filter: 'all' })) api.tasks.remove(tk.id);
+  api.tasks.add({ title: 'Renovar el dominio tenebrum.online', due: dayStr(-1), priority: 'high', project: 'VPS' });
+  api.tasks.add({ title: 'Informe trimestral', due: `${dayStr(0)}T18:00`, project: 'Trabajo' });
+  api.tasks.add({ title: 'Actualizar Paperclip a la última versión', due: dayStr(2), project: 'VPS' });
+  api.tasks.add({ title: 'Comprar pienso para Toby', priority: 'low', project: 'Casa' });
+  api.tasks.complete(api.tasks.add({ title: 'Configurar las copias de seguridad', project: 'VPS' }).id);
+  api.patchConfig({
+    productivity: {
+      routines: [
+        { id: 'r1', name: tIn('es', 'org.routines.example1.name'), prompt: tIn('es', 'org.routines.example1.prompt'), time: '08:30', days: [1, 2, 3, 4, 5], enabled: true },
+        { id: 'r2', name: tIn('es', 'org.routines.example2.name'), prompt: tIn('es', 'org.routines.example2.prompt'), time: '09:00', days: [1], enabled: true },
+      ],
+      breaks: { enabled: true, every: 50, idleResetMin: 5 },
+      weather: { label: 'Valencia, Comunidad Valenciana, España', lat: 39.47, lon: -0.38, units: 'metric' },
+      feeds: [
+        { id: 'f1', name: 'Hacker News', url: 'https://news.ycombinator.com/rss' },
+        { id: 'f2', name: 'Waifu Desk (releases)', url: 'https://github.com/lilpissbaby/noa-ai-waifu-assistant/releases.atom' },
+      ],
+      clipboardHistory: { enabled: true, max: 50 },
+      monitors: {
+        everyMin: 5,
+        list: [
+          { id: 'm1', name: 'tenebrum.online', url: 'https://tenebrum.online', keyword: '' },
+          { id: 'm2', name: 'Home Assistant', url: 'http://homeassistant.local:8123', keyword: '' },
+          { id: 'm3', name: 'Uptime Kuma', url: 'https://status.tenebrum.online', keyword: '' },
+        ],
+      },
+    },
+    connectors: {
+      github: { enabled: true, apiUrl: 'https://api.github.com', watchRepos: ['lilpissbaby/noa-ai-waifu-assistant'], pollMin: 5 },
+      homeassistant: { enabled: true, baseUrl: 'http://homeassistant.local:8123' },
+      push: { provider: 'ntfy', server: `${mock.base}/ntfy`, topic: 'noa-7f3k2q9x', chatId: '', forward: 'off' },
+    },
+  });
+  const nowIso = new Date().toISOString();
+  Object.assign(api.monitors.state, {
+    m1: { up: true, since: nowIso, fails: 0, lastCheck: nowIso, status: 200, ms: 84, error: null },
+    m2: { up: true, since: nowIso, fails: 0, lastCheck: nowIso, status: 200, ms: 31, error: null },
+    m3: { up: false, since: nowIso, fails: 3, lastCheck: nowIso, status: 0, ms: 10000, error: 'timeout (10 s)' },
+  });
+  // Bloques de concentración de la última semana.
+  for (const [d, sessions] of [[-6, 3], [-5, 5], [-4, 2], [-3, 6], [-2, 4], [-1, 3]]) api.focus.stats.days[dayStr(d)] = { sessions, minutes: sessions * 25 };
+  for (const text of ['Reunión con Marta el jueves a las 11', 'docker compose logs -f paperclip', 'https://github.com/lilpissbaby/noa-ai-waifu-assistant/actions']) api.clipHistory.push(text);
+  api.usageLog.record('mock', 'claude-sonnet-5-5', { input_tokens: 182400, output_tokens: 23100, cache_read_input_tokens: 512000 });
+  api.usageLog.record('hermes', 'hermes-agent', { prompt_tokens: 40210, completion_tokens: 6120 });
+  api.broadcast('cfg:changed', api.publicConfig());
+  api.newConversation();
+  chat.setSize(440, 760);
+  chat.show();
+  await conversation(api, '¿Qué tengo pendiente hoy? Ponme 25 minutos de concentración para el informe.');
+  await conversation(api, '¿Va todo bien en el VPS? Mándame el estado al móvil.');
+  await chat.webContents.executeJavaScript('(() => { document.activeElement?.blur(); const l = document.getElementById("log"); l.scrollTop = l.scrollHeight; })()');
+  await sleep(600);
+  {
+    const chatO = await png(chat);
+    const avatarO = await png(avatar);
+    const ao = imageSize(avatarO);
+    const co = imageSize(chatO);
+    const W = px(1100);
+    const H = px(900);
+    shot(
+      'chat-organize.jpg',
+      await compose(W, H, [
+        { wallpaper: true },
+        { img: chatO, x: W - ao.width - co.width - px(36), y: H - co.height - px(24), radius: px(12), shadow: px(40) },
+        { img: avatarO, x: W - ao.width - px(20), y: H - ao.height - px(10) },
+      ]),
+    );
+  }
+  // Modo mascota y avisos de organización en el bocadillo.
+  {
+    const pet = [];
+    const bubbleShot = async (label, fn, wait = 1500) => {
+      await fn();
+      await sleep(wait);
+      pet.push([label, await png(avatar)]);
+    };
+    // El aviso de la conversación se queda 12 s en el bocadillo: hasta que se va no se ve el «Zzz».
+    await sleep(12500);
+    await bubbleShot('Zzz', () => api.sendTo('avatar', 'avatar:sleep', true), 2500);
+    await bubbleShot('welcome', async () => {
+      api.sendTo('avatar', 'avatar:sleep', false);
+      api.sendTo('avatar', 'avatar:announce', { text: `${tIn('es', 'presence.welcome', { count: 25 })} ${tIn('es', 'presence.overdue', { count: 1 })}`, kind: 'presence' });
+    });
+    await bubbleShot('focus', () => api.sendTo('avatar', 'avatar:announce', { text: tIn('es', 'focus.shortBreak', { minutes: 5 }), kind: 'focus' }));
+    await bubbleShot('break', () => api.sendTo('avatar', 'avatar:announce', { text: tIn('es', 'breaks.tip1', { minutes: 50 }), kind: 'break' }));
+    await bubbleShot('monitor', () => api.sendTo('avatar', 'avatar:announce', { text: tIn('es', 'monitors.down', { name: 'Uptime Kuma', error: 'timeout (10 s)' }), kind: 'monitor' }));
+    const sizes = pet.map(([, b]) => imageSize(b));
+    const cell = Math.max(...sizes.map((z) => z.width));
+    const pad = px(20);
+    const W = cell * pet.length + pad * 2;
+    const H = Math.max(...sizes.map((z) => z.height)) + px(40);
+    shot(
+      'pet.jpg',
+      await compose(W, H, [
+        { wallpaper: true },
+        ...pet.map(([, b], i) => ({ img: b, x: pad + i * cell + (cell - sizes[i].width) / 2, y: H - px(36) - sizes[i].height })),
+        ...pet.map(([label], i) => ({ text: label, x: pad + i * cell + cell / 2, y: H - px(12), font: `600 ${px(12)}px ui-monospace, monospace`, fill: '#b7aecb', align: 'center' })),
+      ]),
+    );
+  }
+  api.patchConfig({ connectors: { push: { server: 'https://ntfy.sh', forward: 'important' } } });
+
   // ------------------------------------------------ 3. ajustes (con valores de ejemplo en vez de los del simulador)
   const realistic = mockConfigPatch(mock.base);
   realistic.profiles[0] = { ...realistic.profiles[0], kind: 'anthropic', baseUrl: 'https://api.anthropic.com' };
@@ -311,8 +420,10 @@ export default async function screenshots(api) {
   realistic.connectors.hermes = { ...realistic.connectors.hermes, baseUrl: 'https://hermes.example.com/v1', timeoutSec: 900 };
   realistic.connectors.paperclip = { ...realistic.connectors.paperclip, baseUrl: 'http://localhost:3100', companyId: '3f6c2a9e-8d41-4b7a-9c35-1e2f7a6b0d54' };
   realistic.voice = { stt: { provider: 'groq', baseUrl: 'https://api.groq.com/openai/v1', model: 'whisper-large-v3-turbo', language: 'es' }, tts: { mode: 'system' } };
+  realistic.profiles[0] = { ...realistic.profiles[0], priceIn: 3, priceOut: 15 };
+  realistic.ui = { ...realistic.ui, presence: { sleep: true, sleepAfterMin: 10, welcomeBack: true } };
   api.patchConfig(realistic);
-  for (const ref of ['profile:mock', 'hermes', 'stt']) api.setSecret(ref, 'example-secret');
+  for (const ref of ['profile:mock', 'hermes', 'stt', 'github', 'homeassistant']) api.setSecret(ref, 'example-secret');
   api.broadcast('cfg:changed', api.publicConfig());
   const settings = api.openWindow('settings');
   await waitForWindow(settings, 'document.querySelector("#view h1")');
@@ -375,6 +486,28 @@ export default async function screenshots(api) {
     shot('settings-voice-piper.png', await png(settings));
   }
   await settingsShot('automations', 'settings-automations.png', 700);
+  // Tarjetas nuevas de la 0.5.0: se baja hasta su título.
+  const sectionShot = async (tab, heading, name, wait = 700) => {
+    settings.show();
+    settings.focus();
+    await settings.webContents.executeJavaScript(`document.querySelector('[data-tab="${tab}"]').click()`);
+    await sleep(wait);
+    await settings.webContents.executeJavaScript(
+      `(() => { const h = [...document.querySelectorAll('#view h2, #view summary')].find((x) => x.textContent.includes(${JSON.stringify(heading)})); if (h) { h.closest('details')?.setAttribute('open', ''); h.scrollIntoView({ block: 'start' }); document.getElementById('view').scrollTop -= 16; } document.getElementById('storageNote').style.visibility = 'hidden'; })()`,
+    );
+    await sleep(400);
+    shot(name, await png(settings));
+  };
+  await settingsShot('organize', 'settings-organize.png', 900);
+  await sectionShot('organize', tIn('es', 'org.routines.title'), 'settings-routines.png');
+  await sectionShot('productivity', tIn('es', 'info.weather.title'), 'settings-info.png');
+  await sectionShot('productivity', tIn('es', 'info.clipboard.title'), 'settings-clipboard.png');
+  await sectionShot('connectors', 'GitHub', 'settings-connectors-more.png');
+  await sectionShot('connectors', tIn('es', 'conn2.push.title'), 'settings-phone.png');
+  await sectionShot('automations', tIn('es', 'mcpCatalog.title'), 'settings-mcp-catalog.png');
+  await sectionShot('automations', tIn('es', 'auto2.monitors.title'), 'settings-monitors.png');
+  await sectionShot('models', tIn('es', 'usage.title'), 'settings-usage.png');
+  await sectionShot('general', tIn('es', 'presenceUi.title'), 'settings-presence.png');
 
   // ------------------------------------------------ 4. editor de skins con un dibujo de fondo liso
   const editor = api.openWindow('editor');
@@ -400,6 +533,7 @@ export default async function screenshots(api) {
   editor.close();
   await sleep(300);
   await settingsShot('skins', 'settings-skins.png', 900);
+  await sectionShot('skins', tIn('es', 'gallery.title'), 'settings-gallery.png', 1500);
   settings.close();
 
   // ------------------------------------------------ 5. la misma conversación en los cinco idiomas
@@ -432,6 +566,6 @@ export default async function screenshots(api) {
 }
 
 // Tamaño de un PNG leyendo su cabecera IHDR.
-function imageSize(buf) {
+export function imageSize(buf) {
   return { width: buf.readUInt32BE(16), height: buf.readUInt32BE(20) };
 }

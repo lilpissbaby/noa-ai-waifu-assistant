@@ -3,9 +3,10 @@
 # Noa · Waifu Desk
 
 **An AI assistant shaped like an anime character who lives floating on top of your desktop.**
-Talk to her by text or voice and Claude (or the model you pick) answers. She reminds you of things, looks at
-your screen, reads your documents and calendar, hands work to your Hermes agent on your VPS, creates and assigns
-tasks to your Paperclip agents and tells you when they're done.
+Talk to her by text or voice and Claude (or the model you pick) answers. She keeps your tasks and routines,
+puts you in focus mode, looks at your screen, reads your documents and calendar, hands work to your Hermes agent
+on your VPS, creates and assigns tasks to your Paperclip agents, watches your services and your GitHub CI,
+drives your Home Assistant and pings your phone too.
 
 [![CI](https://github.com/lilpissbaby/noa-ai-waifu-assistant/actions/workflows/ci.yml/badge.svg)](https://github.com/lilpissbaby/noa-ai-waifu-assistant/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/lilpissbaby/noa-ai-waifu-assistant?sort=semver&label=download)](https://github.com/lilpissbaby/noa-ai-waifu-assistant/releases/latest)
@@ -17,6 +18,17 @@ tasks to your Paperclip agents and tells you when they're done.
 ![Noa on the desktop: chat with Paperclip and Hermes](docs/screenshots/desktop.jpg)
 
 </div>
+
+<details>
+<summary><b>Contents</b></summary>
+
+- [What it does](#what-it-does) · [New in 0.5.0](#new-in-050) · [Download](#download) · [Getting started](#getting-started) · [Screenshots](#screenshots)
+- [Free models](#free-models) · [Languages](#languages) · [Characters](#characters) · [Productivity](#productivity) · [Organize](#organize) · [Info](#info-weather-news-clipboard-and-pc)
+- [Connectors](#connectors) · [GitHub](#github) · [Home Assistant](#home-assistant) · [Phone notifications](#phone-notifications) · [Automations](#automations-mcp-catalog-and-service-monitor)
+- [3D skins](#3d-skins-vrm) · [VTuber avatars](#vtuber-avatars-live2d) · [Model gallery](#free-model-gallery) · [Pet mode](#pet-mode) · [Usage and cost](#usage-and-cost)
+- [All the tools](docs/herramientas.md) · [Development](#development) · [Licence](#licence)
+
+</details>
 
 ## What it does
 
@@ -30,20 +42,41 @@ tasks to your Paperclip agents and tells you when they're done.
   lip-sync: local **Piper** voices (free, offline, dozens of languages), system voices, OpenAI/Kokoro or
   ElevenLabs.
 - **Productivity**: reminders and timers, memory and notes, "look at this" (she sees your screen), quick actions
-  on what you copy, files, PDF and Word, calendar with a daily briefing, reading and searching the web.
+  on what you copy, files, PDF and Word, calendar with a daily briefing, reading and searching the web, weather,
+  RSS news, clipboard history and PC status.
+- **Organize**: a to-do list, routines she runs on her own on schedule ("every Monday at 9, ask Hermes about the
+  backups"), focus mode (Pomodoro) with "do not disturb" and break reminders.
 - **Hermes Agent**: hands anything that must happen on the server to your VPS agent, in the background too.
 - **Paperclip**: lists agents and projects, creates, assigns and comments on tasks, wakes agents up and tells
   you when a task is done or blocked.
-- **Automations**: webhooks (n8n, Make, Home Assistant…), any **MCP** server and commands on your PC, always
-  with your approval.
+- **GitHub**: notifications, issues, pull requests and CI; creates issues and comments, and tells you when CI fails.
+- **Home Assistant**: ask about your home and have her switch things on and off.
+- **Phone notifications** (ntfy, Telegram or Gotify): she sends things to your phone and forwards her notices.
+- **Automations**: webhooks (n8n, Make, Home Assistant…), any **MCP** server (with a catalogue of 15 ready to
+  add), a monitor that tells you when a site or service goes down, and commands on your PC, always with your
+  approval.
 - **2D skins**: give her any drawing and she cuts out the background with an anime-trained AI model, locally.
   Eyes, mouth and neck are placed automatically and you fine-tune them with a live animated preview.
 - **3D skins (VRM)**: import models from VRoid Hub, Booth or VRoid Studio. She moves according to what she's
   doing (thinks with her hand on her chin, types, waves, gestures while talking), makes faces to match the tone
   of the reply, and you can add `.vrma` or Mixamo motions.
 - **VTuber avatars (Live2D)**: models from VTube Studio, Booth or nizima, driven by their `.vtube.json`.
+- **Free model gallery**: 26 3D and VTuber models, downloaded from their source with one click.
+- **Pet mode**: she falls asleep when you're away and greets you when you're back.
+- **Usage and cost**: how many tokens each model uses and what it costs you.
 - **Five languages**: Español, English, Русский, Українська and 中文. Follows the system language and switches
   instantly.
+
+## New in 0.5.0
+
+- [Organize](#organize): **tasks**, scheduled **routines**, **focus mode** and **breaks**.
+- [Info](#info-weather-news-clipboard-and-pc): **weather**, RSS **news**, **clipboard history** and **PC status**.
+- New connectors: [GitHub](#github), [Home Assistant](#home-assistant) and [phone notifications](#phone-notifications).
+- [Service monitor and MCP catalogue](#automations-mcp-catalog-and-service-monitor).
+- [Free model gallery](#free-model-gallery), [pet mode](#pet-mode) and per-model [usage and cost](#usage-and-cost).
+- [66 tools](docs/herramientas.md) documented straight from the code.
+
+![She lists today's tasks, starts 25 minutes of focus and sends the VPS status to the phone](docs/screenshots/chat-organize.jpg)
 
 ## Download
 
@@ -69,8 +102,8 @@ tray icon). There is no save button: every change is saved immediately.
 | --- | --- | --- | --- |
 | Replies | Anthropic API key (`sk-ant-…`) | [platform.claude.com/settings/keys](https://platform.claude.com/settings/keys) | AI models → Claude Sonnet → API key |
 | Talking to her | Groq API key | [console.groq.com](https://console.groq.com) → API Keys | Voice → Dictation → API key |
-| Hermes | A key you make up | `openssl rand -hex 32` on the VPS | Hermes & Paperclip → API_SERVER_KEY |
-| Paperclip | Board token, or none | `paperclipai token board create` | Hermes & Paperclip → Token |
+| Hermes | A key you make up | `openssl rand -hex 32` on the VPS | Connectors → API_SERVER_KEY |
+| Paperclip | Board token, or none | `paperclipai token board create` | Connectors → Token |
 
 The Anthropic API is billed separately from a claude.ai subscription. If you don't want to top up credit, add a
 free profile (Gemini or Groq) in **AI models → Add profile**.
@@ -85,6 +118,8 @@ free profile (Gemini or Groq) in **AI models → Add profile**.
 | `Ctrl+Alt+V` | Talk to her from anywhere |
 | `Ctrl+Alt+S` | "Look at this": captures the screen and attaches it to the chat |
 | `Ctrl+Alt+Q` | Quick actions on the copied text: translate, summarise, fix, explain, reply |
+| Right-click → Focus | Starts a 25, 50 or 90-minute block (also from the tray) |
+| Right-click → Tasks | Opens your to-do list (shows how many are open) |
 | Drop files on the chat | Images, text, code, PDF and Word as attachments (pasting works too) |
 
 ## Screenshots
@@ -106,6 +141,10 @@ the mouse.
 
 ![A reminder in the bubble and the chat](docs/screenshots/reminder.jpg)
 
+**Pet mode and organize notices**: asleep, welcome back, end of a focus block, a break and a service down.
+
+![Asleep, welcome back, focus, break and service down](docs/screenshots/pet.jpg)
+
 **The same request in all five languages.** Both the interface and the reply follow the chosen language.
 
 ![Chat in Spanish, English, Russian, Ukrainian and Chinese](docs/screenshots/languages.jpg)
@@ -124,12 +163,32 @@ the mouse.
     <td><img src="docs/screenshots/settings-voice-piper.png" alt="Settings: Piper voices" /></td>
   </tr>
   <tr>
-    <td><img src="docs/screenshots/settings-connectors.png" alt="Settings: Hermes and Paperclip" /></td>
+    <td><img src="docs/screenshots/settings-connectors.png" alt="Settings: connectors" /></td>
     <td><img src="docs/screenshots/settings-automations.png" alt="Settings: automations" /></td>
   </tr>
   <tr>
     <td><img src="docs/screenshots/settings-skins.png" alt="Settings: skins" /></td>
-    <td></td>
+    <td><img src="docs/screenshots/settings-gallery.png" alt="Settings: free model gallery" /></td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/settings-organize.png" alt="Settings: tasks and focus" /></td>
+    <td><img src="docs/screenshots/settings-routines.png" alt="Settings: routines" /></td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/settings-info.png" alt="Settings: weather and news" /></td>
+    <td><img src="docs/screenshots/settings-clipboard.png" alt="Settings: clipboard history" /></td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/settings-connectors-more.png" alt="Settings: GitHub and Home Assistant" /></td>
+    <td><img src="docs/screenshots/settings-phone.png" alt="Settings: phone notifications" /></td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/settings-mcp-catalog.png" alt="Settings: MCP catalogue" /></td>
+    <td><img src="docs/screenshots/settings-monitors.png" alt="Settings: service monitor" /></td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/settings-usage.png" alt="Settings: usage and cost" /></td>
+    <td><img src="docs/screenshots/settings-presence.png" alt="Settings: pet mode" /></td>
   </tr>
 </table>
 
@@ -140,6 +199,17 @@ the mouse.
 ![Live2D model editor](docs/screenshots/live2d-editor.png)
 
 (The settings screenshots are in Spanish; switch the language in Settings → General.)
+
+## Free models
+
+Every free anime-girl model we gathered, no account needed anywhere: **31 in 3D (VRM)** and **8 VTuber
+(Live2D)**. The purple-labelled ones are in the app's [gallery](#free-model-gallery) and download with one click;
+the pink ones ("solo local") are free but their licence doesn't allow redistributing them.
+
+![All 39 free models: 31 VRM and 8 Live2D](docs/screenshots/models.jpg)
+
+Full list with author, licence and source, plus more places to get models: [`docs/modelos.md`](docs/modelos.md)
+(in Spanish).
 
 ## Languages
 
@@ -203,6 +273,48 @@ Settings → **Productivity**. Ask by voice or text:
 | Daily briefing | — | At the time and days you pick: agenda, reminders and what's pending. |
 | Web | "Read me this article: https://…", "find the latest Postgres version" | Reading pages always works; searching uses SearXNG, Brave Search or Tavily. Local-network addresses ask first. |
 | Agents | "Ask Hermes in the background to update the containers" | Tells you when a Paperclip task created or commented from here is done, blocked or in review, and when Hermes finishes. |
+| Tasks | "Note that I must renew the domain by Friday", "what's on for today?" | See [Organize](#organize). |
+| Routines | "Every weekday at 8:30 tell me the weather, my tasks and the headlines" | She runs them on her own and reports back. |
+| Focus | "Give me 50 minutes of focus for the report" | Pomodoro with "do not disturb". |
+| Weather | "Will it rain tomorrow?", "what's the weather in Lisbon?" | Open-Meteo, free and keyless. |
+| News | "What's new on Hacker News?" | Your RSS or Atom feeds. |
+| Clipboard | "What did I copy before the link?" | Only if you turn the history on; memory only. |
+| PC status | "How much disk space is left?", "what's eating the CPU?" | CPU, memory, disks, network and processes. |
+| Open files | "Open the invoice PDF" | Only in authorised folders, asks first, never programs or scripts. |
+
+## Organize
+
+Settings → **Organize**, plus Focus and Tasks in her right-click menu and the tray.
+
+![Settings: tasks and focus mode](docs/screenshots/settings-organize.png)
+
+- **Tasks**: a to-do list with a **due date** (day, or day and time), **priority** and **project**. Ask out loud
+  ("note that…", "what's pending?", "mark the domain one as done") or use the Open / Today / Done / All filters.
+  Overdue tasks show in red, in the daily briefing and in pet mode's greeting. Tasks don't ring at a time: that's
+  what reminders are for.
+- **Routines**: requests she runs **on her own** at a time on chosen days, with whatever tools are enabled, and
+  then reports back as a notice (and on your phone, if configured). Missed ones (app closed, another reply in
+  progress) are caught up within 30 minutes. **Run now** fires one immediately and the last result stays below.
+  Creating one by voice asks first, since routines use tools while you're away. They spend model tokens like any
+  request.
+- **Focus mode**: Pomodoro work blocks (25 min by default), short breaks (5) and a long one (15) every 4 blocks.
+  With **Do not disturb**, other notices only go to the bubble and the chat while you work. Settings shows the
+  clock, today's total and the week's chart.
+- **Breaks**: if enabled, after a long stretch at the computer (50 min by default) she reminds you to drink
+  water, stretch or rest your eyes (20-20-20). Stepping away resets the count; it stays quiet during focus mode.
+
+## Info: weather, news, clipboard and PC
+
+- **Weather**: set your city ("London, GB") and press **Find and save**. Uses [Open-Meteo](https://open-meteo.com):
+  free, no account, no key. Current weather and up to 7 days, °C or °F; it goes into the daily briefing.
+- **News**: add RSS or Atom feeds (blogs, newspapers, `https://github.com/user/repo/releases.atom`, subreddits…);
+  they're tested when added. "What's new?" mixes them all by date.
+- **Clipboard history**: off by default (it would also keep passwords you copy). When on, it remembers the last
+  50 texts you copy while the app is open, **in memory only**.
+- **PC status**: CPU, memory, disks, network, uptime, battery and, on request, the top processes. Read-only.
+
+![Settings: weather and news](docs/screenshots/settings-info.png)
+
 
 ## Piper voices
 
@@ -213,16 +325,58 @@ or **import** your own: a `.onnx` with its `.onnx.json`, or a `.zip` with one or
 voice). **Every voice has its own licence**, shown next to it (from its `MODEL_CARD`); many are CC BY 4.0, CC0 or MIT,
 but check the one you pick. Each character can have her own voice.
 
-## Connectors in short
+## Connectors
 
 - **Hermes Agent**: enable the API server on your VPS (`API_SERVER_ENABLED=true`, `API_SERVER_KEY=…` in
   `~/.hermes/.env`, then `hermes gateway`), publish it behind TLS or an SSH tunnel and paste the URL (ending in
-  `/v1`) and key in Settings → Hermes & Paperclip. Never expose it without a key and TLS.
+  `/v1`) and key in Settings → Connectors. Never expose it without a key and TLS.
 - **Paperclip**: paste your server root URL (`/api` is added automatically), a board token in `authenticated`
   mode, then **Test and list companies**. Actions that change things ask for confirmation.
 - **Webhooks and MCP**: each webhook becomes a `webhook_<name>` tool (the description is what the AI reads);
   MCP servers can be stdio or Streamable HTTP.
 - **Commands** (`run_command`): PowerShell on Windows, bash on Linux; every command needs your explicit approval.
+
+### GitHub
+
+Settings → Connectors → **GitHub**. Create a token in **GitHub → Settings → Developer settings → Fine-grained
+tokens** with read access to Issues, Pull requests, Actions and Notifications (and write access to Issues to
+create or comment), paste it and press **Test connection**. Ask "any GitHub notifications?", "which PRs are
+waiting for my review?", "how's CI on noa-ai-waifu-assistant?", "open an issue in owner/repo…" (asks first).
+**Watched repos**: every few minutes she checks their GitHub Actions runs and tells you when one fails and when
+it's green again.
+
+![Settings: GitHub and Home Assistant](docs/screenshots/settings-connectors-more.png)
+
+### Home Assistant
+
+Settings → Connectors → **Home Assistant**: the URL (`http://homeassistant.local:8123`) and a long-lived token
+(**your profile → Security → Long-lived access tokens**). "What's the temperature in the living room?", "turn
+off the living room light", "set the heating to 21". Every action asks first (or "Always allow"). Prefer Home
+Assistant's own MCP server? It's in the MCP catalogue.
+
+### Phone notifications
+
+Settings → Connectors → **Phone notifications**: **ntfy** (install the app, subscribe to a long random topic,
+paste it), **Telegram** (a bot from @BotFather plus your chat id) or **Gotify**. She can send you things ("send
+the shopping list to my phone") and forward the app's notices: none, the important ones (reminders, routines,
+services down, CI, agents) or all. **Send a test** checks it works. With public ntfy anyone who knows the topic
+can read it: use a long random name or your own server with a token.
+
+![Settings: phone notifications](docs/screenshots/settings-phone.png)
+
+## Automations: MCP catalog and service monitor
+
+- **MCP catalogue**: 15 well-known servers ready to add with one click (Filesystem, Git, Fetch, Time, Memory,
+  Sequential Thinking, Playwright, Context7, official GitHub, Home Assistant, Notion, Obsidian, Brave Search,
+  Firecrawl and Paperclip). They're added **disabled**: check the key or folder, enable and press "Reconnect".
+  Node ones need Node.js (`npx`), Python ones need [uv](https://docs.astral.sh/uv/) (`uvx`).
+- **Service monitor**: the URLs of your sites and services, optionally with text that must appear. Checked every
+  5 minutes; you're told when one goes down (two failures in a row) and when it's back. She can also check it
+  ("is everything fine on the VPS?") and the daily briefing mentions anything down.
+
+![Settings: MCP catalogue](docs/screenshots/settings-mcp-catalog.png)
+
+![Settings: service monitor](docs/screenshots/settings-monitors.png)
 
 ## 3D skins (VRM)
 
@@ -267,7 +421,41 @@ the ones for VTube Studio, [Booth](https://booth.pm) or [nizima](https://nizima.
    parameter.
 6. **Save and use**.
 
-There's no built-in Live2D model: the sample models' licences don't allow bundling them.
+There's no built-in Live2D model: the sample models' licences don't allow bundling them (they're in the gallery,
+though).
+
+## Free model gallery
+
+Settings → Skins → **Free model gallery** (or right-click Noa → Skin → Free model gallery): 26 free models, **18
+in 3D (VRM)** and **8 VTuber (Live2D)**, with thumbnail, author and licence. Press **Use** and the app downloads
+the model from its **original repository** (pinned to a commit) and opens it in the 3D or VTuber editor, where
+you see its licence, adjust the framing and save it. Only models whose authors let anyone use and redistribute
+them, or that come from the rights holder's own repository, are listed; no model is bundled, only the
+thumbnails.
+
+![Settings: free model gallery](docs/screenshots/settings-gallery.png)
+
+## Pet mode
+
+Settings → General → **Pet mode**. If you don't touch the keyboard or mouse for a while (10 min by default) she
+falls asleep: eyes closed, slow breathing and a "Zzz…". When you come back she greets you, says how long you were
+away and mentions overdue tasks or upcoming reminders. Bubble only, no voice or notification. She doesn't fall
+asleep while thinking or talking, and wakes up with a click or any notice.
+
+## Usage and cost
+
+AI models → **Usage and cost**: input (↑) and output (↓) tokens and requests per model today, over 7 days and
+this month. Under **Prices per model** enter what each one charges (dollars per million tokens, as published by
+the provider) to get an estimated cost. Claude always reports usage; among OpenAI-compatible providers, usage is
+requested from OpenAI, OpenRouter, Groq, Azure, Gemini, DeepSeek and Mistral.
+
+![Settings: usage and cost](docs/screenshots/settings-usage.png)
+
+## All the tools
+
+She has **66 tools** (plus those of your MCP servers) and only sees the ones you've configured. The full list,
+with what each does, its parameters, when it's available and which ones ask first, is generated from the code in
+[`docs/herramientas.md`](docs/herramientas.md).
 
 The [Spanish README](README.md) has the full guide (nginx config, Paperclip CLI, voice providers, layered skins).
 
@@ -289,6 +477,10 @@ npm start
 | `npm run lint` | ESLint |
 | `npm run smoke` | Launches the real app, walks every window in all 5 languages and runs a tool-calling conversation against a mock server (`xvfb-run -a npm run smoke` on headless Linux) |
 | `npm run screenshots` | Regenerates `docs/screenshots` |
+| `npm run docs:tools` | Regenerates `docs/herramientas.md` from the code |
+| `npm run docs:models` | Regenerates `docs/modelos.md` |
+| `npm run gallery:fetch -- <folder>` | Downloads every gallery model (and the extra ones in the README image) |
+| `npm run gallery:render` | With `WAIFU_GALLERY_DIR=<folder>` and `WAIFU_LIVE2D_CORE=<Core or SDK>`, photographs each model with the app: `assets/gallery` thumbnails and `docs/screenshots/models.jpg` |
 | `npm run dist:win` | Windows `.zip` + NSIS installer in `dist/`, from Windows, Linux or macOS without Wine (needs `makensis`) |
 | `npm run dist:linux` | Linux AppImage + `.deb` |
 
@@ -318,3 +510,7 @@ Live2D Inc., [licence](https://www.live2d.com/eula/live2d-proprietary-software-l
 Hiyori model in the screenshots is sample material © Live2D Inc.
 ([Free Material License](https://www.live2d.com/eula/live2d-free-material-license-agreement_en.html)) and is not
 shipped with the app.
+
+The thumbnails in `assets/gallery` and `docs/screenshots/models.jpg` are pictures of third-party models, each
+with its own author and licence (see [`docs/modelos.md`](docs/modelos.md)); the models themselves are not in the
+app or the repository.

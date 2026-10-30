@@ -594,9 +594,33 @@ wd.on('win:query', (q) => {
 });
 
 // ---------------------------------------------------------------- arranque / editar una existente
+// Galería de modelos gratis (Ajustes → Skins): se descarga de su origen y sigue como siempre.
+async function fromGallery(id) {
+  status('loadStatus', 'gallery.downloading', '', { percent: 0 });
+  const off = wd.on('skin:gallery-progress', (p) => status('loadStatus', 'gallery.downloading', '', { percent: Math.round(p * 100) }));
+  try {
+    const r = await wd.invoke('skin:gallery-download', id);
+    if (!r) return status('loadStatus', '');
+    if (r.error === 'download') return status('loadStatus', 'gallery.downloadFailed', 'err', { error: r.message || '' });
+    $('name').value = String(r.item?.name || '').slice(0, 40);
+    if (r.item?.kind === 'live2d') {
+      setKind('live2d');
+      await fromStagedLive2d(r);
+    } else {
+      setKind('vrm');
+      await fromStaged(r);
+    }
+  } catch (e) {
+    status('loadStatus', 'gallery.downloadFailed', 'err', { error: cleanErr(e) });
+  } finally {
+    off();
+  }
+}
+
 (async () => {
   setKind(kind);
   applyLocale((await wd.invoke('cfg:get')).locale);
+  if (params.get('gallery')) return fromGallery(params.get('gallery'));
   if (!editId) return;
   const s = await wd.invoke('skin:get', editId);
   if (s?.id === editId && s.type === 'live2d') {

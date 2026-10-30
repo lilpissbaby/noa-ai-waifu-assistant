@@ -10,6 +10,8 @@ const REPLIES = {
     hermes: 'Hermes ha revisado el VPS: **12 contenedores** en marcha y `nginx`, `portainer` y `postgres` sanos. Disco al 61 %.',
     issueTitle: 'Migrar Postgres a la 17',
     screen: 'Veo tu escritorio con la ventana de la terminal abierta.',
+    organize: 'Para hoy tienes **2 tareas**: renovar el dominio (venció ayer, prioridad alta) y el informe trimestral a las 18:00.\n\nTe he puesto **25 minutos de concentración** para el informe; te aviso cuando toque descansar.',
+    monitor: 'Todo en marcha salvo **Uptime Kuma**, que no responde desde hace 12 minutos (timeout). Te he mandado el resumen al móvil.',
   },
   en: {
     hello: "Hi! I'm Noa. I can talk to your Paperclip agents, send work to Hermes on your VPS and run your automations.",
@@ -18,6 +20,8 @@ const REPLIES = {
     hermes: 'Hermes checked the VPS: **12 containers** up and `nginx`, `portainer` and `postgres` healthy. Disk at 61 %.',
     issueTitle: 'Migrate Postgres to 17',
     screen: 'I can see your desktop with the terminal window open.',
+    organize: 'You have **2 tasks** for today: renew the domain (due yesterday, high priority) and the quarterly report at 18:00.\n\nI started **25 minutes of focus** for the report; I will tell you when to take a break.',
+    monitor: 'Everything is up except **Uptime Kuma**, which has not responded for 12 minutes (timeout). I sent the summary to your phone.',
   },
   ru: {
     hello: 'Привет! Я Noa. Могу общаться с вашими агентами в Paperclip, передавать работу Hermes на VPS и запускать автоматизации.',
@@ -26,6 +30,8 @@ const REPLIES = {
     hermes: 'Hermes проверил VPS: работают **12 контейнеров**, `nginx`, `portainer` и `postgres` в порядке. Диск заполнен на 61 %.',
     issueTitle: 'Перевести Postgres на 17',
     screen: 'Вижу ваш рабочий стол с открытым окном терминала.',
+    organize: 'На сегодня **2 задачи**: продлить домен (срок был вчера, высокий приоритет) и квартальный отчёт к 18:00.\n\nВключила **25 минут фокуса** для отчёта; скажу, когда пора отдохнуть.',
+    monitor: 'Всё работает, кроме **Uptime Kuma**: не отвечает уже 12 минут (таймаут). Отправила сводку тебе на телефон.',
   },
   uk: {
     hello: 'Привіт! Я Noa. Можу спілкуватися з вашими агентами в Paperclip, передавати роботу Hermes на VPS і запускати автоматизації.',
@@ -34,6 +40,8 @@ const REPLIES = {
     hermes: 'Hermes перевірив VPS: працюють **12 контейнерів**, `nginx`, `portainer` і `postgres` у порядку. Диск заповнений на 61 %.',
     issueTitle: 'Перевести Postgres на 17',
     screen: 'Бачу ваш робочий стіл із відкритим вікном термінала.',
+    organize: 'На сьогодні **2 завдання**: продовжити домен (термін був учора, високий пріоритет) і квартальний звіт до 18:00.\n\nУвімкнула **25 хвилин фокусу** для звіту; скажу, коли треба відпочити.',
+    monitor: 'Усе працює, крім **Uptime Kuma**: не відповідає вже 12 хвилин (тайм-аут). Надіслала зведення тобі на телефон.',
   },
   zh: {
     hello: '你好！我是 Noa。我可以和你在 Paperclip 里的智能体沟通，把工作交给 VPS 上的 Hermes，还能运行你的自动化。',
@@ -42,6 +50,8 @@ const REPLIES = {
     hermes: 'Hermes 检查了 VPS：**12 个容器**正在运行，`nginx`、`portainer` 和 `postgres` 都正常。磁盘使用率 61 %。',
     issueTitle: '将 Postgres 升级到 17',
     screen: '我看到你的桌面上开着终端窗口。',
+    organize: '今天有 **2 项任务**：续费域名（昨天到期，高优先级）和 18:00 前完成的季度报告。\n\n我为报告开启了 **25 分钟专注**，该休息时会提醒你。',
+    monitor: '除了 **Uptime Kuma** 以外都正常，它已经 12 分钟没有响应（超时）。我把摘要发到你手机上了。',
   },
 };
 
@@ -93,7 +103,9 @@ export async function startMockServer({ delay = 0 } = {}) {
       const msgs = body.messages || [];
       const lang = detectLang(msgs.find((m) => m.role === 'system')?.content);
       const L = REPLIES[lang];
-      const last = msgs.at(-1);
+      // Un aviso de la app (mensaje del asistente sin herramientas) puede ir detrás del resultado de una
+      // herramienta: lo que cuenta es el último mensaje del usuario, de una herramienta o con llamadas.
+      const last = msgs.findLast((m) => m.role !== 'assistant' || m.tool_calls?.length) || msgs.at(-1);
       const send = sse(res);
       const userContent = [...msgs].reverse().find((m) => m.role === 'user')?.content || '';
       const userText = Array.isArray(userContent) ? userContent.map((p) => p.text || '').join(' ') : userContent;
@@ -108,6 +120,18 @@ export async function startMockServer({ delay = 0 } = {}) {
       } else if (last.role === 'user' && image) {
         images.push(image.image_url.url);
         await streamText(send, L.screen, delay);
+      } else if (last.role === 'user' && /pendiente hoy|due today|на сегодня|на сьогодні|今天要做/i.test(userText)) {
+        toolCall(send, 'call_tasks', 'task_list', { filter: 'today' });
+      } else if (last.role === 'tool' && last.tool_call_id === 'call_tasks') {
+        toolCall(send, 'call_focus', 'focus_start', { minutes: 25, label: 'Informe trimestral' });
+      } else if (last.role === 'tool' && last.tool_call_id === 'call_focus') {
+        await streamText(send, L.organize, delay);
+      } else if (last.role === 'user' && /al móvil|to my phone|на телефон|到我手机/i.test(userText)) {
+        toolCall(send, 'call_mon', 'monitor_status', {});
+      } else if (last.role === 'tool' && last.tool_call_id === 'call_mon') {
+        toolCall(send, 'call_phone', 'phone_notify', { title: 'Servicios', message: 'Uptime Kuma no responde desde hace 12 min.', priority: 'high' });
+      } else if (last.role === 'tool' && last.tool_call_id === 'call_phone') {
+        await streamText(send, L.monitor, delay);
       } else if (last.role === 'user' && /pantalla|screen|экран|屏幕/i.test(userText)) {
         toolCall(send, 'call_s', 'screen_capture', { target: 'screen' });
       } else if (last.role === 'user' && /paperclip|PAP|tarea|task|задач|任务/i.test(userText)) {
@@ -132,6 +156,9 @@ export async function startMockServer({ delay = 0 } = {}) {
       return res.end();
     }
     if (url.pathname === '/v1/models') return json({ data: [{ id: 'mock-model' }, { id: 'mock-model-large' }] });
+
+    // ---------------- ntfy (avisos al móvil)
+    if (url.pathname === '/ntfy' && req.method === 'POST') return json({ id: 'n1', event: 'message', topic: body?.topic });
 
     // ---------------- web: un artículo y un SearXNG
     if (url.pathname === '/web/article')
@@ -195,6 +222,7 @@ export function mockConfigPatch(base) {
     },
     tools: { autoApprove: { paperclip_create_issue: true, paperclip_wakeup_agent: true } },
     voice: { stt: { provider: 'custom', baseUrl: `${base}/v1`, model: 'whisper-1' }, tts: { mode: 'off' } },
-    ui: { followCursor: false },
+    // Sin teclado ni ratón (Xvfb, CI) se dormiría al minuto: el modo mascota se prueba aparte.
+    ui: { followCursor: false, presence: { sleep: false } },
   };
 }

@@ -4,6 +4,54 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). L
 [SemVer](https://semver.org/lang/es/). El workflow de releases publica el apartado de cada versión como notas de
 la release.
 
+## [0.5.0] - 2026-10-31
+
+### Añadido
+
+- **Organización** (pestaña nueva en Ajustes):
+  - **Tareas**: lista de cosas por hacer con fecha límite, prioridad y proyecto. Filtros (pendientes, para hoy,
+    hechas), herramientas para que la asistente las cree, liste, cambie y complete hablando, y las vencidas en el
+    resumen diario.
+  - **Rutinas**: peticiones que la asistente ejecuta sola a una hora y unos días y cuyo resultado te cuenta
+    («cada lunes a las 9, pregúntale a Hermes por las copias»). Con ideas de ejemplo, «Ejecutar ahora» y el
+    último resultado. Crearlas hablando pide permiso.
+  - **Modo concentración** (Pomodoro): bloques de trabajo con descansos cortos y largos, «no molestar» (los
+    avisos van solo al bocadillo), estadísticas de los últimos 7 días y submenú en la bandeja y en el menú de la
+    waifu.
+  - **Pausas**: te recuerda beber agua, estirarte o descansar la vista tras un rato largo al ordenador.
+- **Productividad**: el tiempo con Open-Meteo (gratis, sin clave), noticias de fuentes RSS y Atom, historial del
+  portapapeles (solo en memoria y desactivado de serie), estado del PC (CPU, memoria, discos, red, procesos) y
+  abrir archivos de las carpetas autorizadas (nunca programas ni scripts). El resumen diario incluye el tiempo,
+  las tareas, titulares y los servicios caídos.
+- **Conectores**:
+  - **GitHub**: notificaciones, búsqueda de issues y pull requests, CI de GitHub Actions, resumen de un
+    repositorio, crear issues y comentar (con permiso), y aviso cuando falla el CI de los repos vigilados y
+    cuando vuelve a verde.
+  - **Home Assistant**: estado de las entidades y acciones (luces, enchufes, clima, escenas…) con permiso.
+  - **Avisos al móvil** con ntfy, Telegram o Gotify: la asistente te puede mandar cosas al teléfono y los avisos
+    de la app (todos o solo los importantes) te llegan también allí.
+- **Monitor de servicios**: vigila tus webs y servicios cada pocos minutos y avisa cuando uno se cae (dos fallos
+  seguidos) y cuando vuelve.
+- **Catálogo de servidores MCP**: Filesystem, Git, Fetch, Time, Memory, Sequential Thinking, Playwright,
+  Context7, GitHub oficial, Home Assistant, Notion, Obsidian, Brave Search, Firecrawl y Paperclip, listos para
+  añadir con un clic.
+- **Galería de modelos gratis** (Ajustes → Skins): 26 modelos 3D (VRM) y VTuber (Live2D) que se pueden
+  redistribuir, con miniatura y licencia. Se descargan de su repositorio original con el commit fijado y se
+  abren en el editor, que enseña la licencia antes de guardar.
+- **Modo mascota**: se duerme («Zzz…») cuando no usas el PC y al volver te saluda y te dice si hay tareas
+  vencidas o recordatorios cerca.
+- **Uso y coste** (Modelos de IA): tokens de entrada y salida y peticiones de cada modelo hoy, en 7 días y este
+  mes, con coste estimado si pones sus precios. Se pide el uso a OpenAI, OpenRouter, Groq, Azure, Gemini,
+  DeepSeek y Mistral; Claude lo da siempre.
+- **Documentación**: README rehecho con capturas de todo, [`docs/herramientas.md`](docs/herramientas.md) con las
+  66 herramientas generado del código, [`docs/modelos.md`](docs/modelos.md) con los modelos y sus licencias, e
+  imagen con todos los modelos gratis.
+
+### Cambiado
+
+- La descarga de modelos Live2D por partes tolera rutas con mayúsculas distintas (modelos hechos en Windows) y
+  quita del modelo los movimientos o caras que falten en vez de fallar.
+
 ## [0.4.0] - 2026-10-23
 
 ### Añadido

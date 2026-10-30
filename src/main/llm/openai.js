@@ -63,6 +63,8 @@ async function failure(res, label) {
   return httpError(res, label);
 }
 
+const USAGE_HOSTS = /^https:\/\/(api\.openai\.com|openrouter\.ai|api\.groq\.com|api\.deepseek\.com|api\.mistral\.ai|[\w-]+\.openai\.azure\.com|generativelanguage\.googleapis\.com)\//i;
+
 export async function streamOpenAI({ profile, apiKey, system, history, tools, signal, onText, extraHeaders }) {
   const base = profile.baseUrl.replace(/\/+$/, '');
   const body = {
@@ -70,6 +72,9 @@ export async function streamOpenAI({ profile, apiKey, system, history, tools, si
     messages: toOpenAIMessages(system, history),
     stream: true,
   };
+  // Uso de tokens al final del stream, solo donde se sabe que se admite (otros servidores podrían
+  // rechazar el parámetro).
+  if (USAGE_HOSTS.test(base)) body.stream_options = { include_usage: true };
   if (profile.maxTokens) body.max_tokens = profile.maxTokens;
   if (profile.temperature != null && profile.temperature !== '') body.temperature = Number(profile.temperature);
   if (tools?.length) {

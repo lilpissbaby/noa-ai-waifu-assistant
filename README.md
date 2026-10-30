@@ -3,9 +3,10 @@
 # Noa · Waifu Desk
 
 **Una asistente de IA con forma de personaje anime que vive flotando encima de tu escritorio.**
-Le hablas por texto o por voz y te responde Claude (o el modelo que elijas). Te recuerda cosas, ve tu
-pantalla, lee tus documentos y tu agenda, delega trabajo a tu agente Hermes del VPS, crea y asigna tareas a tus
-agentes de Paperclip y te avisa cuando terminan.
+Le hablas por texto o por voz y te responde Claude (o el modelo que elijas). Lleva tus tareas y rutinas, te
+pone en modo concentración, ve tu pantalla, lee tus documentos y tu agenda, delega trabajo a tu agente Hermes
+del VPS, crea y asigna tareas a tus agentes de Paperclip, vigila tus servicios y tu CI de GitHub, maneja tu
+Home Assistant y te avisa también en el móvil.
 
 [![CI](https://github.com/lilpissbaby/noa-ai-waifu-assistant/actions/workflows/ci.yml/badge.svg)](https://github.com/lilpissbaby/noa-ai-waifu-assistant/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/lilpissbaby/noa-ai-waifu-assistant?sort=semver&label=descargar)](https://github.com/lilpissbaby/noa-ai-waifu-assistant/releases/latest)
@@ -17,6 +18,18 @@ Español · [English](README.en.md) — la app está en español, inglés, ruso,
 ![Noa en el escritorio: chat con Paperclip y Hermes](docs/screenshots/desktop.jpg)
 
 </div>
+
+<details>
+<summary><b>Índice</b></summary>
+
+- [Qué hace](#qué-hace) · [Novedades de la 0.5.0](#novedades-de-la-050) · [Descargar](#descargar) · [Primeros pasos](#primeros-pasos) · [Capturas](#capturas)
+- [Modelos gratis](#modelos-gratis) · [Idiomas](#idiomas) · [Modelos de IA](#modelos-de-ia) · [Personajes](#personajes) · [Voz](#voz)
+- [Productividad](#productividad) · [Organización](#organización) · [Información](#información-el-tiempo-noticias-portapapeles-y-el-pc)
+- [Hermes Agent](#hermes-agent-en-tu-vps) · [Paperclip](#paperclip) · [GitHub](#github) · [Home Assistant](#home-assistant) · [Avisos al móvil](#avisos-al-móvil)
+- [Automatizaciones](#automatizaciones) · [Skins](#skins) · [Skins 3D](#skins-3d-vrm) · [Avatares VTuber](#avatares-vtuber-live2d) · [Galería](#galería-de-modelos-gratis) · [Modo mascota](#modo-mascota)
+- [Todas las herramientas](docs/herramientas.md) · [Desarrollo](#desarrollo) · [Solución de problemas](#solución-de-problemas) · [Privacidad](#privacidad) · [Licencia](#licencia)
+
+</details>
 
 ## Qué hace
 
@@ -31,19 +44,42 @@ Español · [English](README.en.md) — la app está en español, inglés, ruso,
   habladas con la boca sincronizada: voces locales **Piper** (gratis, sin conexión y en decenas de idiomas),
   voces del sistema, OpenAI/Kokoro o ElevenLabs.
 - **Productividad**: recordatorios y temporizadores, memoria y notas, «mira esto» (ve tu pantalla), acciones
-  rápidas sobre lo que copias, archivos, PDF y Word, agenda con resumen diario, leer y buscar en la web.
+  rápidas sobre lo que copias, archivos, PDF y Word, agenda con resumen diario, leer y buscar en la web, el
+  tiempo, noticias por RSS, historial del portapapeles y el estado del PC.
+- **Organización**: lista de tareas, rutinas que hace sola a su hora («cada lunes a las 9, pregúntale a Hermes
+  por las copias»), modo concentración (Pomodoro) con «no molestar» y recordatorios de pausas.
 - **Hermes Agent**: le encarga a tu agente del VPS lo que deba hacerse en el servidor, también en segundo plano.
 - **Paperclip**: lista agentes y proyectos, crea, asigna y comenta tareas, despierta agentes y te avisa cuando
   una tarea termina o se bloquea.
-- **Automatizaciones**: webhooks (n8n, Make, Home Assistant…), cualquier servidor **MCP** y comandos en tu PC,
-  estos siempre con tu aprobación.
+- **GitHub**: notificaciones, issues, pull requests y CI; crea issues y comenta, y te avisa cuando falla el CI.
+- **Home Assistant**: pregúntale por tu casa y pídele que encienda o apague cosas.
+- **Avisos al móvil** (ntfy, Telegram o Gotify): te manda cosas al teléfono y te reenvía los avisos.
+- **Automatizaciones**: webhooks (n8n, Make, Home Assistant…), cualquier servidor **MCP** (con un catálogo de 15
+  listos para añadir), un monitor que avisa si se cae una web o un servicio, y comandos en tu PC, estos siempre
+  con tu aprobación.
 - **Skins 2D**: le das cualquier dibujo y recorta el fondo con un modelo de IA para anime, en local. Coloca sola
   ojos, boca y cuello, y tú los ajustas con la vista previa animada.
 - **Skins 3D (VRM)**: importa modelos de VRoid Hub, Booth o VRoid Studio. Se mueve según lo que hace (piensa con
   la mano en la barbilla, teclea, saluda, gesticula al hablar), pone caras según el tono de la respuesta y
   puedes añadirle movimientos `.vrma` o de Mixamo.
 - **Avatares VTuber (Live2D)**: los modelos de VTube Studio, Booth o nizima, que se mueven con su `.vtube.json`.
+- **Galería de modelos gratis**: 26 modelos 3D y VTuber que se descargan de su origen con un clic.
+- **Modo mascota**: se duerme cuando no estás y te saluda al volver.
+- **Uso y coste**: cuántos tokens gasta cada modelo y cuánto te cuesta.
 - **Cinco idiomas**: español, English, Русский, Українська y 中文. Coge el del sistema y se cambia al vuelo.
+
+## Novedades de la 0.5.0
+
+- [Organización](#organización): **tareas**, **rutinas** programadas, **modo concentración** y **pausas**.
+- [Información](#información-el-tiempo-noticias-portapapeles-y-el-pc): **el tiempo**, **noticias** RSS,
+  **historial del portapapeles** y **estado del PC**.
+- Conectores nuevos: [GitHub](#github), [Home Assistant](#home-assistant) y [avisos al móvil](#avisos-al-móvil).
+- [Monitor de servicios](#monitor-de-servicios) y [catálogo de servidores MCP](#catálogo-de-servidores-mcp).
+- [Galería de modelos gratis](#galería-de-modelos-gratis), [modo mascota](#modo-mascota) y
+  [uso y coste](#uso-y-coste) de cada modelo.
+- [66 herramientas](docs/herramientas.md) documentadas, generadas del propio código.
+
+![Le pide las tareas de hoy, le pone 25 minutos de concentración y le manda al móvil el estado del VPS](docs/screenshots/chat-organize.jpg)
 
 ## Descargar
 
@@ -71,8 +107,8 @@ Ajustes, o desde el icono de la bandeja). No hay botón de guardar: cada cambio 
 | --- | --- | --- | --- |
 | Que responda | API key de Anthropic (`sk-ant-…`) | [platform.claude.com/settings/keys](https://platform.claude.com/settings/keys) | Modelos de IA → Claude Sonnet → API key |
 | Hablarle | API key de Groq | [console.groq.com](https://console.groq.com) → API Keys | Voz → Dictado → API key |
-| Hermes | Una clave que inventas tú | `openssl rand -hex 32` en el VPS | Hermes y Paperclip → API_SERVER_KEY |
-| Paperclip | Token de board, o ninguno | `paperclipai token board create` | Hermes y Paperclip → Token |
+| Hermes | Una clave que inventas tú | `openssl rand -hex 32` en el VPS | Conectores → API_SERVER_KEY |
+| Paperclip | Token de board, o ninguno | `paperclipai token board create` | Conectores → Token |
 
 La API de Anthropic se paga aparte de la suscripción de claude.ai. Si no quieres recargar saldo, puedes añadir
 un perfil gratuito (Gemini o Groq) en **Modelos de IA → Añadir perfil**.
@@ -89,6 +125,8 @@ un perfil gratuito (Gemini o Groq) en **Modelos de IA → Añadir perfil**.
 | `Ctrl+Alt+V` | Le hablas desde cualquier sitio |
 | `Ctrl+Alt+S` | «Mira esto»: captura la pantalla y te la deja adjunta en el chat |
 | `Ctrl+Alt+Q` | Acciones rápidas sobre el texto copiado: traducir, resumir, corregir, explicar, responder |
+| Clic derecho → Concentración | Empieza un bloque de 25, 50 o 90 minutos (también desde la bandeja) |
+| Clic derecho → Tareas | Abre tu lista de tareas (dice cuántas tienes pendientes) |
 | Arrastrar archivos al chat | Imágenes, texto, código, PDF y Word como adjuntos (también pegando) |
 
 Los atajos se cambian en Ajustes → General.
@@ -112,6 +150,11 @@ siguiendo el ratón.
 
 ![Un recordatorio en el bocadillo y en el chat](docs/screenshots/reminder.jpg)
 
+**Modo mascota y avisos de organización**: dormida, saludo al volver, fin de un bloque de concentración, una
+pausa y un servicio caído.
+
+![Dormida, saludo al volver, concentración, pausa y servicio caído](docs/screenshots/pet.jpg)
+
 **La misma petición en los cinco idiomas.** La interfaz y la respuesta siguen al idioma elegido.
 
 ![Chat en español, inglés, ruso, ucraniano y chino](docs/screenshots/languages.jpg)
@@ -130,12 +173,32 @@ siguiendo el ratón.
     <td><img src="docs/screenshots/settings-voice-piper.png" alt="Ajustes: voces Piper" /><br /><sub>Voces locales Piper: instaladas, importar y catálogo por idioma.</sub></td>
   </tr>
   <tr>
-    <td><img src="docs/screenshots/settings-connectors.png" alt="Ajustes: Hermes y Paperclip" /><br /><sub>Hermes y Paperclip, con prueba de conexión.</sub></td>
+    <td><img src="docs/screenshots/settings-connectors.png" alt="Ajustes: conectores" /><br /><sub>Conectores: Hermes y Paperclip, con prueba de conexión.</sub></td>
     <td><img src="docs/screenshots/settings-automations.png" alt="Ajustes: automatizaciones" /><br /><sub>Automatizaciones: comandos, webhooks y servidores MCP.</sub></td>
   </tr>
   <tr>
     <td><img src="docs/screenshots/settings-skins.png" alt="Ajustes: skins" /><br /><sub>Skins: la de serie y las que importes (2D, 3D y VTuber).</sub></td>
-    <td></td>
+    <td><img src="docs/screenshots/settings-gallery.png" alt="Ajustes: galería de modelos gratis" /><br /><sub>Galería de modelos gratis: se descargan de su origen con un clic.</sub></td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/settings-organize.png" alt="Ajustes: organización" /><br /><sub>Organización: tareas y modo concentración con la semana.</sub></td>
+    <td><img src="docs/screenshots/settings-routines.png" alt="Ajustes: rutinas" /><br /><sub>Rutinas que hace sola a su hora, con ideas para empezar.</sub></td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/settings-info.png" alt="Ajustes: el tiempo y noticias" /><br /><sub>El tiempo (Open-Meteo, sin clave) y noticias RSS.</sub></td>
+    <td><img src="docs/screenshots/settings-clipboard.png" alt="Ajustes: historial del portapapeles" /><br /><sub>Historial del portapapeles, solo en memoria.</sub></td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/settings-connectors-more.png" alt="Ajustes: GitHub y Home Assistant" /><br /><sub>GitHub (con CI vigilado) y Home Assistant.</sub></td>
+    <td><img src="docs/screenshots/settings-phone.png" alt="Ajustes: avisos al móvil" /><br /><sub>Avisos al móvil con ntfy, Telegram o Gotify.</sub></td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/settings-mcp-catalog.png" alt="Ajustes: catálogo MCP" /><br /><sub>Catálogo de servidores MCP listos para añadir.</sub></td>
+    <td><img src="docs/screenshots/settings-monitors.png" alt="Ajustes: monitor de servicios" /><br /><sub>Monitor de servicios: arriba o caído, con el tiempo de respuesta.</sub></td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/settings-usage.png" alt="Ajustes: uso y coste" /><br /><sub>Uso de tokens y coste estimado por modelo.</sub></td>
+    <td><img src="docs/screenshots/settings-presence.png" alt="Ajustes: modo mascota" /><br /><sub>Modo mascota: dormirse y saludar al volver.</sub></td>
   </tr>
 </table>
 
@@ -154,6 +217,17 @@ deslizadores de parámetros.
 
 Las capturas se generan con la app de verdad y un servidor simulado: `npm run screenshots` (ver
 [Desarrollo](#desarrollo)).
+
+## Modelos gratis
+
+Todos los modelos gratuitos de chicas anime que hemos reunido, sin crear cuenta en ningún sitio: **31 en 3D
+(VRM)** y **8 VTuber (Live2D)**. Los marcados en lila están en la [galería de la app](#galería-de-modelos-gratis)
+y se descargan con un clic; los rosas («solo local») son gratis pero su licencia no deja redistribuirlos.
+
+![Los 39 modelos gratis: 31 VRM y 8 Live2D](docs/screenshots/models.jpg)
+
+Lista completa con autoría, licencia y origen de cada uno, y más sitios donde conseguir modelos:
+[`docs/modelos.md`](docs/modelos.md).
 
 ---
 
@@ -191,6 +265,15 @@ Cada **perfil** es un modelo con su clave. Se cambian desde el selector del chat
 
 Las claves se guardan **cifradas** con el almacén del sistema (DPAPI en Windows, libsecret o KWallet en Linux)
 y solo salen de tu PC hacia el proveedor correspondiente.
+
+### Uso y coste
+
+Modelos de IA → **Uso y coste**: tokens de entrada (↑) y de salida (↓) y número de peticiones de cada modelo
+hoy, en los últimos 7 días y este mes. En **Precios por modelo** pones lo que cobra cada uno (dólares por millón
+de tokens, como lo publica el proveedor) y calcula el coste estimado; lo leído de caché de Claude se cuenta al
+precio de entrada salvo que lo ajustes. Claude informa siempre del uso; de los compatibles con OpenAI se pide
+a OpenAI, OpenRouter, Groq, Azure, Gemini, DeepSeek y Mistral (otros servidores podrían rechazar el parámetro).
+Se guarda en `usage.json` de tu carpeta de datos.
 
 ## Personajes
 
@@ -276,6 +359,75 @@ Ajustes → **Productividad**. Todo se le pide hablando o escribiendo:
 | Resumen diario | — | A la hora y los días que elijas te cuenta la agenda, los recordatorios y lo pendiente. |
 | Web | «Léeme este artículo: https://…», «busca qué versión de Postgres es la última» | Leer páginas siempre; buscar con SearXNG, Brave Search o Tavily. Para direcciones de tu red local pide permiso. |
 | Agentes | «Pídele a Hermes en segundo plano que actualice los contenedores» | Avisa cuando una tarea de Paperclip creada o comentada desde aquí acaba, se bloquea o pasa a revisión, y cuando Hermes termina. |
+| Tareas | «Apunta que tengo que renovar el dominio para el viernes», «¿qué tengo para hoy?» | Ver [Organización](#organización). |
+| Rutinas | «Cada laborable a las 8:30 dime el tiempo, mis tareas y los titulares» | Las ejecuta sola y te cuenta el resultado. |
+| Concentración | «Ponme 50 minutos de concentración para el informe» | Pomodoro con «no molestar». |
+| El tiempo | «¿Lloverá mañana?», «¿qué tiempo hace en Lisboa?» | Open-Meteo, gratis y sin clave. |
+| Noticias | «¿Qué hay de nuevo en Hacker News?» | Tus fuentes RSS o Atom. |
+| Portapapeles | «¿Qué copié antes del enlace?» | Solo si activas el historial; solo en memoria. |
+| Estado del PC | «¿Cuánto disco me queda?», «¿qué se está comiendo la CPU?» | CPU, memoria, discos, red y procesos. |
+| Abrir archivos | «Ábreme el PDF de la factura» | Solo en las carpetas autorizadas, con permiso y nunca programas ni scripts. |
+
+## Organización
+
+Ajustes → **Organización**. También desde el menú de la waifu y de la bandeja (Concentración y Tareas).
+
+![Ajustes: tareas y modo concentración](docs/screenshots/settings-organize.png)
+
+### Tareas
+
+Tu lista de cosas por hacer, con **fecha límite** (día o día y hora), **prioridad** (baja, normal, alta) y
+**proyecto**. Se le piden hablando («apunta que…», «¿qué tengo pendiente?», «marca como hecha la del dominio») o
+se gestionan en Ajustes con los filtros Pendientes, Para hoy, Hechas y Todas. Las vencidas salen en rojo, en el
+resumen diario y en el saludo del modo mascota. Se guardan en `tasks.json`.
+
+Las tareas no avisan a una hora: para eso están los **recordatorios**. Las de tus agentes viven en Paperclip.
+
+### Rutinas
+
+Peticiones que la asistente hace **sola** a una hora y unos días, con las herramientas que tenga activas, y cuyo
+resultado te cuenta como un aviso (y en el móvil, si lo tienes configurado):
+
+- «Cada laborable a las 8:30, dime el tiempo, mis tareas para hoy y los titulares de mis noticias.»
+- «Cada lunes a las 9, pídele a Hermes que compruebe las copias de seguridad del VPS.»
+- «Cada día a las 20:00, repasa lo que hice hoy y propón las tres tareas más importantes para mañana.»
+
+Si la app estaba cerrada o había otra respuesta en curso, se recupera durante los 30 minutos siguientes; si no,
+espera al próximo día que toque. **Ejecutar ahora** la lanza al momento y debajo queda el último resultado.
+Crearlas hablando pide permiso (una rutina usa herramientas sin que estés delante). Gastan tokens del modelo
+como cualquier petición.
+
+![Ajustes: rutinas](docs/screenshots/settings-routines.png)
+
+### Modo concentración
+
+La técnica Pomodoro: bloques de trabajo (25 minutos de serie) con descansos cortos (5) y, cada 4 bloques, uno
+largo (15). Al acabar cada fase te avisa; si activas **No molestar**, mientras trabajas los demás avisos van solo
+al bocadillo y al chat. Puede seguir sola o pararse tras cada descanso. En Ajustes ves el reloj, lo que llevas
+hoy y la gráfica de la semana; también se le pide hablando («ponme 50 minutos para el informe», «¿cuánto me
+queda?»).
+
+### Pausas
+
+Si lo activas, cuando llevas un rato largo seguido al ordenador (50 minutos de serie) te recuerda beber agua,
+estirarte o descansar la vista (20-20-20). Si te vas unos minutos la cuenta vuelve a empezar, y durante el modo
+concentración no avisa.
+
+## Información: el tiempo, noticias, portapapeles y el PC
+
+- **El tiempo** (Productividad → El tiempo): pon tu ciudad («Valencia, ES») y pulsa **Buscar y guardar**. Usa
+  [Open-Meteo](https://open-meteo.com): gratis, sin cuenta ni clave. Tiempo actual y hasta 7 días, en °C o °F,
+  para tu ciudad o la que le digas. Sale en el resumen diario.
+- **Noticias**: añade fuentes RSS o Atom (blogs, periódicos, `https://github.com/usuario/repo/releases.atom`,
+  subreddits…); se prueban al añadirlas. «¿Qué hay de nuevo?» mezcla todas por fecha; también por fuente o por
+  tema. Para leer una noticia entera usa la herramienta web.
+- **Historial del portapapeles**: desactivado de serie, porque también guardaría las contraseñas que copies.
+  Activado, recuerda los últimos 50 textos que copias mientras la app está abierta, **solo en memoria** (nada en
+  disco). Desde Ajustes puedes volver a copiar uno o borrarlo.
+- **Estado del PC**: CPU, memoria, discos, red, tiempo encendido, si estás con batería y, si se lo pides, los
+  procesos que más consumen. Solo lectura.
+
+![Ajustes: el tiempo y noticias](docs/screenshots/settings-info.png)
 
 ## Hermes Agent (en tu VPS)
 
@@ -305,7 +457,7 @@ hablando con Noa y te avisa al terminar.
    ```
 
    O, sin exponer nada, con un túnel SSH: `ssh -N -L 8642:127.0.0.1:8642 usuario@tu-vps`.
-4. En Ajustes → Hermes y Paperclip: activa Hermes, pon la URL (`https://hermes.tudominio/v1` o
+4. En Ajustes → Conectores: activa Hermes, pon la URL (`https://hermes.tudominio/v1` o
    `http://localhost:8642/v1`) y la `API_SERVER_KEY`. Pulsa **Probar conexión**.
 
 > Hermes tiene acceso a la terminal del servidor. No lo expongas nunca sin clave ni sin TLS.
@@ -316,7 +468,7 @@ Herramientas: listar agentes y proyectos, listar y ver tareas, **crear tareas as
 estado y prioridad, comentar y **despertar agentes**. Las tareas que crea o comenta quedan vigiladas, y te avisa
 cuando terminan, se bloquean o pasan a revisión (también puedes pedirle que vigile otra).
 
-1. En Ajustes → Hermes y Paperclip, pon la URL raíz de tu Paperclip (`http://localhost:3100` o tu dominio; la
+1. En Ajustes → Conectores, pon la URL raíz de tu Paperclip (`http://localhost:3100` o tu dominio; la
    app añade `/api` sola).
 2. En modo `authenticated`, pega un token de board:
    ```bash
@@ -335,6 +487,53 @@ Cosas que le puedes pedir:
 Las acciones que cambian algo piden confirmación. Con «Permitir siempre» dejan de hacerlo, y en
 Automatizaciones puedes volver a activarlas.
 
+## GitHub
+
+Ajustes → Conectores → **GitHub**. Crea un token en **GitHub → Settings → Developer settings → Fine-grained
+tokens** con lectura de Issues, Pull requests, Actions y Notifications (y escritura de Issues para crear o
+comentar), pégalo y pulsa **Probar conexión**.
+
+- «¿Tengo notificaciones en GitHub?», «¿qué PR esperan mi revisión?» (búsqueda con la sintaxis de GitHub:
+  `is:open is:pr review-requested:@me`).
+- «¿Cómo va el CI de noa-ai-waifu-assistant?», «resúmeme el repo y su última release».
+- «Abre un issue en owner/repo: el instalador no pone el icono» y «comenta en #12 que ya está arreglado» (piden
+  permiso).
+- **Repos vigilados**: cada pocos minutos mira el CI de GitHub Actions y te avisa cuando una ejecución falla y
+  cuando vuelve a pasar en verde. La primera vez solo aprende el estado, sin avisar de lo que ya había.
+
+![Ajustes: GitHub y Home Assistant](docs/screenshots/settings-connectors-more.png)
+
+## Home Assistant
+
+Ajustes → Conectores → **Home Assistant**: la URL (`http://homeassistant.local:8123`) y un token de larga
+duración (**tu perfil → Seguridad → Tokens de acceso de larga duración**).
+
+- «¿Qué temperatura hace en el salón?», «¿qué luces hay encendidas?»
+- «Apaga la luz del salón», «pon la calefacción a 21», «activa la escena de cine». Cada acción pide permiso
+  (o «Permitir siempre» para `ha_call_service`).
+
+Si prefieres que Home Assistant decida qué exponer, usa su servidor MCP desde el
+[catálogo](#catálogo-de-servidores-mcp).
+
+## Avisos al móvil
+
+Ajustes → Conectores → **Avisos al móvil**. Para que la asistente te mande cosas al teléfono («mándame la lista
+de la compra al móvil», «avísame en el móvil cuando Hermes acabe») y para recibir allí los avisos de la app:
+
+| Servicio | Qué hace falta |
+| --- | --- |
+| **ntfy** (lo más rápido) | Instala la app ntfy, suscríbete a un tema con un nombre largo y difícil de adivinar (`noa-7f3k2q9x`) y ponlo aquí. Servidor `https://ntfy.sh` o el tuyo; token solo si tu servidor lo pide. |
+| **Telegram** | Crea un bot con @BotFather, escríbele una vez y pon su token y tu número de chat (te lo dice @userinfobot). |
+| **Gotify** | Tu servidor y el token de una aplicación. |
+
+**Reenviar avisos**: no, solo los importantes (recordatorios, rutinas, servicios caídos, CI y agentes) o todos
+(también el resumen diario, la concentración y las pausas). **Mandar una prueba** comprueba que llega.
+
+> Con ntfy público, cualquiera que sepa el nombre del tema puede leerlo: usa uno largo y aleatorio, o tu
+> propio servidor con token.
+
+![Ajustes: avisos al móvil](docs/screenshots/settings-phone.png)
+
 ## Automatizaciones
 
 - **Webhooks**: cada uno se convierte en una herramienta (`webhook_<nombre>`). Lo importante es la
@@ -345,6 +544,42 @@ Automatizaciones puedes volver a activarlas.
   - Paperclip vía MCP: `uvx paperclip-mcp --transport stdio` con `PAPERCLIP_BASE_URL` y `PAPERCLIP_API_KEY`.
 - **Comandos en el PC** (`run_command`): PowerShell en Windows, bash en Linux. Cada comando se enseña y
   **necesita tu aprobación**; nunca se aprueba solo.
+
+### Catálogo de servidores MCP
+
+En la tarjeta de servidores MCP, **Catálogo** tiene 15 servidores conocidos listos para añadir con un clic. Se
+añaden **desactivados**: revisa la clave o la carpeta, actívalos y pulsa «Reconectar». Los de Node necesitan
+Node.js (`npx`) y los de Python, [uv](https://docs.astral.sh/uv/) (`uvx`).
+
+| Servidor | Para qué | Necesita |
+| --- | --- | --- |
+| Filesystem | Leer, buscar y editar archivos de una carpeta | Node.js |
+| Git | Historial, diffs, ramas y commits de un repo local | uv |
+| Fetch | Leer páginas web en Markdown | uv |
+| Time | Hora y zonas horarias | uv |
+| Memory | Memoria como grafo de conocimiento | Node.js |
+| Sequential Thinking | Razonamiento paso a paso | Node.js |
+| Playwright | Manejar un navegador | Node.js |
+| Context7 | Documentación al día de librerías | En línea |
+| GitHub (oficial) | Repos, issues, PR, Actions y código; token personal | En línea |
+| Home Assistant | Tu casa por su servidor MCP; token de larga duración | En línea |
+| Notion | Páginas y bases de datos (`NOTION_TOKEN`) | Node.js |
+| Obsidian | Tu bóveda con el plugin Local REST API (`OBSIDIAN_API_KEY`) | Node.js |
+| Brave Search | Buscar en la web (`BRAVE_API_KEY`) | Node.js |
+| Firecrawl | Extraer webs enteras (`FIRECRAWL_API_KEY`) | Node.js |
+| Paperclip (MCP) | Alternativa al conector propio | uv |
+
+![Ajustes: catálogo MCP](docs/screenshots/settings-mcp-catalog.png)
+
+### Monitor de servicios
+
+Automatizaciones → **Monitor de servicios**: las URL de tus webs y servicios (el VPS, Home Assistant, el
+router, Uptime Kuma…), con un texto que deba aparecer si quieres comprobar algo más que la respuesta. Las mira
+cada 5 minutos (ajustable) y te avisa cuando una se cae y cuando vuelve; una caída se confirma con **dos fallos
+seguidos** para no avisar por un corte suelto. La asistente también puede consultarlo («¿va todo bien en el
+VPS?») y lo incluye en el resumen diario si algo está caído.
+
+![Ajustes: monitor de servicios](docs/screenshots/settings-monitors.png)
 
 ## Skins
 
@@ -439,7 +674,37 @@ VTuber). Valen los modelos **Cubism 3, 4 y 5** (`.model3.json`), como los de VTu
    solas por el nombre de la expresión) y **deslizadores** para probar cada parámetro.
 6. **Guardar y usar**.
 
-No hay modelo Live2D de serie: las licencias de los modelos de ejemplo no permiten incluirlos.
+No hay modelo Live2D de serie: las licencias de los modelos de ejemplo no permiten incluirlos (pero están en la
+galería).
+
+## Galería de modelos gratis
+
+Ajustes → Skins → **Galería de modelos gratis** (o clic derecho en Noa → Skin → Galería de modelos gratis): 26
+modelos gratuitos, **18 en 3D (VRM)** y **8 VTuber (Live2D)**, con su miniatura, autoría y licencia. Filtra por
+tipo y pulsa **Usar**: la app descarga el modelo de su **repositorio original** (con el commit fijado) y lo abre
+en el editor 3D o VTuber, donde ves su licencia, ajustas el encuadre y lo guardas. Los Live2D necesitan el
+Cubism Core (te lo ofrece la primera vez).
+
+Solo están los que su autoría deja usar a cualquiera y redistribuir, o que se bajan del repositorio de quien
+tiene los derechos. La app no lleva ningún modelo dentro: solo las miniaturas. Lista y licencias en
+[`docs/modelos.md`](docs/modelos.md).
+
+![Ajustes: galería de modelos gratis](docs/screenshots/settings-gallery.png)
+
+## Modo mascota
+
+Ajustes → General → **Modo mascota**. Si no tocas el teclado ni el ratón durante un rato (10 minutos de serie),
+se queda dormida: cierra los ojos, respira despacio y sale un «Zzz…». Al volver te saluda y te dice cuánto
+tiempo has estado fuera y si tienes tareas vencidas o recordatorios en las próximas horas. Es solo el bocadillo,
+sin voz ni notificación. No se duerme mientras piensa o habla, y se despierta con un clic o con cualquier aviso.
+
+![Ajustes: modo mascota](docs/screenshots/settings-presence.png)
+
+## Herramientas
+
+La asistente tiene **66 herramientas** (más las de tus servidores MCP), y solo ve las que tienes configuradas.
+En [`docs/herramientas.md`](docs/herramientas.md) están todas, por grupos: qué hacen, sus parámetros, cuándo
+están disponibles y cuáles piden permiso. Ese archivo se genera del código, así que siempre está al día.
 
 ---
 
@@ -461,6 +726,10 @@ npm start
 | `npm run lint` | ESLint |
 | `npm run smoke` | Arranca la app de verdad, recorre todas las ventanas en los 5 idiomas y hace una conversación con herramientas contra un servidor simulado. En Linux sin pantalla: `xvfb-run -a npm run smoke` |
 | `npm run screenshots` | Regenera las capturas de `docs/screenshots` (en Linux: `xvfb-run -a -s "-screen 0 3840x2400x24" npm run screenshots`) |
+| `npm run docs:tools` | Regenera [`docs/herramientas.md`](docs/herramientas.md) a partir del código |
+| `npm run docs:models` | Regenera [`docs/modelos.md`](docs/modelos.md) |
+| `npm run gallery:fetch -- <carpeta>` | Descarga todos los modelos de la galería (y los de la imagen del README) |
+| `npm run gallery:render` | Con `WAIFU_GALLERY_DIR=<carpeta>` y `WAIFU_LIVE2D_CORE=<Core o SDK>`, fotografía cada modelo con la app: miniaturas de `assets/gallery` y `docs/screenshots/models.jpg` |
 | `npm run dist:win` | Windows: `.zip` + instalador NSIS en `dist/`. Funciona en Windows, Linux o macOS sin Wine (necesita `makensis`) |
 | `npm run dist:linux` | Linux: AppImage + `.deb` |
 
@@ -498,7 +767,10 @@ src/
     config.js      ajustes + claves cifradas (safeStorage), valores por defecto según el idioma
     llm/           adaptadores Anthropic, OpenAI-compatible y Azure (streaming, tool use, imágenes) y bucle de agente
     tools/         herramientas: básicas, personajes, productividad, Hermes, Paperclip, webhooks, cliente MCP
-    productivity/  recordatorios, memoria, notas, archivos y documentos, agenda, resumen diario, web, vigilancia de Paperclip
+    productivity/  recordatorios, memoria, notas, archivos y documentos, agenda, resumen diario, web, vigilancia de Paperclip,
+                   tareas, rutinas, concentración, pausas y modo mascota, el tiempo, noticias, estado del PC,
+                   monitor de servicios, vigilante de CI, avisos al móvil y uso de tokens
+    gallery.js     descarga de los modelos de la galería (VRM o Live2D por partes)
     voice.js       transcripción, síntesis y troceado en frases
     piper-runtime.js, voices.js   motor Piper (descarga comprobada) y voces: catálogo, importación, licencias
     attachments.js imágenes adjuntas al chat
@@ -522,12 +794,16 @@ src/
     shared/live2d/ renderizador Live2D (pixi.js + untitled-pixi-live2d-engine) y traducción de las
                    señales del avatar a las entradas y parámetros de VTube Studio
     avatar/piper-worker.js   síntesis Piper con onnxruntime-web en un worker
-  shared/          personajes y filtros, acciones rápidas, traducciones (i18n/: es, en, ru, uk, zh)
+  shared/          personajes y filtros, acciones rápidas, galería de modelos, catálogo MCP, archivos de un
+                   modelo Live2D, traducciones (i18n/: es, en, ru, uk, zh)
 assets/skins/default/   skin de serie en capas SVG
 assets/skins/noa-3d/    skin 3D de serie (VRM de ejemplo de pixiv)
 build/                  icono, instalador NSIS multilingüe y hook que pone icono y versión al .exe
 test/                   tests (node:test) con un stub de Electron
-tools/                  generador de la skin, prueba de humo, capturas, fixtures de Live2D y notas de release
+assets/gallery/         miniaturas de la galería de modelos gratis
+tools/                  generador de la skin, prueba de humo, capturas, fixtures de Live2D, notas de release,
+                        descarga y fotos de la galería y generadores de docs/herramientas.md y docs/modelos.md
+docs/                   capturas, herramientas.md, modelos.md, specs y planes de cada versión
 docs/azure/             Terraform de las políticas de contenido de Azure OpenAI
 .github/workflows/      CI y releases
 ```
@@ -574,6 +850,17 @@ docs/azure/             Terraform de las políticas de contenido de Azure OpenAI
 - **Un atajo no funciona**: otra app lo está usando; el registro lo indica. Cámbialo en Ajustes → General.
 - **No la veo**: clic en el icono de la bandeja. Si la moviste a un monitor que ya no está, vuelve sola a la
   esquina inferior derecha al arrancar.
+- **Está dormida y no quiero**: Ajustes → General → Modo mascota → desmarca «Dormirse cuando no uso el PC».
+- **Una rutina no se ejecutó**: tiene que estar activada, en un día marcado y con la app abierta a su hora (o en
+  los 30 minutos siguientes). Prueba con «Ejecutar ahora» y mira el último resultado.
+- **No me llegan los avisos al móvil**: pulsa «Mandar una prueba». Con ntfy, comprueba que la app del móvil
+  está suscrita al mismo tema y servidor; con Telegram, que le escribiste al bot al menos una vez.
+- **El coste sale «—»**: pon los precios del modelo en Modelos de IA → Uso y coste → Precios por modelo.
+  Si no salen tokens, ese proveedor no informa del uso.
+- **La galería no descarga**: necesita salir a `raw.githubusercontent.com`. Los Live2D piden además el Cubism
+  Core.
+- **Un servidor del catálogo MCP no conecta**: instala Node.js o [uv](https://docs.astral.sh/uv/) según diga su
+  etiqueta, rellena su clave y pulsa «Reconectar»; el error sale en la tarjeta.
 
 ## Hoja de ruta
 
@@ -583,15 +870,21 @@ docs/azure/             Terraform de las políticas de contenido de Azure OpenAI
 - Proveedor «Claude Code» para usar tu suscripción de Claude a través del Claude Code oficial.
 - Palabra de activación y visemas a partir de la voz.
 - Crear eventos en el calendario (hoy se hace con un servidor MCP de Google Calendar).
+- Correo (IMAP/SMTP) y CalDAV para agenda propia en el VPS.
+- Que las rutinas puedan dispararse por eventos (un servicio caído, un CI roto) además de por hora.
 
 ## Privacidad
 
 Todo se guarda en tu carpeta de datos local: ajustes, claves cifradas, conversación y sus adjuntos, memoria,
 notas, recordatorios, voces, skins y movimientos. «Nueva conversación» borra también las imágenes adjuntas.
 
-La app solo se conecta a los servicios que configures (modelos, Hermes, Paperclip, calendarios, buscador) y,
-cuando tú lo pides, a GitHub (modelo de recorte), al registro de npm (motor de Piper), a Hugging Face (voces
-Piper), a live2d.com (Cubism Core), a la URL de un modelo VRM y a las páginas que le pidas leer. Las capturas de
+La app solo se conecta a los servicios que configures (modelos, Hermes, Paperclip, calendarios, buscador,
+GitHub, Home Assistant, ntfy/Telegram/Gotify, tus fuentes RSS, las URL del monitor de servicios y Open-Meteo para
+el tiempo) y, cuando tú lo pides, a GitHub (modelo de recorte y modelos de la galería, en
+`raw.githubusercontent.com`), al registro de npm (motor de Piper), a Hugging Face (voces Piper), a live2d.com
+(Cubism Core), a la URL de un modelo VRM y a las páginas que le pidas leer. El historial del portapapeles, si lo
+activas, solo vive en memoria; el uso de tokens, las tareas y las estadísticas de concentración se guardan en tu
+carpeta de datos. Las capturas de
 pantalla piden permiso y solo salen hacia el modelo con el que hablas. Los archivos solo se leen dentro de las
 carpetas que autorices.
 
@@ -615,3 +908,7 @@ Live2D Inc., con su [licencia](https://www.live2d.com/eula/live2d-proprietary-so
 El modelo Hiyori de las capturas es material de ejemplo © Live2D Inc.
 ([Free Material License](https://www.live2d.com/eula/live2d-free-material-license-agreement_en.html)) y no se
 incluye en la app.
+
+Las miniaturas de `assets/gallery` y la imagen `docs/screenshots/models.jpg` son fotos de modelos de terceros,
+cada uno con su autoría y licencia (ver [`docs/modelos.md`](docs/modelos.md)); los modelos no se incluyen en la
+app ni en el repositorio.

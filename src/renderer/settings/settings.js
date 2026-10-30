@@ -5,6 +5,8 @@ import { assistantName } from '../../shared/personas.js';
 import { personasTab } from './tabs/personas.js';
 import { piperSection, piperPersonaVoice } from './tabs/piper.js';
 import { productivityTab } from './tabs/productivity.js';
+import { organizeTab } from './tabs/organize.js';
+import { githubCard, homeAssistantCard, phoneCard, monitorsCard, mcpCatalogBox, galleryCard, presenceCard, usageCard } from './tabs/extras.js';
 
 const wd = window.wd;
 const view = document.getElementById('view');
@@ -12,6 +14,7 @@ const params = new URLSearchParams(location.search);
 let pc = null; // { config, secrets, presets, secureStorage, platform }
 let tab = params.get('tab') || 'general';
 let lastLocalEdit = 0;
+let galleryScrolled = false;
 
 // ---------------------------------------------------------------- mini DOM
 function h(tag, attrs = {}, ...kids) {
@@ -245,6 +248,7 @@ function samplePhrase() {
   return user ? t('settings.voice.testPhraseUser', { user, name }) : t('settings.voice.testPhrase', { name });
 }
 
+const listeners = new Map();
 const ui = {
   h,
   card,
@@ -260,6 +264,16 @@ const ui = {
   render: () => render(),
   markEdit: () => (lastLocalEdit = Date.now()),
   save: (path, value, delay) => save(path, value, delay),
+  saveList: (key, list) => saveList(key, list),
+  itemText: (listKey, idx, prop, opts) => itemText(listKey, idx, prop, opts),
+  itemCheck: (listKey, idx, prop, label, def) => itemCheck(listKey, idx, prop, label, def),
+  result: () => result(),
+  runTest: (el, fn) => runTest(el, fn),
+  // Suscripción a un canal que se renueva al repintar (sin acumular oyentes).
+  listen: (channel, fn) => {
+    listeners.get(channel)?.();
+    listeners.set(channel, wd.on(channel, fn));
+  },
   text: (path, opts) => text(path, opts),
   select: (path, options, onchange) => select(path, options, onchange),
   check: (path, label, onchange) => check(path, label, onchange),
@@ -302,6 +316,7 @@ const ui = {
 const TABS = {
   personas: () => personasTab(ui),
   productivity: () => productivityTab(ui),
+  organize: () => organizeTab(ui),
   general() {
     const c = pc.config;
     const isLinux = pc.platform === 'linux';
@@ -374,6 +389,7 @@ const TABS = {
           h('button', { class: 'btn', onclick: () => wd.invoke('app:open-log') }, t('settings.general.openLog')),
         ),
       ),
+      presenceCard(ui),
       card(
         t('settings.general.howTo'),
         null,
@@ -504,6 +520,7 @@ const TABS = {
           )
         : null,
       ...items,
+      usageCard(ui),
       card(
         t('settings.models.addProfile'),
         t('settings.models.addProfileText'),
@@ -777,6 +794,9 @@ const TABS = {
         pRes,
         companySel,
       ),
+      githubCard(ui),
+      homeAssistantCard(ui),
+      phoneCard(ui),
     ];
   },
 
@@ -950,6 +970,7 @@ const TABS = {
       card(
         t('settings.auto.mcpTitle'),
         t('settings.auto.mcpText'),
+        mcpCatalogBox(ui),
         ...mcp,
         h(
           'div',
@@ -970,6 +991,7 @@ const TABS = {
         ),
         mcpStatusBox,
       ),
+      monitorsCard(ui),
       card(
         t('settings.auto.activeTools'),
         t('settings.auto.activeToolsText'),
@@ -1117,7 +1139,12 @@ const TABS = {
         );
     };
     paintCore();
-    return [h('h1', {}, t('settings.nav.skins')), h('p', { class: 'lead' }, t('settings.skins.lead')), grid, core];
+    const gallery = galleryCard(ui);
+    if (params.get('section') === 'gallery' && !galleryScrolled) {
+      galleryScrolled = true;
+      setTimeout(() => gallery.scrollIntoView({ behavior: 'smooth', block: 'start' }), 300);
+    }
+    return [h('h1', {}, t('settings.nav.skins')), h('p', { class: 'lead' }, t('settings.skins.lead')), grid, core, gallery];
   },
 };
 
@@ -1165,7 +1192,14 @@ wd.on('cfg:changed', (next) => {
   if (Date.now() - lastLocalEdit > 1500 && !view.contains(document.activeElement)) render();
 });
 wd.on('skin:list-changed', () => tab === 'skins' && render());
-wd.on('win:query', (q) => q?.tab && go(q.tab));
+wd.on('win:query', (q) => {
+  if (!q?.tab) return;
+  if (q.section) {
+    params.set('section', q.section);
+    galleryScrolled = false;
+  }
+  go(q.tab);
+});
 
 (async () => {
   pc = await wd.invoke('cfg:get');

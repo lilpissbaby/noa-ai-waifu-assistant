@@ -14,7 +14,7 @@ import { live2dFixtures, live2dCheck } from './live2d-check.mjs';
 // Cualquier texto con forma de clave («chat.algo», «settings.x.y»), exista o no en el catálogo.
 const NAMESPACES = [...new Set(Object.keys(CATALOGS.es).map((k) => k.split('.')[0]))].join('|');
 const KEY_RE = `^(${NAMESPACES})\\.[A-Za-z0-9_.]+$`;
-const TABS = ['general', 'personas', 'models', 'voice', 'productivity', 'connectors', 'automations', 'skins'];
+const TABS = ['general', 'personas', 'models', 'voice', 'productivity', 'organize', 'connectors', 'automations', 'skins'];
 // Busca en la página textos o atributos que sean una clave de traducción sin resolver.
 const SCAN = `(() => {
   const re = new RegExp(${JSON.stringify(KEY_RE)});
@@ -294,6 +294,29 @@ export default async function smoke(api) {
   const bubbleTxt = await api.wins.avatar.webContents.executeJavaScript(`document.querySelector('#bubble.announce:not(.hidden) #bubbleText')?.textContent || ''`);
   if (!bubbleTxt.includes('Estirar las piernas')) problems.push(`recordatorios: el bocadillo no lo muestra (${bubbleTxt})`);
   if (api.reminders.list().length) problems.push('recordatorios: el único sigue pendiente tras avisar');
+
+  // 0.5.0 en la app real (también en Windows): tareas, concentración, estado del PC y modo mascota.
+  const task = await api.runTool('task_add', { title: 'Prueba de humo', due: '2030-01-01', priority: 'high' }).catch((e) => ({ error: e.message }));
+  if (!task?.id) problems.push(`tareas: no se creó ${JSON.stringify(task)}`);
+  else {
+    const listed = await api.runTool('task_list', {});
+    if (!listed.tasks?.some((x) => x.id === task.id)) problems.push('tareas: no aparece en task_list');
+    await api.runTool('task_delete', { id: task.id });
+  }
+  const focusOn = await api.runTool('focus_start', { minutes: 5, label: 'humo' }).catch((e) => ({ error: e.message }));
+  if (focusOn.phase !== 'work') problems.push(`concentración: no empezó ${JSON.stringify(focusOn)}`);
+  const focusOff = await api.runTool('focus_stop', {}).catch((e) => ({ error: e.message }));
+  if (focusOff.phase !== 'off') problems.push(`concentración: no paró ${JSON.stringify(focusOff)}`);
+  const pc = await api.runTool('system_status', { processes: true }).catch((e) => ({ error: e.message }));
+  if (!(pc.cpu?.cores > 0) || !(pc.memory?.totalGB > 0) || !pc.disks?.length) problems.push(`estado del PC: incompleto ${JSON.stringify(pc).slice(0, 300)}`);
+  if (!Array.isArray(pc.topProcesses) || !pc.topProcesses.length) problems.push('estado del PC: sin procesos');
+  // Dormida: el «Zzz» sale cuando se va el aviso que haya en el bocadillo (el del recordatorio dura 12 s).
+  api.sendTo('avatar', 'avatar:sleep', true);
+  await waitForWindow(api.wins.avatar, `/Zzz/.test(document.querySelector('#bubble.sleep:not(.hidden) #bubbleText')?.textContent || '')`, 16000).catch(() => {});
+  const zzz = await api.wins.avatar.webContents.executeJavaScript(`document.querySelector('#bubble.sleep:not(.hidden) #bubbleText')?.textContent || ''`);
+  if (!/Zzz/.test(zzz)) problems.push(`modo mascota: no sale el «Zzz» (${zzz})`);
+  api.sendTo('avatar', 'avatar:sleep', false);
+  await sleep(200);
 
   // Live2D con el SDK oficial y Hiyori (CI: tools/fetch-live2d-fixtures.mjs → WAIFU_TEST_LIVE2D_DIR).
   const l2d = live2dFixtures(process.env.WAIFU_TEST_LIVE2D_DIR);

@@ -1,9 +1,13 @@
 // Herramientas de archivos: solo dentro de las carpetas autorizadas en Ajustes → Productividad.
 import fs from 'node:fs';
 import path from 'node:path';
+import { shell } from 'electron';
 import { resolveInside, listDir, searchFiles } from '../productivity/files.js';
 import { readDocument } from '../productivity/docs.js';
 import { t } from '../../shared/i18n/index.js';
+
+// Abrir un programa o un script con su app por defecto lo ejecutaría: eso solo con run_command.
+const EXECUTABLE = /\.(exe|bat|cmd|com|msi|msix|appx|scr|pif|ps1|psm1|vbs|vbe|js|jse|mjs|wsf|wsh|hta|lnk|url|reg|inf|cpl|msc|dll|sys|sh|bash|zsh|run|bin|appimage|desktop|deb|rpm|jar|py|pyw|pl|rb|php|command|app)$/i;
 
 export function fileTools(cfg) {
   const roots = () => (cfg.productivity?.folders || []).filter((f) => typeof f === 'string' && f.trim());
@@ -41,6 +45,29 @@ export function fileTools(cfg) {
       run: async ({ path: p }) => {
         const abs = resolveInside(need(), p);
         return { path: abs, ...(await readDocument(abs)) };
+      },
+    },
+    {
+      name: 'files_open',
+      group,
+      description: "Opens a file or folder from the authorized folders with the user's default app (e.g. a PDF in the PDF viewer, a folder in the file explorer). Asks the user first.",
+      schema: { type: 'object', properties: { path: pathProp }, required: ['path'] },
+      confirm: (input) => {
+        let target = String(input.path || '');
+        try {
+          target = resolveInside(roots(), target);
+        } catch {
+          /* run() dará el error */
+        }
+        return { title: t('approve.filesOpen.title'), message: t('approve.filesOpen.message', { path: target }), detail: '' };
+      },
+      run: async ({ path: p }) => {
+        const abs = resolveInside(need(), p);
+        if (!fs.existsSync(abs)) throw new Error(`Not found: ${abs}`);
+        if (!fs.statSync(abs).isDirectory() && EXECUTABLE.test(abs)) throw new Error('That is a program or script: opening it would run it. Use run_command if the user really wants to run it.');
+        const err = await shell.openPath(abs);
+        if (err) throw new Error(err);
+        return `Opened ${abs}`;
       },
     },
     {

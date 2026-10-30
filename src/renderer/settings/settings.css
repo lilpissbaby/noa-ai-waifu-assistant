@@ -466,3 +466,290 @@ details.help ol {
   gap: 4px 12px;
   flex-wrap: wrap;
 }
+
+/* ---------------------------------------------------------------- 0.5.0 */
+.grow {
+  flex: 1;
+  min-width: 0;
+}
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+.chip {
+  font: inherit;
+  font-size: 12px;
+  padding: 4px 11px;
+  border-radius: 999px;
+  border: 1px solid var(--line-2);
+  background: var(--bg-3);
+  color: var(--text-2);
+  cursor: pointer;
+}
+.chip:hover {
+  border-color: var(--accent-2);
+  color: var(--text);
+}
+.chip.active {
+  background: color-mix(in srgb, var(--accent) 22%, var(--bg-3));
+  border-color: var(--accent);
+  color: var(--text);
+}
+.card h3 {
+  font-size: 13.5px;
+  margin: 18px 0 6px;
+  color: var(--text-2);
+}
+
+/* Tareas */
+.voice-row.task {
+  align-items: center;
+  gap: 12px;
+}
+.voice-row.task input[type='checkbox'] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--accent);
+  flex: none;
+}
+.voice-row.task.done strong {
+  text-decoration: line-through;
+  color: var(--text-3);
+}
+.voice-row.task .late {
+  color: var(--err);
+  font-weight: 600;
+}
+.pill.prio-high {
+  color: #fff;
+  background: color-mix(in srgb, var(--accent) 70%, black);
+  border-color: var(--accent);
+}
+.pill.prio-low {
+  color: var(--text-3);
+}
+
+/* Rutinas */
+.sub-card {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  padding: 12px 14px;
+  margin-bottom: 10px;
+}
+.sub-card textarea,
+.card textarea {
+  width: 100%;
+  resize: vertical;
+}
+
+/* Concentración */
+.focus-status {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.focus-clock {
+  font-family: var(--mono);
+  font-size: 34px;
+  font-weight: 700;
+  min-width: 120px;
+  text-align: center;
+  padding: 10px 14px;
+  border-radius: var(--radius);
+  background: var(--bg-3);
+  color: var(--text-3);
+}
+.focus-clock.work {
+  color: var(--accent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 40%, transparent);
+}
+.focus-clock.short,
+.focus-clock.long {
+  color: var(--ok);
+}
+.bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  height: 90px;
+  padding: 6px 2px 0;
+}
+.bars .bar {
+  flex: 1;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 4px;
+}
+.bars .bar i {
+  display: block;
+  width: 100%;
+  max-width: 34px;
+  min-height: 3px;
+  border-radius: 6px 6px 2px 2px;
+  background: linear-gradient(180deg, var(--accent), var(--accent-2));
+}
+.bars .bar span {
+  font-size: 11px;
+  color: var(--text-3);
+}
+
+/* El tiempo */
+.weather-now {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 10px;
+}
+.weather-now:empty {
+  display: none;
+}
+.weather-now .big {
+  font-size: 28px;
+  font-weight: 700;
+}
+
+/* Portapapeles */
+.clip-text span {
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: var(--mono);
+  font-size: 12px;
+}
+
+/* Monitor */
+.dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--text-3);
+  flex: none;
+}
+.dot.up {
+  background: var(--ok);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--ok) 60%, transparent);
+}
+.dot.down {
+  background: var(--err);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--err) 60%, transparent);
+}
+
+/* Catálogo MCP */
+details.catalog {
+  margin-bottom: 14px;
+}
+.catalog-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 10px;
+  margin-top: 8px;
+}
+.catalog-item {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.catalog-item p {
+  margin: 0;
+  color: var(--text-2);
+  flex: 1;
+}
+.badge {
+  font-size: 10.5px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 999px;
+  border: 1px solid var(--line-2);
+  color: var(--text-2);
+  white-space: nowrap;
+}
+.badge.needs-remote {
+  color: var(--accent-2);
+  border-color: var(--accent-2);
+}
+
+/* Galería de modelos */
+.gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 12px;
+}
+.model-card {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--bg);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.model-card:hover {
+  border-color: var(--accent-2);
+}
+.model-card .thumb {
+  position: relative;
+  aspect-ratio: 4 / 5;
+  background: var(--bg-3);
+}
+.model-card .thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.model-card .thumb .badge {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  background: rgba(21, 18, 28, 0.82);
+}
+.model-card .thumb .badge.kind-live2d {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+.model-card .meta {
+  padding: 8px 10px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex: 1;
+}
+.model-card .meta .license {
+  color: var(--text-2);
+  flex: 1;
+}
+.model-card .meta .row {
+  margin-top: 4px;
+  align-items: center;
+}
+
+/* Uso y coste */
+.usage table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.usage th {
+  text-align: left;
+  font-weight: 600;
+  color: var(--text-2);
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--line);
+}
+.usage td {
+  padding: 8px;
+  border-bottom: 1px solid var(--line);
+  vertical-align: top;
+}
+.btn.tiny {
+  padding: 4px 9px;
+  font-size: 12px;
+}
