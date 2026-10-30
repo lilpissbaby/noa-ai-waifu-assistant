@@ -2,6 +2,7 @@
 // Cada bloque es una función que devuelve una tarjeta; las tareas siguientes añaden las suyas.
 import { localeTag } from '../../../shared/i18n/index.js';
 import { actionsFor } from '../../../shared/quick-actions.js';
+import { weatherCard, feedsCard, clipboardCard } from './extras.js';
 
 let unsubscribe = null;
 
@@ -465,7 +466,7 @@ function agentsCard(ui) {
   );
 }
 
-export const PRODUCTIVITY_SECTIONS = [noticesCard, remindersCard, calendarsCard, briefingCard, agentsCard, webCard, memoryCard, notesCard, foldersCard, quickActionsCard];
+export const PRODUCTIVITY_SECTIONS = [noticesCard, remindersCard, calendarsCard, briefingCard, weatherCard, feedsCard, agentsCard, webCard, memoryCard, notesCard, foldersCard, clipboardCard, quickActionsCard];
 
 export function productivityTab(ui) {
   return [ui.h('h1', {}, ui.t('settings.nav.productivity')), ui.h('p', { class: 'lead' }, ui.t('settings.productivity.lead')), ...PRODUCTIVITY_SECTIONS.map((section) => section(ui))];

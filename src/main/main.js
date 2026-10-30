@@ -1,5 +1,5 @@
 // Waifu Desk — proceso principal de Electron.
-import { app, BrowserWindow, ipcMain, protocol, net, screen, Tray, Menu, nativeImage, globalShortcut, dialog, session, shell, Notification, desktopCapturer, clipboard } from 'electron';
+import { app, BrowserWindow, ipcMain, protocol, net, screen, Tray, Menu, nativeImage, globalShortcut, dialog, session, shell, Notification, desktopCapturer, clipboard, powerMonitor } from 'electron';
 import path from 'node:path';
 import fs from 'node:fs';
 import { pathToFileURL } from 'node:url';
@@ -31,6 +31,20 @@ import { notesDir } from './tools/notes.js';
 import { listVoices, fetchCatalog, catalogForLanguage, installFromCatalog, importVoiceFiles, deleteVoice } from './voices.js';
 import { APP_ROOT, listSkins, getSkin, saveSkin, deleteSkin, fetchImage, segmentModelStatus, downloadSegmentModel, stageVrm, downloadVrm, saveVrmSkin, clearVrmTmp } from './skins.js';
 import * as logger from './log.js';
+import { Tasks } from './productivity/tasks.js';
+import { RoutineLog, dueRoutines, ROUTINE_PROMPT } from './productivity/routines.js';
+import { Focus } from './productivity/focus.js';
+import { BreakCoach, Presence, ClipHistory } from './productivity/activity.js';
+import { Monitors } from './productivity/monitors.js';
+import { CiWatcher } from './productivity/ci-watch.js';
+import { sendPush, shouldForward } from './productivity/push.js';
+import { UsageLog } from './productivity/usage.js';
+import { geocode, forecast, summarize } from './productivity/weather.js';
+import { fetchFeed } from './productivity/feeds.js';
+import { systemStatus } from './productivity/system.js';
+import { testGithub, latestRuns } from './tools/github.js';
+import { testHomeAssistant } from './tools/homeassistant.js';
+import { downloadGalleryItem } from './gallery.js';
 
 process.on('uncaughtException', (e) => logger.error('uncaughtException', e));
 process.on('unhandledRejection', (e) => logger.error('unhandledRejection', e));
@@ -291,6 +305,8 @@ function refreshTrayMenu() {
       { type: 'separator' },
       { label: t('menu.persona'), submenu: personaMenu(cfg) },
       { label: t('menu.language'), submenu: languageMenu(cfg) },
+      { label: focusMenuLabel(), submenu: focusMenu() },
+      { label: tasksMenuLabel(), click: () => openWindow('settings', { query: { tab: 'organize' } }) },
       { label: t('tray.skins'), click: () => openWindow('settings', { query: { tab: 'skins' } }) },
       { label: t('menu.settings'), click: () => openWindow('settings') },
       { type: 'separator' },
@@ -355,9 +371,12 @@ function avatarContextMenu() {
     { label: t('menu.look'), accelerator: cfg.ui.hotkeyLook, click: lookAtScreen },
     { label: t('menu.stop'), click: stopEverything },
     { type: 'separator' },
+    { label: focusMenuLabel(), submenu: focusMenu() },
+    { label: tasksMenuLabel(), click: () => openWindow('settings', { query: { tab: 'organize' } }) },
+    { type: 'separator' },
     { label: t('menu.persona'), submenu: personaMenu(cfg) },
     { label: t('menu.model'), submenu: profiles },
-    { label: t('menu.skin'), submenu: [...skins, { type: 'separator' }, { label: t('menu.importImage'), click: () => openWindow('editor') }, { label: t('menu.importVrm'), click: () => openWindow('vrm-editor') }, { label: t('menu.importLive2d'), click: () => openWindow('vrm-editor', { query: { kind: 'live2d' } }) }] },
+    { label: t('menu.skin'), submenu: [...skins, { type: 'separator' }, { label: t('menu.importImage'), click: () => openWindow('editor') }, { label: t('menu.importVrm'), click: () => openWindow('vrm-editor') }, { label: t('menu.importLive2d'), click: () => openWindow('vrm-editor', { query: { kind: 'live2d' } }) }, { label: t('gallery.menu'), click: () => openWindow('settings', { query: { tab: 'skins', section: 'gallery' } }) }] },
     { label: t('menu.size'), submenu: scales },
     { label: t('menu.language'), submenu: languageMenu(cfg) },
     {
@@ -385,7 +404,7 @@ function useSkin(id) {
 
 // ------------------------------------------------------------------ configuración pública
 function secretFlags(cfg) {
-  const refs = ['stt', 'tts', 'hermes', 'paperclip', 'search', ...cfg.profiles.map((p) => `profile:${p.id}`)];
+  const refs = ['stt', 'tts', 'hermes', 'paperclip', 'search', 'github', 'homeassistant', 'push', ...cfg.profiles.map((p) => `profile:${p.id}`)];
   for (const w of cfg.connectors.webhooks || []) refs.push(`webhook:${w.id}`);
   for (const s of cfg.connectors.mcpServers || []) refs.push(`mcp:${s.id}`);
   return Object.fromEntries(refs.map((r) => [r, hasSecret(r)]));
@@ -563,7 +582,10 @@ function switchPersona(id, { greet = true } = {}) {
 // record = false: el texto ya está en el chat (p. ej. la respuesta del resumen diario).
 function announce({ text, kind = 'reminder', speak = true, record = true }) {
   const cfg = loadConfig();
-  const mode = cfg.productivity.notify;
+  // Concentración con «no molestar»: los avisos van solo al bocadillo y al chat (salvo los suyos).
+  const mode = focus?.quiet && kind !== 'focus' ? 'silent' : cfg.productivity.notify;
+  presence?.wake();
+  forwardToPhone(cfg, kind, text);
   if (record) {
     history.push({ role: 'assistant', content: text, ts: Date.now(), notice: kind });
     saveHistory();
@@ -579,6 +601,13 @@ function announce({ text, kind = 'reminder', speak = true, record = true }) {
 }
 setAnnouncer(announce);
 
+// Reenvío de avisos al móvil (Ajustes → Conectores → Móvil).
+function forwardToPhone(cfg, kind, text) {
+  const push = cfg.connectors.push;
+  if (!push || push.provider === 'none' || !shouldForward(push.forward, kind)) return;
+  sendPush(push, getSecret('push'), { title: assistantName(cfg), message: text }).catch((e) => logger.warn(`móvil: ${e.message}`));
+}
+
 const reminders = new Reminders({
   file: path.join(userDir(), 'reminders.json'),
   onFire: (r, { late }) =>
@@ -588,6 +617,152 @@ const reminders = new Reminders({
     }),
   onChange: (list) => broadcast('productivity:reminders', list),
 });
+
+// ---------------------------------------------------------------- organización
+const tasks = new Tasks({ file: path.join(userDir(), 'tasks.json'), onChange: (list) => broadcast('productivity:tasks', list) });
+const routineLog = new RoutineLog(path.join(userDir(), 'routines.json'));
+const focus = new Focus({
+  file: path.join(userDir(), 'focus.json'),
+  settings: () => loadConfig().productivity.focus,
+  onChange: (st) => {
+    broadcast('productivity:focus', st);
+    refreshTrayMenu();
+  },
+  onPhase: (phase, info) => {
+    const label = info.label ? ` (${info.label})` : '';
+    const key =
+      phase === 'work' ? (info.reason === 'start' ? 'focus.started' : 'focus.backToWork') : phase === 'short' ? 'focus.shortBreak' : phase === 'long' ? 'focus.longBreak' : info.reason === 'stopped' ? 'focus.stopped' : 'focus.breakOver';
+    announce({ kind: 'focus', text: t(key, { minutes: Math.round(info.minutes), label, total: Math.round(focus.today().minutes) }) });
+  },
+});
+const breakCoach = new BreakCoach({
+  settings: () => loadConfig().productivity.breaks,
+  paused: () => focus.active,
+  onBreak: (tip, minutes) => announce({ kind: 'break', text: t(`breaks.tip${tip}`, { minutes }) }),
+});
+const presence = new Presence({
+  settings: () => loadConfig().ui.presence,
+  onSleep: (on) => sendTo('avatar', 'avatar:sleep', on),
+  onWelcome: (minutes) => sendTo('avatar', 'avatar:announce', { text: welcomeText(minutes), kind: 'presence' }),
+});
+const clipHistory = new ClipHistory({ max: loadConfig().productivity.clipboardHistory?.max || 50 });
+const usageLog = new UsageLog({ file: path.join(userDir(), 'usage.json') });
+
+function welcomeText(minutes) {
+  const c = tasks.counts();
+  const pending = reminders.list().filter((r) => new Date(r.due) - Date.now() < 3 * 3600000).length;
+  const extra = c.overdue ? t('presence.overdue', { count: c.overdue }) : pending ? t('presence.soon', { count: pending }) : '';
+  return `${t('presence.welcome', { count: minutes })}${extra ? ` ${extra}` : ''}`;
+}
+
+function focusMenuLabel() {
+  const st = focus.status();
+  if (st.phase === 'off') return t('focus.menu');
+  const m = Math.ceil(st.remainingSec / 60);
+  return t(`focus.menuActive.${st.phase}`, { minutes: m });
+}
+function focusMenu() {
+  const s = loadConfig().productivity.focus;
+  const st = focus.status();
+  return st.phase === 'off'
+    ? [25, 50, 90].map((min) => ({ label: t('focus.menuStart', { minutes: min === 25 ? s.work || 25 : min }), click: () => focus.start({ minutes: min === 25 ? s.work : min }) }))
+    : [{ label: t('focus.menuSkip'), click: () => focus.skip() }, { label: t('focus.menuStop'), click: () => focus.stop() }];
+}
+function tasksMenuLabel() {
+  const c = tasks.counts();
+  return c.open ? t('tasks.menuCount', { count: c.open }) : t('tasks.menu');
+}
+
+// Rutinas: se miran cada minuto, como el resumen diario.
+function runRoutine(r, now = new Date()) {
+  routineLog.mark(r.id, now);
+  const date = now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+  return sendMessage(ROUTINE_PROMPT(r, date), 'internal', {
+    hidden: true,
+    onDone: (reply) => {
+      const text = reply?.trim();
+      routineLog.mark(r.id, now, text || '');
+      broadcast('productivity:routine-log', routineLog.last);
+      if (text) announce({ text, kind: 'routine', record: false });
+    },
+  });
+}
+function checkRoutines() {
+  if (current) return;
+  const now = new Date();
+  const [first] = dueRoutines(now, loadConfig().productivity.routines, routineLog);
+  if (first) runRoutine(first, now).catch((e) => logger.warn(`rutina: ${e.message}`));
+}
+
+// Cada minuto: pausas, modo mascota y rutinas. powerMonitor dice cuánto llevas sin tocar nada.
+function activityTick() {
+  let idle = 0;
+  try {
+    idle = powerMonitor.getSystemIdleTime();
+  } catch {
+    /* no disponible: se cuenta como activo */
+  }
+  breakCoach.tick(idle);
+  presence.tick(idle, { busy: assistantState !== 'idle' || !!current });
+  checkRoutines();
+}
+
+// Historial del portapapeles (solo si está activado; no se guarda en disco).
+let clipTimer = null;
+function syncClipboardWatch() {
+  const ch = loadConfig().productivity.clipboardHistory || {};
+  clipHistory.setMax(ch.max);
+  if (ch.enabled && !clipTimer) {
+    clipTimer = setInterval(async () => {
+      try {
+        if (clipHistory.push(await clipboard.readText())) broadcast('productivity:clipboard', clipHistory.list({ limit: 100 }));
+      } catch {
+        /* portapapeles ocupado */
+      }
+    }, 1500);
+  } else if (!ch.enabled && clipTimer) {
+    clearInterval(clipTimer);
+    clipTimer = null;
+    clipHistory.clear();
+  }
+}
+
+// ---------------------------------------------------------------- monitor de servicios y CI
+const monitors = new Monitors({
+  file: path.join(userDir(), 'monitors.json'),
+  list: () => loadConfig().productivity.monitors?.list || [],
+  onChange: (m, to, r) => announce({ kind: 'monitor', text: t(`monitors.${to}`, { name: m.name, error: r.error || '' }) }),
+  onUpdate: (states) => broadcast('productivity:monitors', states),
+});
+let monitorTimer = null;
+function scheduleMonitors(delay) {
+  clearTimeout(monitorTimer);
+  const m = loadConfig().productivity.monitors || {};
+  const min = Math.max(1, Number(m.everyMin) || 5);
+  monitorTimer = setTimeout(async () => {
+    if ((loadConfig().productivity.monitors?.list || []).length) await monitors.runOnce().catch((e) => logger.warn(`monitor: ${e.message}`));
+    scheduleMonitors();
+  }, delay ?? min * 60000);
+}
+
+const ciWatch = new CiWatcher({
+  file: path.join(userDir(), 'ci-watch.json'),
+  repos: () => {
+    const gh = loadConfig().connectors.github;
+    return gh?.enabled && getSecret('github') ? (gh.watchRepos || []).filter(Boolean) : [];
+  },
+  latestRuns: (repo) => latestRuns(loadConfig().connectors.github, repo),
+  onFinish: (repo, run, kind) => announce({ kind: 'ci', text: t(`github.ci.${kind}`, { repo, workflow: run.name, branch: run.head_branch || '' }) }),
+});
+let ciTimer = null;
+function scheduleCi(delay) {
+  clearTimeout(ciTimer);
+  const min = Math.max(2, Number(loadConfig().connectors.github?.pollMin) || 5);
+  ciTimer = setTimeout(async () => {
+    await ciWatch.poll().catch((e) => logger.warn(`CI: ${e.message}`));
+    scheduleCi();
+  }, delay ?? min * 60000);
+}
 
 // ---------------------------------------------------------------- avisos de agentes
 // Tareas de Paperclip vigiladas: se consultan cada productivity.agentPollMin minutos.
@@ -641,6 +816,18 @@ const services = {
   configChanged: () => broadcast('cfg:changed', publicConfig()),
   reminders,
   captureScreen,
+  tasks,
+  focus,
+  routineLog,
+  clipHistory,
+  monitors,
+  onBattery: () => {
+    try {
+      return powerMonitor.isOnBatteryPower();
+    } catch {
+      return null;
+    }
+  },
 };
 
 // ---------------------------------------------------------------- ver la pantalla
@@ -951,6 +1138,10 @@ async function sendMessage(text, via = 'text', { attachments = [], onDone = null
       sendTo('avatar', 'avatar:emotion', e.name);
       return;
     }
+    if (e.type === 'usage') {
+      usageLog.record(profile.id, profile.model, e.usage);
+      return;
+    }
     if (e.type === 'text') partialText += e.delta;
     chatEvent(e);
     if (e.type === 'text') {
@@ -1005,6 +1196,10 @@ function registerIpc() {
     applyUiConfig();
     broadcast('cfg:changed', publicConfig());
     if (patch?.connectors?.mcpServers) await syncMcp(loadConfig());
+    if (patch?.productivity?.clipboardHistory) syncClipboardWatch();
+    if (patch?.productivity?.monitors) scheduleMonitors(1500);
+    if (patch?.connectors?.github) scheduleCi(5000);
+    if (patch?.productivity?.focus || patch?.productivity?.routines) refreshTrayMenu();
     return publicConfig();
   });
   ipcMain.handle('cfg:replace', (_e, cfg) => {
@@ -1372,8 +1567,78 @@ function registerIpc() {
     // En Linux no existe el reenvío de ratón: se recorta la ventana a la silueta.
     if (isLinux && wins.avatar && Array.isArray(rects) && rects.length) wins.avatar.setShape(rects);
   });
-  ipcMain.on('avatar:click', () => toggleChat(false, true));
+  ipcMain.on('avatar:click', () => {
+    presence.wake();
+    toggleChat(false, true);
+  });
   ipcMain.on('avatar:context-menu', () => avatarContextMenu());
+
+  // ---- organización: tareas, rutinas, concentración
+  ipcMain.handle('productivity:tasks', () => tasks.list({ filter: 'all' }));
+  ipcMain.handle('productivity:task-add', (_e, input) => tasks.add(input || {}));
+  ipcMain.handle('productivity:task-update', (_e, id, patch) => tasks.update(id, patch || {}));
+  ipcMain.handle('productivity:task-remove', (_e, id) => tasks.remove(id));
+  ipcMain.handle('productivity:task-clear-done', () => tasks.clearDone());
+  ipcMain.handle('productivity:routine-log', () => routineLog.last);
+  ipcMain.handle('productivity:routine-run', (_e, id) => {
+    const r = (loadConfig().productivity.routines || []).find((x) => x.id === id);
+    if (!r) throw new Error(`Unknown routine ${id}`);
+    toggleChat(true);
+    runRoutine(r).catch((e) => logger.warn(`rutina: ${e.message}`));
+    return true;
+  });
+  ipcMain.handle('productivity:focus', () => ({ ...focus.status(), history: focus.history(7) }));
+  ipcMain.handle('productivity:focus-start', (_e, opts) => focus.start(opts || {}));
+  ipcMain.handle('productivity:focus-stop', () => focus.stop());
+  ipcMain.handle('productivity:focus-skip', () => focus.skip());
+  // ---- información
+  ipcMain.handle('productivity:clipboard', () => clipHistory.list({ limit: 100 }));
+  ipcMain.handle('productivity:clipboard-copy', async (_e, id) => {
+    const item = clipHistory.get(id);
+    if (item) await clipboard.writeText(item.text);
+    return !!item;
+  });
+  ipcMain.handle('productivity:clipboard-remove', (_e, id) => clipHistory.remove(id));
+  ipcMain.handle('productivity:clipboard-clear', () => clipHistory.clear());
+  ipcMain.handle('productivity:weather-find', async (_e, name) => geocode(name, { language: getLocale() }));
+  ipcMain.handle('productivity:weather-now', async () => {
+    const w = loadConfig().productivity.weather;
+    if (w.lat == null || w.lon == null) return null;
+    return summarize(await forecast(w, { days: 1, units: w.units }), w.label);
+  });
+  ipcMain.handle('productivity:feed-test', async (_e, url) => {
+    const f = await fetchFeed(url);
+    return { title: f.title, count: f.items.length, first: f.items[0]?.title || '' };
+  });
+  ipcMain.handle('productivity:system', () => systemStatus({ onBattery: services.onBattery() }));
+  ipcMain.handle('productivity:monitors', () => monitors.states());
+  ipcMain.handle('productivity:monitors-check', () => monitors.runOnce());
+  ipcMain.handle('productivity:usage', () => usageLog.summary(loadConfig().profiles));
+  ipcMain.handle('productivity:usage-reset', () => {
+    usageLog.reset();
+    return [];
+  });
+  // ---- conectores
+  ipcMain.handle('test:github', () => testGithub(loadConfig().connectors.github));
+  ipcMain.handle('test:homeassistant', () => testHomeAssistant(loadConfig().connectors.homeassistant));
+  ipcMain.handle('test:push', async () => {
+    const cfg = loadConfig();
+    try {
+      const via = await sendPush(cfg.connectors.push, getSecret('push'), { title: assistantName(cfg), message: t('push.testMessage') });
+      return { ok: true, message: t('push.testOk', { via }) };
+    } catch (e) {
+      return { ok: false, message: e.message };
+    }
+  });
+  // ---- galería de modelos gratis
+  ipcMain.handle('skin:gallery-download', async (e, id) => {
+    try {
+      return await downloadGalleryItem(id, { onProgress: (p) => !e.sender.isDestroyed() && e.sender.send('skin:gallery-progress', p) });
+    } catch (err) {
+      logger.warn(`galería: ${err.message}`);
+      return { error: 'download', message: err.message };
+    }
+  });
 }
 
 function stopSpeechOnly() {
@@ -1430,6 +1695,10 @@ app.whenReady().then(async () => {
     setInterval(checkBriefing, 60000);
   }, 15000);
   scheduleAgentPoll();
+  setInterval(activityTick, 60000);
+  scheduleMonitors(20000);
+  scheduleCi(30000);
+  step('portapapeles', syncClipboardWatch);
   step('bandeja', buildTray);
   step('ajustes de ventana', applyUiConfig);
   syncMcp(loadConfig()).catch((e) => logger.error('MCP', e));
@@ -1474,6 +1743,15 @@ function runAutomation(file) {
     applyUiConfig,
     refreshTrayMenu,
     onChatEvent: (fn) => chatListeners.add(fn),
+    tasks,
+    focus,
+    routineLog,
+    runRoutine,
+    clipHistory,
+    monitors,
+    usageLog,
+    presence,
+    sendTo,
   };
   import(pathToFileURL(path.resolve(file)).href)
     .then((m) => m.default(api))
@@ -1486,5 +1764,7 @@ function runAutomation(file) {
 app.on('window-all-closed', (e) => e.preventDefault?.());
 app.on('will-quit', () => {
   globalShortcut.unregisterAll();
+  usageLog.flush();
+  focus.dispose();
   closeAllMcp();
 });

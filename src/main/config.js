@@ -96,6 +96,10 @@ export function defaultConfig(locale = resolveLocale('auto', systemLocales())) {
       shell: { enabled: false },
       webhooks: [],
       mcpServers: [],
+      github: { enabled: false, apiUrl: 'https://api.github.com', watchRepos: [], pollMin: 5 }, // token en el secreto «github»
+      homeassistant: { enabled: false, baseUrl: '' }, // token en el secreto «homeassistant»
+      // Avisos al móvil: ntfy | telegram | gotify (token en el secreto «push»). forward: off | important | all
+      push: { provider: 'none', server: 'https://ntfy.sh', topic: '', chatId: '', forward: 'important' },
     },
     tools: { autoApprove: {} },
     productivity: {
@@ -108,6 +112,13 @@ export function defaultConfig(locale = resolveLocale('auto', systemLocales())) {
       briefing: { enabled: false, time: '08:30', days: [1, 2, 3, 4, 5] }, // resumen diario
       search: { provider: 'none', baseUrl: '' }, // none | searxng | brave | tavily (clave en el secreto «search»)
       agentPollMin: 2, // cada cuánto se miran las tareas de Paperclip vigiladas
+      routines: [], // [{ id, name, prompt, time 'HH:MM', days [1-7], enabled }]
+      focus: { work: 25, short: 5, long: 15, every: 4, autoContinue: true, dnd: true }, // modo concentración
+      breaks: { enabled: false, every: 50, idleResetMin: 5 }, // recordatorios de pausas
+      clipboardHistory: { enabled: false, max: 50 }, // solo en memoria
+      weather: { label: '', lat: null, lon: null, units: 'metric' }, // Open-Meteo, sin clave
+      feeds: [], // [{ id, name, url }] RSS/Atom
+      monitors: { everyMin: 5, list: [] }, // [{ id, name, url, keyword }]
     },
     // Movimientos importados asignados a cada estado o gesto de las skins 3D (null = el propio).
     motions: { assign: { idle: null, thinking: null, listening: null, working: null, talking: null, greet: null, happy: null, talkGesture: [] } },
@@ -124,6 +135,8 @@ export function defaultConfig(locale = resolveLocale('auto', systemLocales())) {
       hotkeyLook: 'Control+Alt+S', // «Mira esto»: captura la pantalla y la adjunta al chat
       hotkeyQuick: 'Control+Alt+Q', // acciones rápidas sobre el texto copiado
       startWithSystem: false,
+      // Modo mascota: se duerme si no tocas el PC y te saluda al volver.
+      presence: { sleep: true, sleepAfterMin: 10, welcomeBack: true },
     },
   };
 }

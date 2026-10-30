@@ -13,6 +13,11 @@ import { screenTools } from './screen.js';
 import { fileTools } from './files.js';
 import { calendarTools } from './calendar.js';
 import { webTools } from './web.js';
+import { taskTools, routineTools, focusTools } from './organize.js';
+import { weatherTools, newsTools, systemTools, clipboardHistoryTools, monitorTools } from './info.js';
+import { githubTools } from './github.js';
+import { homeAssistantTools } from './homeassistant.js';
+import { phoneTools } from './phone.js';
 import { loadConfig, patchConfig } from '../config.js';
 import { t } from '../../shared/i18n/index.js';
 
@@ -26,7 +31,16 @@ export function buildToolbox(cfg, getParentWindow, services = {}) {
     ...fileTools(cfg),
     ...calendarTools(cfg, services),
     ...webTools(cfg, services),
-    ...hermesTools(cfg, services), ...paperclipTools(cfg, services), ...webhookTools(cfg), ...mcpTools(cfg)];
+    ...taskTools(services),
+    ...routineTools(services),
+    ...focusTools(services),
+    ...weatherTools(cfg, services),
+    ...newsTools(cfg, services),
+    ...systemTools(services),
+    ...clipboardHistoryTools(cfg, services),
+    ...monitorTools(cfg, services),
+    ...phoneTools(cfg, services),
+    ...hermesTools(cfg, services), ...paperclipTools(cfg, services), ...githubTools(cfg), ...homeAssistantTools(cfg), ...webhookTools(cfg), ...mcpTools(cfg)];
   const byName = new Map(all.map((tool) => [tool.name, tool]));
 
   async function run(name, input, ctx) {

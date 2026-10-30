@@ -96,6 +96,24 @@ body[data-state='working'] .dots i {
 .bubble.announce .dots {
   display: none;
 }
+/* Dormida (modo mascota): «Zzz…» que sube y baja despacio, sin puntos. */
+.bubble.sleep .dots {
+  display: none;
+}
+.bubble.sleep {
+  opacity: 0.85;
+  font-style: italic;
+  animation: snore 3.2s infinite ease-in-out;
+}
+@keyframes snore {
+  0%,
+  100% {
+    transform: translate(-50%, 0);
+  }
+  50% {
+    transform: translate(-50%, -4px);
+  }
+}
 /* Avisos (recordatorios…): hasta dos líneas, sin puntos de «pensando». */
 .bubble.announce {
   white-space: normal;

@@ -132,22 +132,33 @@ let currentLabel = '';
 // Aviso en el bocadillo (recordatorios…): se queda unos segundos aunque cambie el estado.
 let announceText = '';
 let announceTimer = null;
+let sleeping = false;
 function setState({ state, label }) {
   currentState = state;
   currentLabel = label || '';
   document.body.dataset.state = state;
   behaviour.state = state;
   const own = state in STATE_TEXT;
-  bubble.classList.toggle('hidden', !own && !announceText);
+  // Dormida y sin nada que decir: bocadillo con «Zzz…».
+  const snore = sleeping && state === 'idle' && !announceText;
+  bubble.classList.toggle('hidden', !own && !announceText && !snore);
   bubble.classList.toggle('static', state === 'error');
   bubble.classList.toggle('announce', !own && !!announceText);
-  bubbleText.textContent = own ? label || (STATE_TEXT[state] ? t(STATE_TEXT[state]) : '') : announceText;
+  bubble.classList.toggle('sleep', snore);
+  bubbleText.textContent = own ? label || (STATE_TEXT[state] ? t(STATE_TEXT[state]) : '') : snore ? t('presence.zzz') : announceText;
   if (state === 'idle' && prevState === 'talking') behaviour.trigger('done');
   prevState = state;
   requestAnimationFrame(relayout);
 }
 let prevState = 'idle';
 wd.on('avatar:state', setState);
+// Modo mascota: se duerme cuando no tocas el PC (main.js decide cuándo).
+wd.on('avatar:sleep', (on) => {
+  sleeping = !!on;
+  behaviour.sleeping = sleeping;
+  document.body.dataset.sleep = sleeping ? '1' : '';
+  setState({ state: currentState, label: currentLabel });
+});
 wd.on('avatar:announce', ({ text }) => {
   announceText = text.length > 160 ? `${text.slice(0, 157)}…` : text;
   clearTimeout(announceTimer);
