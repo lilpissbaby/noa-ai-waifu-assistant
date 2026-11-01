@@ -1,0 +1,101 @@
+{
+  "id": "mk-lilith",
+  "name": "Lilith",
+  "names": {
+    "es": "Lilith",
+    "en": "Lilith",
+    "ru": "Lilith",
+    "uk": "Lilith",
+    "zh": "Lilith"
+  },
+  "width": 800,
+  "height": 1000,
+  "files": {
+    "base": "base.svg",
+    "eyesClosed": "eyes_closed.svg",
+    "mouthHalf": "mouth_half.svg",
+    "mouthOpen": "mouth_open.svg"
+  },
+  "emotions": {
+    "happy": "emo_happy.svg",
+    "excited": "emo_excited.svg",
+    "laugh": "emo_laugh.svg",
+    "love": "emo_love.svg",
+    "shy": "emo_shy.svg",
+    "flirty": "emo_flirty.svg",
+    "smug": "emo_smug.svg",
+    "playful": "emo_playful.svg",
+    "proud": "emo_proud.svg",
+    "grateful": "emo_grateful.svg",
+    "relaxed": "emo_relaxed.svg",
+    "relieved": "emo_relieved.svg",
+    "dreamy": "emo_dreamy.svg",
+    "sleepy": "emo_sleepy.svg",
+    "bored": "emo_bored.svg",
+    "thinking": "emo_thinking.svg",
+    "curious": "emo_curious.svg",
+    "confused": "emo_confused.svg",
+    "surprised": "emo_surprised.svg",
+    "shocked": "emo_shocked.svg",
+    "scared": "emo_scared.svg",
+    "nervous": "emo_nervous.svg",
+    "worried": "emo_worried.svg",
+    "sad": "emo_sad.svg",
+    "crying": "emo_crying.svg",
+    "pout": "emo_pout.svg",
+    "annoyed": "emo_annoyed.svg",
+    "angry": "emo_angry.svg",
+    "disgusted": "emo_disgusted.svg",
+    "determined": "emo_determined.svg",
+    "dizzy": "emo_dizzy.svg"
+  },
+  "rig": {
+    "eyes": [
+      {
+        "x": 334,
+        "y": 330,
+        "w": 104,
+        "h": 74
+      },
+      {
+        "x": 466,
+        "y": 330,
+        "w": 104,
+        "h": 74
+      }
+    ],
+    "mouth": {
+      "x": 400,
+      "y": 424,
+      "w": 40
+    },
+    "neck": {
+      "x": 400,
+      "y": 492
+    },
+    "cheeks": [
+      {
+        "x": 308,
+        "y": 378
+      },
+      {
+        "x": 492,
+        "y": 378
+      }
+    ]
+  },
+  "market": {
+    "adult": true,
+    "age": 29,
+    "author": "Waifu Desk",
+    "license": "mit",
+    "desc": {
+      "es": "Súcubo con cuernos, alas y mono escotado",
+      "en": "Succubus with horns, wings and a plunging bodysuit",
+      "ru": "Суккуб с рогами и крыльями",
+      "uk": "Сукуб з рогами та крилами",
+      "zh": "有角有翼的魅魔"
+    },
+    "tags": []
+  }
+}

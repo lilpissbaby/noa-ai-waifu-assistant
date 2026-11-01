@@ -22,10 +22,10 @@ drives your Home Assistant and pings your phone too.
 <details>
 <summary><b>Contents</b></summary>
 
-- [What it does](#what-it-does) · [New in 0.5.0](#new-in-050) · [Download](#download) · [Getting started](#getting-started) · [Screenshots](#screenshots)
+- [What it does](#what-it-does) · [New in 0.6.0](#new-in-060) · [Download](#download) · [Getting started](#getting-started) · [Screenshots](#screenshots)
 - [Free models](#free-models) · [Languages](#languages) · [Characters](#characters) · [Productivity](#productivity) · [Organize](#organize) · [Info](#info-weather-news-clipboard-and-pc)
 - [Connectors](#connectors) · [GitHub](#github) · [Home Assistant](#home-assistant) · [Phone notifications](#phone-notifications) · [Automations](#automations-mcp-catalog-and-service-monitor)
-- [3D skins](#3d-skins-vrm) · [VTuber avatars](#vtuber-avatars-live2d) · [Model gallery](#free-model-gallery) · [Pet mode](#pet-mode) · [Usage and cost](#usage-and-cost)
+- [Expressions and gestures](#expressions-and-gestures) · [3D skins](#3d-skins-vrm) · [VTuber avatars](#vtuber-avatars-live2d) · [Skin gallery](#skin-gallery) · [Pet mode](#pet-mode) · [Usage and cost](#usage-and-cost)
 - [All the tools](docs/herramientas.md) · [Development](#development) · [Licence](#licence)
 
 </details>
@@ -34,6 +34,8 @@ drives your Home Assistant and pings your phone too.
 
 - **Lives on your desktop**: transparent, always on top, no window to open. She breathes, blinks, moves her
   mouth when she talks and turns her head to follow the mouse. Click for the chat, double-click to talk.
+- **Expressive**: 31 emotions with their own face, 34 gestures (wave, nod, clap, blow a kiss, dance…) and manga
+  effects (hearts, sweat drops, anger marks, Zzz…). The AI decides when, from what she's saying.
 - **Any model**: Claude with your API key, Azure OpenAI or any OpenAI-compatible API (OpenAI, OpenRouter, Groq,
   Gemini, Ollama, LM Studio or Hermes itself). Streaming, tool use and images. Keys are stored encrypted.
 - **Characters**: several of them, each with her own personality, voice and skin, plus per-topic content
@@ -61,22 +63,23 @@ drives your Home Assistant and pings your phone too.
   doing (thinks with her hand on her chin, types, waves, gestures while talking), makes faces to match the tone
   of the reply, and you can add `.vrma` or Mixamo motions.
 - **VTuber avatars (Live2D)**: models from VTube Studio, Booth or nizima, driven by their `.vtube.json`.
-- **Free model gallery**: 26 3D and VTuber models, downloaded from their source with one click.
+- **Skin gallery**: 13 2D skins drawn for the app (6 of them 18+, only if you unlock it) and 26 free 3D and
+  VTuber models downloaded from their source with one click.
 - **Pet mode**: she falls asleep when you're away and greets you when you're back.
 - **Usage and cost**: how many tokens each model uses and what it costs you.
 - **Five languages**: Español, English, Русский, Українська and 中文. Follows the system language and switches
   instantly.
 
-## New in 0.5.0
+## New in 0.6.0
 
-- [Organize](#organize): **tasks**, scheduled **routines**, **focus mode** and **breaks**.
-- [Info](#info-weather-news-clipboard-and-pc): **weather**, RSS **news**, **clipboard history** and **PC status**.
-- New connectors: [GitHub](#github), [Home Assistant](#home-assistant) and [phone notifications](#phone-notifications).
-- [Service monitor and MCP catalogue](#automations-mcp-catalog-and-service-monitor).
-- [Free model gallery](#free-model-gallery), [pet mode](#pet-mode) and per-model [usage and cost](#usage-and-cost).
-- [66 tools](docs/herramientas.md) documented straight from the code.
+- [Expressions and gestures](#expressions-and-gestures): **31 emotions** (up from 5) and **34 gestures** the AI
+  uses on her own, with **manga effects** around her head, on 2D, 3D and Live2D skins. An "Expression" menu to
+  set them by hand.
+- [Built-in market](#skin-gallery): **13 original 2D skins** with a face for every emotion, 6 of them spicier
+  (18+, no nudity) that only show up once 18+ content is unlocked.
+- What came in 0.5.0 (organize, connectors, free model gallery, pet mode…) is in the [changelog](CHANGELOG.md).
 
-![She lists today's tasks, starts 25 minutes of focus and sends the VPS status to the phone](docs/screenshots/chat-organize.jpg)
+![Hana's 31 faces, one of the market skins, with their effects](docs/screenshots/emotions-2d.jpg)
 
 ## Download
 
@@ -203,7 +206,7 @@ the mouse.
 ## Free models
 
 Every free anime-girl model we gathered, no account needed anywhere: **31 in 3D (VRM)** and **8 VTuber
-(Live2D)**. The purple-labelled ones are in the app's [gallery](#free-model-gallery) and download with one click;
+(Live2D)**. The purple-labelled ones are in the app's [gallery](#skin-gallery) and download with one click;
 the pink ones ("solo local") are free but their licence doesn't allow redistributing them.
 
 ![All 39 free models: 31 VRM and 8 Live2D](docs/screenshots/models.jpg)
@@ -378,6 +381,35 @@ can read it: use a long random name or your own server with a token.
 
 ![Settings: service monitor](docs/screenshots/settings-monitors.png)
 
+## Expressions and gestures
+
+The AI marks what she feels and does with hidden tags the app strips from the text: `<emo:love>` changes her
+face and `<act:wave>` makes a gesture. Synonyms in English and Spanish work too (`<emo:blush>`, `<emo:sad>`,
+`<act:hello>`…). You can set them yourself: right-click the waifu → **Expression**.
+
+- **31 emotions** in five groups: joy (happy, excited, laughing, in love, grateful, proud), flirty & playful
+  (flirty, playful, smug, shy, dreamy), calm (relaxed, relieved, sleepy, bored, thinking, curious), surprise &
+  nerves (surprised, shocked, confused, dizzy, nervous, scared) and sad & angry (worried, sad, crying, pouting,
+  annoyed, angry, disgusted, determined). Each has its face, a way of moving her head, effects and sometimes a
+  gesture. They last a few seconds and blend into the next one.
+- **34 gestures**: wave, nod, shake head, bow, cheer, clap, thumbs up, peace sign, point, "idea!", think, shrug,
+  facepalm, cross arms, hands on hips, hand heart, blow a kiss, wink, shy fidget, stretch, yawn, dance, jump,
+  spin, salute, fist pump, giggle, shiver, sigh, look around, head tilt, cry, recoil and stomp.
+- **Manga effects** around her head: hearts, sparkles, blush, music notes, flowers, sighs, Zzz, "…", "?", "!",
+  "!!", gloom lines, sweat drops, tears, steam, anger marks, flames, dizzy stars and a light bulb.
+
+| | Face | Gestures | Effects |
+|---|---|---|---|
+| **Market 2D skins** | a face drawn for every emotion | head, wink and effects | yes |
+| **2D skins from a drawing** | closed eyes for the ones that close them | head, wink and effects | yes, with blush and tears in place |
+| **3D (VRM)** | a mix of the model's expressions | full body and fingers | yes |
+| **VTuber (Live2D)** | the model's smile, eyes, brows and blush, plus its expressions if the names match | head and the model's matching motion | yes |
+
+In Settings → General you can turn off faces, the AI's gestures, the effects and the **idle gestures** (now and
+then she stretches, looks around or winks) separately.
+
+![Gestures on a 3D skin](docs/screenshots/gestures-3d.jpg)
+
 ## 3D skins (VRM)
 
 Settings → Skins → **Import a 3D model (VRM)** (or right-click Noa → Skin → Import 3D model):
@@ -393,8 +425,7 @@ Settings → Skins → **Import a 3D model (VRM)** (or right-click Noa → Skin 
    gesture. They apply to every 3D skin; anything unassigned uses the built-in motions.
 6. **Save and use**.
 
-**Faces from the AI**: the model marks its tone with hidden tags (`<emo:happy>`, `<emo:sad>`…) that the app
-strips from the text and turns into expressions. Turn it off in Settings → General.
+**Faces and gestures from the AI**: see [Expressions and gestures](#expressions-and-gestures).
 
 The built-in 3D skin, **Noa 3D**, is pixiv's sample girl from the [three-vrm](https://github.com/pixiv/three-vrm)
 repository (VRM 1.0, redistribution and modification allowed, no credit required; see
@@ -424,16 +455,31 @@ the ones for VTube Studio, [Booth](https://booth.pm) or [nizima](https://nizima.
 There's no built-in Live2D model: the sample models' licences don't allow bundling them (they're in the gallery,
 though).
 
-## Free model gallery
+## Skin gallery
 
-Settings → Skins → **Free model gallery** (or right-click Noa → Skin → Free model gallery): 26 free models, **18
-in 3D (VRM)** and **8 VTuber (Live2D)**, with thumbnail, author and licence. Press **Use** and the app downloads
-the model from its **original repository** (pinned to a commit) and opens it in the 3D or VTuber editor, where
-you see its licence, adjust the framing and save it. Only models whose authors let anyone use and redistribute
-them, or that come from the rights holder's own repository, are listed; no model is bundled, only the
-thumbnails.
+Settings → Skins → **Skin gallery** (or right-click Noa → Skin → Skin gallery). The **built-in market** comes
+first and the free models from the internet below it.
 
-![Settings: free model gallery](docs/screenshots/settings-gallery.png)
+**Built-in market**: **13 original 2D skins** drawn for Waifu Desk, all adult women, with a face for each of the
+31 emotions. They ship with the app: **Install** copies one to your skins and puts it on.
+
+- **Regular**: Aiko (secretary with glasses), Mika (alt girl with mesh and piercings), Yuki (shrine kitsune),
+  Lena (cyberpunk hacker), Hana (barista), Elara (elf mage) and Rin (streamer).
+- **18+**: Lilith (succubus), Vera (casino dealer in a bunny suit), Selene (vampire countess), Marina (lifeguard
+  in a bikini), Nyx (cat burglar in a catsuit) and Ivy (satin slip dress). Suggestive, never nude, and only
+  listed once 18+ content is unlocked. Lock it again and they disappear from your skins too.
+
+![The regular market skins](docs/screenshots/market-skins.jpg)
+
+**Free models from the internet**: 26 free models, **18 in 3D (VRM)** and **8 VTuber (Live2D)**, with
+thumbnail, author and licence. Press **Use** and the app downloads the model from its **original repository**
+(pinned to a commit) and opens it in the 3D or VTuber editor, where you see its licence, adjust the framing and
+save it. Only models whose authors let anyone use and redistribute them, or that come from the rights holder's
+own repository, are listed. The spicier VRM and Live2D models online are sold or given away in stores that need
+an account and forbid redistribution (BOOTH, VRoid Hub, nizima…), so the app can't download them: the gallery
+links to those stores and you import them yourself with **Import VRM** or **Import Live2D**.
+
+![Settings: skin gallery](docs/screenshots/settings-gallery.png)
 
 ## Pet mode
 

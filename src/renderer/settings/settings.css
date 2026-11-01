@@ -715,6 +715,19 @@ details.catalog {
   color: var(--accent);
   border-color: var(--accent);
 }
+.model-card .thumb .badge.kind-2d {
+  color: #ffd45a;
+  border-color: #ffd45a;
+}
+.model-card .thumb .badge.adult {
+  left: auto;
+  right: 8px;
+  color: #ff6b7d;
+  border-color: #ff6b7d;
+}
+.adult-note {
+  margin: 0 0 10px;
+}
 .model-card .meta {
   padding: 8px 10px 10px;
   display: flex;

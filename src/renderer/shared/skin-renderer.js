@@ -1,6 +1,8 @@
 // Renderizador WebGL2 de skins 2D con "rig" mínimo:
 //  - malla deformable: respiración, giro/desplazamiento de cabeza alrededor del cuello, mandíbula
-//  - parpadeo: capa "ojos cerrados" o párpado procedural dentro de los óvalos de los ojos
+//  - caras por emoción (skin.json → emotions: { happy: 'emo_happy.svg', … }): capas que se cargan
+//    cuando hacen falta y se funden con la anterior
+//  - parpadeo (y guiño, ojo a ojo): capa "ojos cerrados" o párpado procedural en los óvalos de los ojos
 //  - boca: capas "boca media/abierta" o boca procedural sobre el punto de la boca
 // Rig (en píxeles de la imagen): { eyes:[{x,y,w,h},{...}], mouth:{x,y,w}, neck:{x,y} }
 import { drive2d } from './drive-2d.js';
@@ -56,11 +58,17 @@ uniform sampler2D uBase;
 uniform sampler2D uEyesTex;
 uniform sampler2D uMouthHalfTex;
 uniform sampler2D uMouthOpenTex;
+uniform sampler2D uEmoTex;
+uniform sampler2D uEmo2Tex;
+uniform float uEmoAmt;
+uniform float uEmo2Amt;
+uniform float uSplitX;
+uniform float uBlinkL;
+uniform float uBlinkR;
 uniform float uHasEyes;
 uniform float uHasMouthHalf;
 uniform float uHasMouthOpen;
 uniform vec2 uSize;
-uniform float uBlink;
 uniform float uMouthAmt;
 uniform vec4 uEye0;
 uniform vec4 uEye1;
@@ -84,7 +92,7 @@ vec3 lidColor(vec4 eye) {
   return acc / 3.0;
 }
 
-vec4 blinkEye(vec4 c, vec4 eye) {
+vec4 blinkEye(vec4 c, vec4 eye, float uBlink) {
   if (eye.z <= 0.0) return c;
   vec2 d = (vPx - eye.xy) / (eye.zw * 0.5);
   float r = dot(d, d);
@@ -129,12 +137,15 @@ vec4 mouthProc(vec4 c) {
 
 void main() {
   vec4 c = texture(uBase, vUv);
-  if (uBlink > 0.002) {
+  if (uEmo2Amt > 0.002) c = over(texture(uEmo2Tex, vUv) * uEmo2Amt, c);
+  if (uEmoAmt > 0.002) c = over(texture(uEmoTex, vUv) * uEmoAmt, c);
+  float blink = vPx.x < uSplitX ? uBlinkL : uBlinkR;
+  if (blink > 0.002) {
     if (uHasEyes > 0.5) {
-      c = over(texture(uEyesTex, vUv) * smoothstep(0.1, 0.55, uBlink), c);
+      c = over(texture(uEyesTex, vUv) * smoothstep(0.1, 0.55, blink), c);
     } else {
-      c = blinkEye(c, uEye0);
-      c = blinkEye(c, uEye1);
+      c = blinkEye(c, uEye0, uBlinkL);
+      c = blinkEye(c, uEye1, uBlinkR);
     }
   }
   if (uMouthAmt > 0.02) {
@@ -179,7 +190,9 @@ export class SkinRenderer {
     this.kind = '2d';
     this.canvas = canvas;
     this.textures = {};
-    this.params = { blink: 0, mouth: 0, headAngle: 0, headX: 0, headY: 0, breath: 0, bounce: 0, tint: 0, tintColor: [1, 1, 1] };
+    this.params = { blink: 0, blinkL: 0, blinkR: 0, mouth: 0, headAngle: 0, headX: 0, headY: 0, breath: 0, bounce: 0, tint: 0, tintColor: [1, 1, 1] };
+    this.faces = new Map(); // emoción → { tex | img, used } (caras de la skin, cargadas al pedirlas)
+    this.faceLayers = [null, null]; // [actual, anterior]: { name, weight }
     this.view = { x: 0, y: 0, s: 1 };
     this.skin = null;
     this.mask = null;
@@ -215,6 +228,8 @@ export class SkinRenderer {
     );
     const imgs = Object.fromEntries(entries);
     if (!imgs.base) throw new Error('Skin has no base image');
+    this.dropFaces();
+    this.faceUrls = urls.emotions || {};
     const W = skin.width || imgs.base.naturalWidth;
     const H = skin.height || imgs.base.naturalHeight;
     if (this.mode === '2d') {
@@ -236,6 +251,7 @@ export class SkinRenderer {
     const k = Math.min(1, maxSide / Math.max(W, H));
     const tw = Math.round(W * k);
     const th = Math.round(H * k);
+    this.texSize = [tw, th];
     for (const t of Object.values(this.textures)) gl.deleteTexture(t);
     this.textures = {};
     for (const [key, img] of Object.entries(imgs)) {
@@ -259,6 +275,78 @@ export class SkinRenderer {
     this.skin = { ...skin, width: W, height: H, rig: normalizeRig(skin.rig, W, H) };
     this.buildMesh(W, H);
     return this.skin;
+  }
+
+  // ¿Tiene esta skin una cara propia para la emoción? (fx.js no dibuja encima el rubor ni las lágrimas)
+  ownFace(name) {
+    return !!(name && this.faceUrls?.[name]);
+  }
+
+  dropFaces() {
+    for (const f of this.faces.values()) if (f.tex) this.gl?.deleteTexture(f.tex);
+    this.faces.clear();
+  }
+
+  // Cara de una emoción: la primera vez se descarga en segundo plano y devuelve null hasta que está.
+  face(name) {
+    if (!this.ownFace(name)) return null;
+    let f = this.faces.get(name);
+    if (!f) {
+      f = { tex: null, img: null, used: 0, loading: true };
+      this.faces.set(name, f);
+      loadImage(this.faceUrls[name])
+        .then((img) => {
+          if (this.faces.get(name) !== f) return;
+          if (this.mode === '2d') f.img = this.rasterize(img);
+          else f.tex = this.makeTexture(img);
+          f.loading = false;
+          this.trimFaces();
+        })
+        .catch((e) => {
+          f.loading = false;
+          f.failed = true;
+          console.warn('cara', name, e?.message || e);
+        });
+    }
+    f.used = performance.now();
+    return f.tex || f.img ? f : null;
+  }
+
+  // Como mucho 8 caras en memoria: se sueltan las que llevan más tiempo sin usarse.
+  trimFaces(max = 8) {
+    const ready = [...this.faces.entries()].filter(([, f]) => f.tex || f.img).sort((a, b) => a[1].used - b[1].used);
+    while (ready.length > max) {
+      const [name, f] = ready.shift();
+      if (f.tex) this.gl.deleteTexture(f.tex);
+      this.faces.delete(name);
+    }
+  }
+
+  rasterize(img) {
+    const sk = this.skin || { width: img.naturalWidth, height: img.naturalHeight };
+    const cv = document.createElement('canvas');
+    cv.width = this.images.base?.width || sk.width;
+    cv.height = this.images.base?.height || sk.height;
+    cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height);
+    return cv;
+  }
+
+  makeTexture(img) {
+    const gl = this.gl;
+    const cv = document.createElement('canvas');
+    cv.width = this.texSize[0];
+    cv.height = this.texSize[1];
+    cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height);
+    const tex = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, tex);
+    gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, true);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, cv);
+    gl.generateMipmap(gl.TEXTURE_2D);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    return tex;
   }
 
   buildMask(cv) {
@@ -346,9 +434,34 @@ export class SkinRenderer {
     return 0;
   }
 
+  // Dónde dibujar los efectos (fx.js): centro y radio de la cara, ojos y mejillas, en px CSS, siguiendo
+  // la deformación de la cabeza. Con una cara propia de la emoción no se pinta rubor ni lágrimas encima.
+  fxAnchors(s) {
+    if (!this.skin) return null;
+    const { rig } = this.skin;
+    const P = this.params;
+    const [e0, e1] = rig.eyes;
+    const ex = (e0.x + e1.x) / 2;
+    const ey = (e0.y + e1.y) / 2;
+    const span = Math.abs(e1.x - e0.x) || this.skin.width * 0.16;
+    const c = Math.cos(P.headAngle);
+    const sn = Math.sin(P.headAngle);
+    const at = (x, y) => {
+      const dx = x - rig.neck.x;
+      const dy = y - rig.neck.y;
+      return this.imageToCss(rig.neck.x + c * dx - sn * dy + P.headX, rig.neck.y + sn * dx + c * dy + P.headY + P.bounce);
+    };
+    const [x, y] = at(ex, ey - span * 0.15);
+    const cheeks = rig.cheeks || rig.eyes.map((e) => ({ x: e.x + (e.x < ex ? -span * 0.12 : span * 0.12), y: e.y + span * 0.4 }));
+    const skip = new Set();
+    if (s?.emotion?.weight > 0.3 && this.ownFace(s.emotion.name)) ['blush', 'tears'].forEach((k) => skip.add(k));
+    return { x, y, r: span * 1.05 * this.view.s, eyes: rig.eyes.map((e) => at(e.x, e.y)), cheeks: cheeks.map((p) => at(p.x, p.y)), skip };
+  }
+
   dispose() {
     const gl = this.gl;
     if (!gl) return;
+    this.dropFaces();
     for (const t of Object.values(this.textures)) gl.deleteTexture(t);
     this.textures = {};
     if (this.vao) gl.deleteVertexArray(this.vao);
@@ -358,9 +471,25 @@ export class SkinRenderer {
     this.skin = null;
   }
 
-  // Señales de Behaviour -> parámetros de la malla.
+  // Señales de Behaviour -> parámetros de la malla y caras.
   apply(signals) {
-    if (this.skin) Object.assign(this.params, drive2d(signals, this.skin.height));
+    if (!this.skin) return;
+    const P = Object.assign(this.params, drive2d(signals, this.skin.height));
+    const emo = signals.emotion || { name: 'neutral', weight: 0 };
+    const prev = signals.emotionPrev || { name: 'neutral', weight: 0 };
+    this.faceLayers = [emo.weight > 0 && this.face(emo.name) ? emo : null, prev.weight > 0 && this.face(prev.name) ? prev : null];
+    // Ojos cerrados por la emoción: si la cara ya los cierra no se pone el párpado encima; si la skin
+    // no tiene esa cara, se cierran con la capa de parpadeo.
+    const closed = signals.closed || 0;
+    if (closed > 0) {
+      if (this.faceLayers[0]) {
+        P.blinkL *= 1 - closed;
+        P.blinkR *= 1 - closed;
+      } else {
+        P.blinkL = Math.max(P.blinkL, closed);
+        P.blinkR = Math.max(P.blinkR, closed);
+      }
+    }
   }
 
   cssToImage(x, y) {
@@ -449,7 +578,12 @@ export class SkinRenderer {
     gl.uniform3f(u.uMouth, rig.mouth.x, rig.mouth.y, rig.mouth.w);
     gl.uniform1f(u.uMouthAmt, P.mouth);
     gl.uniform1f(u.uJaw, this.textures.mouthOpen ? 0 : 1);
-    gl.uniform1f(u.uBlink, P.blink);
+    gl.uniform1f(u.uBlinkL, P.blinkL);
+    gl.uniform1f(u.uBlinkR, P.blinkR);
+    gl.uniform1f(u.uSplitX, rig.neck.x);
+    const [cur, prev] = this.faceLayers;
+    gl.uniform1f(u.uEmoAmt, cur ? cur.weight : 0);
+    gl.uniform1f(u.uEmo2Amt, prev ? prev.weight : 0);
     const e0 = rig.eyes[0] || { x: 0, y: 0, w: 0, h: 0 };
     const e1 = rig.eyes[1] || { x: 0, y: 0, w: 0, h: 0 };
     gl.uniform4f(u.uEye0, e0.x, e0.y, e0.w, e0.h);
@@ -471,6 +605,15 @@ export class SkinRenderer {
       gl.bindTexture(gl.TEXTURE_2D, this.textures[key] || this.textures.base);
       gl.uniform1i(u[sampler], i);
       if (flag) gl.uniform1f(u[flag], this.textures[key] ? 1 : 0);
+    });
+    [
+      [cur, 'uEmoTex'],
+      [prev, 'uEmo2Tex'],
+    ].forEach(([layer, sampler], j) => {
+      const unit = units.length + j;
+      gl.activeTexture(gl.TEXTURE0 + unit);
+      gl.bindTexture(gl.TEXTURE_2D, (layer && this.faces.get(layer.name)?.tex) || this.textures.base);
+      gl.uniform1i(u[sampler], unit);
     });
     gl.bindVertexArray(this.vao);
     gl.drawElements(gl.TRIANGLES, this.indexCount, gl.UNSIGNED_INT, 0);
@@ -499,23 +642,43 @@ SkinRenderer.prototype.render2d = function render2d() {
   ctx.translate(-bx, -by);
   const draw = (img) => ctx.drawImage(img, 0, 0, sk.width, sk.height);
   draw(this.images.base);
-  if (P.blink > 0.05) {
+  for (const layer of [this.faceLayers[1], this.faceLayers[0]]) {
+    const img = layer && this.faces.get(layer.name)?.img;
+    if (!img) continue;
+    ctx.globalAlpha = Math.min(1, layer.weight);
+    draw(img);
+    ctx.globalAlpha = 1;
+  }
+  const blinkAt = (x) => (x < rig.neck.x ? P.blinkL : P.blinkR);
+  if (Math.max(P.blinkL, P.blinkR) > 0.05) {
     if (this.images.eyesClosed) {
-      ctx.globalAlpha = Math.min(1, P.blink * 1.6);
-      draw(this.images.eyesClosed);
-      ctx.globalAlpha = 1;
+      for (const [x0, x1, b] of [
+        [0, rig.neck.x, P.blinkL],
+        [rig.neck.x, sk.width, P.blinkR],
+      ]) {
+        if (b <= 0.05) continue;
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(x0, 0, x1 - x0, sk.height);
+        ctx.clip();
+        ctx.globalAlpha = Math.min(1, b * 1.6);
+        draw(this.images.eyesClosed);
+        ctx.restore();
+      }
     } else {
       for (const e of rig.eyes) {
+        const blink = blinkAt(e.x);
+        if (blink <= 0.05) continue;
         ctx.save();
         ctx.beginPath();
         ctx.ellipse(e.x, e.y, e.w / 2, e.h / 2, 0, 0, Math.PI * 2);
         ctx.clip();
         ctx.fillStyle = rig.lidColor || '#ffe3d6';
-        const lid = e.y - e.h / 2 + e.h * Math.min(1, P.blink) * 0.66;
+        const lid = e.y - e.h / 2 + e.h * Math.min(1, blink) * 0.66;
         ctx.fillRect(e.x - e.w / 2, e.y - e.h / 2, e.w, lid - (e.y - e.h / 2));
-        if (P.blink > 0.85) ctx.fillRect(e.x - e.w / 2, e.y - e.h / 2, e.w, e.h);
+        if (blink > 0.85) ctx.fillRect(e.x - e.w / 2, e.y - e.h / 2, e.w, e.h);
         ctx.restore();
-        if (P.blink > 0.4) {
+        if (blink > 0.4) {
           ctx.strokeStyle = rig.lashColor || '#2b1722';
           ctx.lineWidth = Math.max(2, e.w * 0.07);
           ctx.lineCap = 'round';

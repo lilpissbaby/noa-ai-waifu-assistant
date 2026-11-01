@@ -1,4 +1,5 @@
 import { test } from 'node:test';
+import { GESTURES } from '../src/shared/expressions.js';
 import assert from 'node:assert/strict';
 import { Euler, Quaternion } from 'three';
 import { motionFromDef, MotionPlayer } from '../src/renderer/shared/vrm/motion.js';
@@ -93,7 +94,12 @@ test('MotionPlayer: sin biblioteca devuelve una pose vacía', () => {
 
 test('los clips propios existen y solo usan huesos humanoides', () => {
   const names = ['idle-a', 'idle-b', 'thinking', 'listening', 'working', 'talking', 'talk-1', 'talk-2', 'talk-3', 'greet', 'happy'];
-  assert.deepEqual(Object.keys(CLIPS).sort(), [...names].sort());
+  for (const n of names) assert.ok(CLIPS[n], n);
+  // cada gesto de expressions.js con cuerpo tiene su clip
+  for (const [g, d] of Object.entries(GESTURES)) {
+    const key = d.clip !== undefined ? d.clip : g;
+    if (key) assert.ok(CLIPS[key], `gesto ${g} sin clip ${key}`);
+  }
   const HUMAN = /^(hips|spine|chest|upperChest|neck|head|(left|right)(Shoulder|UpperArm|LowerArm|Hand|UpperLeg|LowerLeg|Foot|Eye)|(left|right)(Thumb|Index|Middle|Ring|Little)(Metacarpal|Proximal|Intermediate|Distal))$/;
   for (const [name, d] of Object.entries(CLIPS)) {
     assert.ok(d.duration > 0, name);
@@ -108,4 +114,14 @@ test('los clips propios existen y solo usan huesos humanoides', () => {
 
 test('Quaternion de three disponible en los tests', () => {
   assert.ok(new Quaternion().identity());
+});
+
+test('MotionPlayer: un gesto de Behaviour (s.gesture.started) pone su clip', () => {
+  const p = new MotionPlayer({ random: seeded(4) });
+  p.setLibrary({ ...lib(), bow: [motionFromDef(def('bow', { spine: [[0, 0, 0, 0], [0.5, 30, 0, 0], [2, 30, 0, 0]] }, { loop: false }))] });
+  p.update(1 / 60, sig());
+  let out = p.update(1 / 60, sig({ gesture: { name: 'bow', t: 0, started: true } }));
+  assert.equal(out.started, true);
+  for (let i = 0; i < 40; i++) out = p.update(1 / 60, sig({ gesture: { name: 'bow', t: i / 60, started: false } }));
+  assert.ok(new Euler().setFromQuaternion(out.pose.get('spine')).x * DEG > 10, 'se inclina');
 });

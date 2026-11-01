@@ -85,3 +85,22 @@ test('applyToVrm solo toca expresiones que existen', () => {
   assert.deepEqual(Object.keys(set).sort(), ['aa', 'blink', 'happy']);
   assert.equal(set.blink, 0.3);
 });
+
+test('expressionWeights: emociones nuevas como mezcla, la anterior se funde y el guiño va al ojo derecho del modelo', () => {
+  const w = expressionWeights(signals({ emotion: { name: 'pout', weight: 1 } }));
+  assert.equal(w.angry, 0.5);
+  assert.ok(w.ou >= 0.6);
+  const mix = expressionWeights(signals({ emotion: { name: 'sad', weight: 0.5 }, emotionPrev: { name: 'happy', weight: 0.5 } }));
+  assert.equal(mix.sad, 0.5);
+  assert.equal(mix.happy, 0.5);
+  const sleepy = expressionWeights(signals({ emotion: { name: 'sleepy', weight: 1 } }));
+  assert.ok(sleepy.blink >= 0.6, 'párpados caídos');
+  const wink = expressionWeights(signals({ blink: 0, blinkL: 1, blinkR: 0 }));
+  assert.equal(wink.blinkRight, 1);
+  assert.equal(wink.blinkLeft, 0);
+});
+
+test('lookOffsets: el movimiento de cabeza de los gestos se suma', () => {
+  const o = lookOffsets(signals({ head: { pitch: 0.2, yaw: 0, roll: 0, x: 0, y: 0 } }));
+  assert.ok(o.head.x > 0.1 && o.neck.x > 0.05);
+});

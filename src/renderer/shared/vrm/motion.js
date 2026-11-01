@@ -3,6 +3,7 @@
 // normalizados; el renderizador las aplica y luego suma la capa procedural (mirada, respiración).
 import { Quaternion } from 'three';
 import { baseQuat, quatFromDeg, toVrm0 } from './pose.js';
+import { GESTURES } from '../../../shared/expressions.js';
 
 const STATE_FADE = 0.4;
 const GESTURE_FADE = 0.3;
@@ -41,14 +42,15 @@ function segment(keys, t) {
 }
 
 // Clip propio: { name, duration, loop, bones: { hueso: [[t, x°, y°, z°], …] }, hipsY?: [[t, m], …] }.
-// Las rotaciones son relativas a la pose base y están pensadas para VRM 1.0; con vrm0 se pasan al
-// espacio de los VRM 0.x.
+// Las rotaciones son relativas a la pose base (o absolutas desde la pose T si abs: true) y están
+// pensadas para VRM 1.0; con vrm0 se pasan al espacio de los VRM 0.x.
 export function motionFromDef(def, { vrm0 = false } = {}) {
   const tracks = Object.entries(def.bones).map(([bone, keys]) => ({
     bone,
     times: keys,
     quats: keys.map((k) => {
-      const q = baseQuat(bone).clone().multiply(quatFromDeg([k[1], k[2], k[3]]));
+      const d = quatFromDeg([k[1], k[2], k[3]]);
+      const q = def.abs ? d : baseQuat(bone).clone().multiply(d);
       return vrm0 ? toVrm0(q) : q;
     }),
   }));
@@ -129,7 +131,6 @@ export class MotionPlayer {
     this.gesture = null; // { motion, t }
     this.nextIdleSwap = 0;
     this.nextTalkGesture = -1;
-    this.lastEmotion = 'neutral';
   }
 
   setLibrary(lib) {
@@ -187,11 +188,13 @@ export class MotionPlayer {
       if (this.fade >= 1) this.prev = null;
     }
 
-    // gestos
+    // gestos: el saludo al abrir el chat y los de Behaviour (de la IA, del menú o de una emoción)
     if (s.events?.includes('greet')) started = this.startGesture('greet') || started;
-    const emo = s.emotion?.name || 'neutral';
-    if (emo === 'happy' && this.lastEmotion !== 'happy') started = this.startGesture('happy') || started;
-    this.lastEmotion = emo;
+    if (s.gesture?.started) {
+      const g = GESTURES[s.gesture.name];
+      const key = g && g.clip !== undefined ? g.clip : s.gesture.name;
+      if (key) started = this.startGesture(key) || started;
+    }
     if (s.talking) {
       if (this.nextTalkGesture < 0) this.nextTalkGesture = this.time + 4 + this.random() * 4;
       else if (this.time >= this.nextTalkGesture && !this.gesture) {

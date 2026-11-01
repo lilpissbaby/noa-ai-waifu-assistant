@@ -1,6 +1,7 @@
 import { createRenderer, loadSkinWithFallback } from '../shared/renderer-factory.js';
 import { Behaviour } from '../shared/behaviour.js';
 import { Stage } from '../shared/stage.js';
+import { FxLayer } from '../shared/fx.js';
 import { PiperClient } from './piper-client.js';
 import { t, setLocale } from '../../shared/i18n/index.js';
 import { applyDom } from '../../shared/i18n/dom.js';
@@ -18,12 +19,15 @@ const isLinux = wd.platform === 'linux';
 let renderer = null;
 const behaviour = new Behaviour();
 const stage = new Stage(null, behaviour);
+const fx = new FxLayer(document.getElementById('fx'));
+stage.fx = fx;
 window.__wd = {
   get renderer() {
     return stage.renderer;
   },
   behaviour,
   stage,
+  fx,
 };
 let cfg = null;
 let skin = null;
@@ -258,6 +262,7 @@ function updateShape() {
   clearTimeout(shapeTimer);
   shapeTimer = setTimeout(() => {
     const rects = renderer.shapeRects(6, 4);
+    if (fx.bounds) rects.push(fx.bounds);
     for (const el of [bubble, micEl]) {
       if (el.classList.contains('hidden')) continue;
       const r = el.getBoundingClientRect();
@@ -267,15 +272,17 @@ function updateShape() {
   }, 50);
 }
 
-// Los VRM mueven los brazos (gestos): en Linux la silueta se recalcula a menudo.
+// Los VRM mueven los brazos (gestos) y los efectos salen alrededor de la cabeza: en Linux la silueta
+// se recalcula a menudo mientras haya movimiento.
 let shapeInterval = null;
 function scheduleShapeRefresh() {
   clearInterval(shapeInterval);
-  if (isLinux && renderer?.kind === 'vrm') shapeInterval = setInterval(updateShape, 400);
+  if (isLinux) shapeInterval = setInterval(() => (renderer?.kind === 'vrm' || fx.drawn || stage.lastSignals?.gesture) && updateShape(), 400);
 }
 
 // ---------------------------------------------------------------- cursor
 wd.on('avatar:emotion', (name) => behaviour.setEmotion(name));
+wd.on('avatar:gesture', (name) => behaviour.gesture(name));
 wd.on('avatar:cursor', (p) => {
   behaviour.cursor = p;
 });
@@ -487,11 +494,18 @@ wd.on('tts:stop', stopPlayback);
 
 // ---------------------------------------------------------------- arranque
 wd.on('skin:changed', (s) => loadSkin(s));
+// Efectos y gestos sueltos en reposo, según Ajustes → General.
+function applyExpressiveness() {
+  fx.enabled = cfg?.ui?.effects !== false;
+  behaviour.idleGestures = cfg?.ui?.idleGestures !== false;
+}
+
 wd.on('cfg:changed', (pc) => {
   const prevScale = cfg?.ui?.scale;
   cfg = pc.config;
   setLocale(pc.locale);
   applyDom();
+  applyExpressiveness();
   if (skin && prevScale !== cfg.ui.scale) wd.send('avatar:resize', desiredSize());
   applyMotions();
 });
@@ -501,6 +515,7 @@ wd.on('cfg:changed', (pc) => {
   cfg = pc.config;
   setLocale(pc.locale);
   applyDom();
+  applyExpressiveness();
   document.body.dataset.state = 'idle';
   await loadSkin();
   const st = await wd.invoke('chat:state');

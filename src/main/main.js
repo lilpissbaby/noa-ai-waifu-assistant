@@ -45,6 +45,8 @@ import { systemStatus } from './productivity/system.js';
 import { testGithub, latestRuns } from './tools/github.js';
 import { testHomeAssistant } from './tools/homeassistant.js';
 import { downloadGalleryItem } from './gallery.js';
+import { listMarket, installMarket } from './market.js';
+import { EMOTION_GROUPS, GESTURE_NAMES } from '../shared/expressions.js';
 
 process.on('uncaughtException', (e) => logger.error('uncaughtException', e));
 process.on('unhandledRejection', (e) => logger.error('unhandledRejection', e));
@@ -375,6 +377,7 @@ function avatarContextMenu() {
     { label: tasksMenuLabel(), click: () => openWindow('settings', { query: { tab: 'organize' } }) },
     { type: 'separator' },
     { label: t('menu.persona'), submenu: personaMenu(cfg) },
+    { label: t('expr.menu'), submenu: expressMenu() },
     { label: t('menu.model'), submenu: profiles },
     { label: t('menu.skin'), submenu: [...skins, { type: 'separator' }, { label: t('menu.importImage'), click: () => openWindow('editor') }, { label: t('menu.importVrm'), click: () => openWindow('vrm-editor') }, { label: t('menu.importLive2d'), click: () => openWindow('vrm-editor', { query: { kind: 'live2d' } }) }, { label: t('gallery.menu'), click: () => openWindow('settings', { query: { tab: 'skins', section: 'gallery' } }) }] },
     { label: t('menu.size'), submenu: scales },
@@ -394,6 +397,20 @@ function avatarContextMenu() {
     { label: t('menu.hide'), click: toggleAvatar },
     { label: t('menu.quit'), click: () => app.quit() },
   ]).popup({ window: wins.avatar });
+}
+
+// Menú «Expresión»: poner una cara o hacer un gesto a mano (también sirve para probar las skins).
+function expressMenu() {
+  const by = (prefix) => (a, b) => t(`${prefix}.${a}`).localeCompare(t(`${prefix}.${b}`));
+  return [
+    ...Object.entries(EMOTION_GROUPS).map(([group, names]) => ({
+      label: t(`expr.group.${group}`),
+      submenu: names.map((n) => ({ label: t(`expr.emotion.${n}`), click: () => sendTo('avatar', 'avatar:emotion', n) })),
+    })),
+    { label: t('expr.emotion.neutral'), click: () => sendTo('avatar', 'avatar:emotion', 'neutral') },
+    { type: 'separator' },
+    { label: t('expr.gestures'), submenu: [...GESTURE_NAMES].sort(by('expr.gesture')).map((n) => ({ label: t(`expr.gesture.${n}`), click: () => sendTo('avatar', 'avatar:gesture', n) })) },
+  ];
 }
 
 function useSkin(id) {
@@ -1139,6 +1156,10 @@ async function sendMessage(text, via = 'text', { attachments = [], onDone = null
       sendTo('avatar', 'avatar:emotion', e.name);
       return;
     }
+    if (e.type === 'gesture') {
+      sendTo('avatar', 'avatar:gesture', e.name);
+      return;
+    }
     if (e.type === 'usage') {
       usageLog.record(profile.id, profile.model, e.usage);
       return;
@@ -1466,7 +1487,19 @@ function registerIpc() {
   ipcMain.handle('persona:lock-adult', () => {
     patchConfig({ content: { adultUnlockedAt: null } });
     broadcast('cfg:changed', publicConfig());
+    // Si la skin puesta era +18, vuelve a la de serie.
+    const cur = getSkin(loadConfig().ui.skinId);
+    if (cur.id !== loadConfig().ui.skinId) useSkin(cur.id);
+    broadcast('skin:list-changed', listSkins());
     return true;
+  });
+  ipcMain.handle('skin:market-list', () => listMarket());
+  ipcMain.handle('skin:market-install', (_e, id, use = true) => {
+    const r = installMarket(id);
+    if (r.error) return { error: t(`market.${r.error}`) };
+    broadcast('skin:list-changed', listSkins());
+    if (use) useSkin(r.id);
+    return r;
   });
   ipcMain.handle('skin:fetch-image', (_e, url) => fetchImage(url));
   ipcMain.handle('skin:open-image', async (e) => {

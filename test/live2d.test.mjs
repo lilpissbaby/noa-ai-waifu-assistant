@@ -184,3 +184,24 @@ test('importar modelos: zip con model3.json, Cubism 2, enlaces y guardar la skin
   fs.writeFileSync(fake, 'alert(1)');
   assert.throws(() => importCore(fake), (e) => e.code === 'notCore');
 });
+
+test('vtsInputs: emociones nuevas, rubor, guiño y cabeza de los gestos', () => {
+  const love = vtsInputs(base({ emotion: { name: 'love', weight: 1 } }));
+  assert.equal(love.Cheek, 1);
+  assert.ok(love.MouthSmile > 0.9);
+  const wink = vtsInputs(base({ blinkL: 1 }));
+  assert.equal(wink.EyeOpenRight, 0, 'el ojo de la izquierda de la pantalla es el derecho del modelo');
+  assert.equal(wink.EyeOpenLeft, 1);
+  assert.ok(vtsInputs(base({ emotion: { name: 'crying', weight: 1 } })).EyeOpenLeft < 0.05, 'llorando con los ojos cerrados');
+  assert.ok(vtsInputs(base({ head: { pitch: 0.3, yaw: 0, roll: 0, x: 0, y: 0 } })).FaceAngleY < -10, 'asentir baja la cabeza');
+});
+
+test('expressionFor: la expresión de la emoción o la de su base', async () => {
+  const { autoAssignAll, expressionFor } = await import('../src/renderer/shared/live2d/expressions.js');
+  const map = autoAssignAll(['Smile', 'Angry', 'Blushing', 'Sad']);
+  assert.equal(expressionFor('happy', map), 'Smile');
+  assert.equal(expressionFor('shy', map), 'Blushing');
+  assert.equal(expressionFor('excited', map), 'Smile', 'excited → happy');
+  assert.equal(expressionFor('crying', map), 'Sad');
+  assert.equal(expressionFor('neutral', map), null);
+});

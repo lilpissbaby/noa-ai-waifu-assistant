@@ -10,6 +10,7 @@ export class Stage {
     this.lastSignals = null;
     this.wantRunning = false;
     this.frames = 0; // fotogramas dibujados (lo usa la prueba de humo)
+    this.fx = null; // capa de efectos (fx.js), opcional
     if (typeof document !== 'undefined') {
       document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'hidden') this.pause();
@@ -47,7 +48,10 @@ export class Stage {
   frame(now) {
     const r = this.renderer;
     if (!r) return;
-    const interval = this.lastSignals ? r.frameInterval(this.lastSignals) : 0;
+    // Con gestos, efectos o una emoción en marcha se dibuja a tope; si no, lo que diga el renderizador.
+    const s0 = this.lastSignals;
+    const lively = s0 && (s0.gesture || s0.fx?.length || s0.emotion?.weight > 0);
+    const interval = s0 && !lively ? r.frameInterval(s0) : 0;
     // margen de 2 ms para no saltarse fotogramas por el redondeo de los tiempos de rAF
     if (interval && now - this.last < interval - 2) return;
     const dt = this.last ? Math.min(0.1, (now - this.last) / 1000) : 1 / 60;
@@ -56,6 +60,7 @@ export class Stage {
     this.lastSignals = signals;
     r.apply(signals);
     r.render(dt);
+    this.fx?.render(signals, r);
     this.frames++;
   }
 }

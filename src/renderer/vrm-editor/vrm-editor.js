@@ -3,6 +3,7 @@
 import { icons } from '../shared/icons.js';
 import { Behaviour } from '../shared/behaviour.js';
 import { Stage } from '../shared/stage.js';
+import { EMOTION_GROUPS, GESTURE_NAMES } from '../../shared/expressions.js';
 import { normalizeFraming } from '../shared/vrm/framing.js';
 import { normalizeFraming2d } from '../shared/live2d/framing2d.js';
 import { t, setLocale } from '../../shared/i18n/index.js';
@@ -403,6 +404,30 @@ for (const s of ['idle', 'thinking', 'listening', 'working', 'talking']) {
 }
 for (const e of ['happy', 'sad', 'angry', 'surprised', 'relaxed']) chip($('emotions'), '', () => behaviour.setEmotion(e), `vrmEditor.emotion.${e}`);
 chip($('gestures'), '', () => behaviour.trigger('greet'), 'vrmEditor.gesture.greet');
+// El resto de caras y gestos (expressions.js), en desplegables para probarlos.
+function tryMenu(parent, groups, onPick, placeholder) {
+  const sel = document.createElement('select');
+  sel.className = 'try-menu';
+  sel.append(new Option(t(placeholder), ''));
+  for (const [label, names] of groups) {
+    const g = document.createElement('optgroup');
+    g.label = label;
+    for (const [value, text] of names) g.append(new Option(text, value));
+    sel.append(g);
+  }
+  sel.onchange = () => {
+    if (sel.value) onPick(sel.value);
+    sel.value = '';
+  };
+  parent.append(sel);
+}
+tryMenu(
+  $('emotions'),
+  Object.entries(EMOTION_GROUPS).map(([g, names]) => [t(`expr.group.${g}`), names.map((n) => [n, t(`expr.emotion.${n}`)])]),
+  (n) => behaviour.setEmotion(n),
+  'expr.menu',
+);
+tryMenu($('gestures'), [[t('expr.gestures'), [...GESTURE_NAMES].map((n) => [n, t(`expr.gesture.${n}`)]).sort((a, b) => a[1].localeCompare(b[1]))]], (n) => behaviour.gesture(n), 'expr.gestures');
 paintStates();
 
 // ---------------------------------------------------------------- movimientos importados

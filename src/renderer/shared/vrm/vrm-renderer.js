@@ -172,6 +172,33 @@ export class VrmRenderer {
     return this.head;
   }
 
+  // Dónde dibujar los efectos (fx.js): cabeza, ojos y mejillas proyectados a px CSS.
+  fxAnchors() {
+    const vrm = this.vrm;
+    const head = vrm?.humanoid.getNormalizedBoneNode('head');
+    if (!head) return null;
+    const { x, y, w, h } = this.box;
+    const proj = (v) => {
+      v.project(this.camera);
+      return [x + ((v.x + 1) / 2) * w, y + ((1 - v.y) / 2) * h];
+    };
+    const base = head.getWorldPosition(new THREE.Vector3());
+    const eyeNodes = ['rightEye', 'leftEye'].map((n) => vrm.humanoid.getNormalizedBoneNode(n));
+    const eyes3 = eyeNodes.every(Boolean)
+      ? eyeNodes.map((n) => n.getWorldPosition(new THREE.Vector3()))
+      : [-1, 1].map((k) => base.clone().add(new THREE.Vector3(k * 0.032, 0.06, 0.06)));
+    eyes3.sort((a, b) => a.x - b.x);
+    const center = eyes3[0].clone().add(eyes3[1]).multiplyScalar(0.5);
+    center.y += 0.01;
+    const c = proj(center.clone());
+    const edge = proj(center.clone().add(new THREE.Vector3(0.09, 0, 0)));
+    const eyes = eyes3.map((e) => proj(e.clone()));
+    const cheeks = eyes3.map((e) => proj(e.clone().add(new THREE.Vector3(Math.sign(e.x - center.x) * 0.012, -0.03, 0.01))));
+    eyes.sort((a, b) => a[0] - b[0]);
+    cheeks.sort((a, b) => a[0] - b[0]);
+    return { x: c[0], y: c[1], r: Math.max(8, Math.hypot(edge[0] - c[0], edge[1] - c[1])), eyes, cheeks };
+  }
+
   alphaAtCss(x, y, radius = 1) {
     return this.mask.alphaAt(x, y, radius);
   }

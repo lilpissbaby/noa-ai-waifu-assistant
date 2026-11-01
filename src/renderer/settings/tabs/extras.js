@@ -372,15 +372,81 @@ export function mcpCatalogBox(ui) {
   );
 }
 
-// ---------------------------------------------------------------- Skins: galería
+// ---------------------------------------------------------------- Skins: galería (mercado interno)
+// Arriba, las skins 2D dibujadas para la app (van dentro y se instalan con un clic; las +18 solo con el
+// desbloqueo); después, los modelos 3D y Live2D gratis que se descargan de su origen.
 export function galleryCard(ui) {
   const { t, card, h, wd } = ui;
   let kind = 'all';
+  let market = { items: [], hiddenAdult: 0 };
   const grid = h('div', { class: 'gallery' });
   const chips = h('div', { class: 'chips' });
+  const note = h('div');
+  const count = h('span', { class: 'pill' }, String(GALLERY.length));
+  const locale = () => ui.getPc().locale || 'es';
+  const counts = () => ({
+    all: market.items.length + GALLERY.length,
+    '2d': market.items.length,
+    adult: market.items.filter((m) => m.adult).length,
+    vrm: GALLERY.filter((g) => g.kind === 'vrm').length,
+    live2d: GALLERY.filter((g) => g.kind === 'live2d').length,
+  });
+  const marketCard = (m) =>
+    h(
+      'div',
+      { class: `model-card ${m.adult ? 'adult' : ''}`, 'data-market': m.id },
+      h('div', { class: 'thumb' }, h('img', { src: m.thumb, alt: m.name, loading: 'lazy' }), h('span', { class: 'badge kind-2d' }, '2D · Waifu Desk'), m.adult ? h('span', { class: 'badge adult' }, '+18') : null),
+      h(
+        'div',
+        { class: 'meta' },
+        h('strong', {}, m.name),
+        h('div', { class: 'small muted' }, m.desc?.[locale()] || m.desc?.en || ''),
+        h('div', { class: 'small license' }, t('market.facts', { age: m.age })),
+        h(
+          'div',
+          { class: 'row' },
+          m.installed ? h('span', { class: 'small muted' }, t('market.installed')) : h('span', { class: 'small muted' }, t('market.free')),
+          h('span', { class: 'grow' }),
+          h(
+            'button',
+            {
+              class: 'btn tiny primary',
+              onclick: async () => {
+                const r = await wd.invoke('skin:market-install', m.id, true);
+                if (r?.error) return ui.toast(r.error);
+                ui.toast(t('market.usingToast', { name: m.name }));
+              },
+            },
+            m.installed ? t('gallery.use') : t('market.install'),
+          ),
+        ),
+      ),
+    );
+  const galleryItemCard = (g) =>
+    h(
+      'div',
+      { class: 'model-card' },
+      h('div', { class: 'thumb' }, h('img', { src: galleryThumb(g.id), alt: g.name, loading: 'lazy' }), h('span', { class: `badge kind-${g.kind}` }, g.kind === 'vrm' ? '3D · VRM' : 'Live2D')),
+      h(
+        'div',
+        { class: 'meta' },
+        h('strong', {}, g.name),
+        h('div', { class: 'small muted' }, g.author),
+        h('div', { class: 'small license' }, t(`gallery.license.${g.license}`), g.credit ? ` · ${t('gallery.credit')}` : ''),
+        h(
+          'div',
+          { class: 'row' },
+          h('a', { href: '#', 'data-ext': g.source, class: 'small' }, t('gallery.source')),
+          h('span', { class: 'grow' }),
+          h('button', { class: 'btn tiny primary', onclick: () => wd.invoke('win:open', 'vrm-editor', { gallery: g.id, kind: g.kind }) }, t('gallery.use')),
+        ),
+      ),
+    );
   const paint = () => {
+    const n = counts();
+    count.textContent = String(n.all);
     chips.innerHTML = '';
-    for (const k of ['all', 'vrm', 'live2d'])
+    for (const k of ['all', '2d', ...(n.adult ? ['adult'] : []), 'vrm', 'live2d'])
       chips.append(
         h(
           'button',
@@ -391,35 +457,45 @@ export function galleryCard(ui) {
               paint();
             },
           },
-          `${t(`gallery.filter.${k}`)} · ${GALLERY.filter((g) => k === 'all' || g.kind === k).length}`,
+          `${t(`gallery.filter.${k}`)} · ${n[k]}`,
+        ),
+      );
+    note.innerHTML = '';
+    if (market.hiddenAdult)
+      note.append(
+        h(
+          'p',
+          { class: 'small muted adult-note' },
+          t('market.hiddenAdult', { n: market.hiddenAdult }),
+          ' ',
+          h('a', { href: '#', onclick: (e) => (e.preventDefault(), ui.goTab?.('personas')) }, t('market.unlockLink')),
         ),
       );
     grid.innerHTML = '';
-    for (const g of GALLERY.filter((x) => kind === 'all' || x.kind === kind))
-      grid.append(
-        h(
-          'div',
-          { class: 'model-card' },
-          h('div', { class: 'thumb' }, h('img', { src: galleryThumb(g.id), alt: g.name, loading: 'lazy' }), h('span', { class: `badge kind-${g.kind}` }, g.kind === 'vrm' ? '3D · VRM' : 'Live2D')),
-          h(
-            'div',
-            { class: 'meta' },
-            h('strong', {}, g.name),
-            h('div', { class: 'small muted' }, g.author),
-            h('div', { class: 'small license' }, t(`gallery.license.${g.license}`), g.credit ? ` · ${t('gallery.credit')}` : ''),
-            h(
-              'div',
-              { class: 'row' },
-              h('a', { href: '#', 'data-ext': g.source, class: 'small' }, t('gallery.source')),
-              h('span', { class: 'grow' }),
-              h('button', { class: 'btn tiny primary', onclick: () => wd.invoke('win:open', 'vrm-editor', { gallery: g.id, kind: g.kind }) }, t('gallery.use')),
-            ),
-          ),
-        ),
-      );
+    const own = market.items.filter((m) => kind === 'all' || kind === '2d' || (kind === 'adult' && m.adult));
+    if (['all', '2d', 'adult'].includes(kind)) for (const m of own) grid.append(marketCard(m));
+    if (kind === 'all' || kind === 'vrm' || kind === 'live2d') for (const g of GALLERY.filter((x) => kind === 'all' || x.kind === kind)) grid.append(galleryItemCard(g));
   };
+  wd.invoke('skin:market-list').then((r) => {
+    market = r || market;
+    paint();
+  });
   paint();
-  return card([t('gallery.title'), h('span', { class: 'pill' }, String(GALLERY.length))], t('gallery.desc'), chips, grid);
+  // Tiendas donde hay más (de pago o con cuenta): la app no las descarga, se importan a mano.
+  const STORES = [
+    ['BOOTH · VRM', 'https://booth.pm/en/search/VRM'],
+    ['BOOTH · Live2D', 'https://booth.pm/en/search/Live2D'],
+    ['VRoid Hub', 'https://hub.vroid.com/en'],
+    ['nizima · Live2D', 'https://nizima.com/en'],
+  ];
+  const stores = h(
+    'details',
+    { class: 'help', style: 'margin-top:14px' },
+    h('summary', {}, t('gallery.stores.title')),
+    h('p', { class: 'small muted', html: t('gallery.stores.text') }),
+    h('div', { class: 'row' }, STORES.map(([name, url]) => h('a', { href: '#', 'data-ext': url, class: 'small' }, name))),
+  );
+  return card([t('gallery.title'), count], t('gallery.desc'), chips, note, grid, stores);
 }
 
 // ---------------------------------------------------------------- General: modo mascota

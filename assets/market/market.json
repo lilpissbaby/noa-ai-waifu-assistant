@@ -1,0 +1,200 @@
+{
+  "version": 1,
+  "skins": [
+    {
+      "id": "mk-aiko",
+      "dir": "aiko",
+      "name": "Aiko",
+      "adult": false,
+      "age": 27,
+      "desc": {
+        "es": "Secretaria eficiente con gafas",
+        "en": "Efficient secretary with glasses",
+        "ru": "Деловая секретарша в очках",
+        "uk": "Ділова секретарка в окулярах",
+        "zh": "戴眼镜的干练秘书"
+      },
+      "outfit": "office"
+    },
+    {
+      "id": "mk-mika",
+      "dir": "mika",
+      "name": "Mika",
+      "adult": false,
+      "age": 24,
+      "desc": {
+        "es": "Alternativa: rejilla, piercings y camiseta de grupo",
+        "en": "Alt girl: mesh, piercings and a band tee",
+        "ru": "Альтернативщица: сетка, пирсинг и футболка группы",
+        "uk": "Альтернативниця: сітка, пірсинг і футболка гурту",
+        "zh": "另类女孩：网纱、穿孔和乐队T恤"
+      },
+      "outfit": "band_tee"
+    },
+    {
+      "id": "mk-yuki",
+      "dir": "yuki",
+      "name": "Yuki",
+      "adult": false,
+      "age": 25,
+      "desc": {
+        "es": "Kitsune del santuario, pelo plateado y haori",
+        "en": "Shrine kitsune with silver hair and haori",
+        "ru": "Кицунэ из святилища в хаори",
+        "uk": "Кіцуне зі святилища в хаорі",
+        "zh": "神社的狐狸小姐，银发与羽织"
+      },
+      "outfit": "haori"
+    },
+    {
+      "id": "mk-lena",
+      "dir": "lena",
+      "name": "Lena",
+      "adult": false,
+      "age": 26,
+      "desc": {
+        "es": "Hacker ciberpunk con visor y techwear",
+        "en": "Cyberpunk hacker with visor and techwear",
+        "ru": "Киберпанк-хакерша в визоре",
+        "uk": "Кіберпанк-хакерка у візорі",
+        "zh": "戴护目镜的赛博朋克黑客"
+      },
+      "outfit": "techwear"
+    },
+    {
+      "id": "mk-hana",
+      "dir": "hana",
+      "name": "Hana",
+      "adult": false,
+      "age": 23,
+      "desc": {
+        "es": "Barista risueña con una flor en el pelo",
+        "en": "Cheerful barista with a flower in her hair",
+        "ru": "Весёлая бариста с цветком в волосах",
+        "uk": "Весела бариста з квіткою у волоссі",
+        "zh": "头戴小花的开朗咖啡师"
+      },
+      "outfit": "apron"
+    },
+    {
+      "id": "mk-elara",
+      "dir": "elara",
+      "name": "Elara",
+      "adult": false,
+      "age": 28,
+      "desc": {
+        "es": "Maga elfa con capa y tiara",
+        "en": "Elf mage with a cloak and tiara",
+        "ru": "Эльфийка-волшебница в плаще",
+        "uk": "Ельфійка-чарівниця в плащі",
+        "zh": "披斗篷戴头冠的精灵法师"
+      },
+      "outfit": "mage"
+    },
+    {
+      "id": "mk-rin",
+      "dir": "rin",
+      "name": "Rin",
+      "adult": false,
+      "age": 22,
+      "desc": {
+        "es": "Streamer con chaqueta corta y gargantilla",
+        "en": "Streamer in a cropped jacket and choker",
+        "ru": "Стримерша в короткой куртке",
+        "uk": "Стримерка в короткій куртці",
+        "zh": "穿短夹克戴颈链的主播"
+      },
+      "outfit": "jacket_crop"
+    },
+    {
+      "id": "mk-lilith",
+      "dir": "lilith",
+      "name": "Lilith",
+      "adult": true,
+      "age": 29,
+      "desc": {
+        "es": "Súcubo con cuernos, alas y mono escotado",
+        "en": "Succubus with horns, wings and a plunging bodysuit",
+        "ru": "Суккуб с рогами и крыльями",
+        "uk": "Сукуб з рогами та крилами",
+        "zh": "有角有翼的魅魔"
+      },
+      "outfit": "bodysuit"
+    },
+    {
+      "id": "mk-vera",
+      "dir": "vera",
+      "name": "Vera",
+      "adult": true,
+      "age": 27,
+      "desc": {
+        "es": "Crupier de casino con traje de conejita",
+        "en": "Casino dealer in a bunny suit",
+        "ru": "Крупье казино в костюме зайчика",
+        "uk": "Круп'є казино в костюмі зайчика",
+        "zh": "穿兔女郎装的赌场荷官"
+      },
+      "outfit": "bunny"
+    },
+    {
+      "id": "mk-selene",
+      "dir": "selene",
+      "name": "Selene",
+      "adult": true,
+      "age": 31,
+      "desc": {
+        "es": "Condesa vampira con vestido de encaje",
+        "en": "Vampire countess in a lace gown",
+        "ru": "Графиня-вампир в кружевном платье",
+        "uk": "Графиня-вампірка в мереживній сукні",
+        "zh": "身着蕾丝长裙的吸血鬼伯爵夫人"
+      },
+      "outfit": "gown"
+    },
+    {
+      "id": "mk-marina",
+      "dir": "marina",
+      "name": "Marina",
+      "adult": true,
+      "age": 26,
+      "desc": {
+        "es": "Socorrista en bikini con gafas de sol",
+        "en": "Lifeguard in a bikini with sunglasses",
+        "ru": "Спасательница в бикини",
+        "uk": "Рятувальниця в бікіні",
+        "zh": "戴墨镜穿比基尼的救生员"
+      },
+      "outfit": "bikini"
+    },
+    {
+      "id": "mk-nyx",
+      "dir": "nyx",
+      "name": "Nyx",
+      "adult": true,
+      "age": 28,
+      "desc": {
+        "es": "Ladrona felina con mono ajustado",
+        "en": "Cat burglar in a skin-tight catsuit",
+        "ru": "Кошка-воровка в облегающем комбинезоне",
+        "uk": "Кішка-злодійка в облиплому комбінезоні",
+        "zh": "身穿紧身衣的猫女怪盗"
+      },
+      "outfit": "catsuit"
+    },
+    {
+      "id": "mk-ivy",
+      "dir": "ivy",
+      "name": "Ivy",
+      "adult": true,
+      "age": 30,
+      "desc": {
+        "es": "Vestido lencero de satén para las noches",
+        "en": "Satin slip dress for late nights",
+        "ru": "Атласное платье-комбинация",
+        "uk": "Атласна сукня-комбінація",
+        "zh": "深夜的缎面吊带裙"
+      },
+      "outfit": "slip"
+    }
+  ]
+}

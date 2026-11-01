@@ -2,8 +2,9 @@
 import { idleA, idleB } from './idle.js';
 import { thinking, listening, working, talking } from './states.js';
 import { talk1, talk2, talk3, greet, happy } from './gestures.js';
+import { ACTIONS } from './actions.js';
 
-export const CLIPS = Object.fromEntries([idleA, idleB, thinking, listening, working, talking, talk1, talk2, talk3, greet, happy].map((c) => [c.name, c]));
+export const CLIPS = Object.fromEntries([idleA, idleB, thinking, listening, working, talking, talk1, talk2, talk3, greet, happy, ...ACTIONS].map((c) => [c.name, c]));
 
 // Biblioteca por defecto para MotionPlayer (los nombres de clips de cada estado o gesto).
 export const DEFAULT_ASSIGN = {
@@ -15,4 +16,6 @@ export const DEFAULT_ASSIGN = {
   greet: ['greet'],
   happy: ['happy'],
   talkGesture: ['talk-1', 'talk-2', 'talk-3'],
+  // Gestos de expressions.js (GESTURES): cada uno con su clip.
+  ...Object.fromEntries(ACTIONS.map((c) => [c.name, [c.name]])),
 };

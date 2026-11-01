@@ -3,7 +3,7 @@ import os from 'node:os';
 import { streamAnthropic } from './anthropic.js';
 import { streamOpenAI } from './openai.js';
 import { getLocale, localeTag, LANGUAGES, t } from '../../shared/i18n/index.js';
-import { EmotionTagFilter, EMOTION_PROMPT, stripEmotionTags } from './emotion.js';
+import { EmotionTagFilter, expressionPrompt, stripEmotionTags } from './emotion.js';
 import { activePersona, buildPersonaPrompt, effectiveFilters } from '../../shared/personas.js';
 import { azurePolicyFor } from './azure.js';
 import { listMemory, memoryPrompt } from '../productivity/memory.js';
@@ -44,7 +44,7 @@ export function buildSystemPrompt(cfg, toolList, locale = getLocale(), extras = 
       'After using tools, summarise the result in one or two sentences; never dump raw JSON.',
     );
   }
-  if (cfg.ui?.emotions !== false) lines.push(EMOTION_PROMPT);
+  if (cfg.ui?.emotions !== false) lines.push(expressionPrompt({ gestures: cfg.ui?.gestures !== false }));
   // Personalidad, filtros, instrucciones extra y, al final, los límites fijos.
   lines.push(...persona.slice(1));
   return lines.join('\n');
@@ -77,11 +77,12 @@ export async function runTurn({ cfg, profile, apiKey, history, toolbox, emit, si
     emit({ type: 'step', step });
     if (step > 0) repairHistory(history); // por si llegó un aviso mientras corrían las herramientas
     const window = prepareImages(trimHistory(history));
-    // Las etiquetas de emoción se quitan del texto y se mandan aparte a la cara del avatar.
+    // Las etiquetas de emoción y de gesto se quitan del texto y se mandan aparte al avatar.
     const filter = new EmotionTagFilter();
-    const pass = ({ text, emotions }) => {
+    const pass = ({ text, emotions, gestures }) => {
       if (text) emit({ type: 'text', delta: text });
       for (const name of emotions) emit({ type: 'emotion', name });
+      for (const name of gestures) emit({ type: 'gesture', name });
     };
     let result;
     try {

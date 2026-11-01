@@ -1,14 +1,16 @@
-// Etiquetas de emoción que el modelo puede intercalar en su respuesta (<emo:happy>…). Se quitan del
-// texto en streaming —aunque lleguen partidas entre trozos— y se convierten en eventos para la cara
-// del avatar. Dentro de bloques de código (```) no se toca nada.
+// Etiquetas que el modelo puede intercalar en su respuesta: <emo:happy> (cara) y <act:wave> (gesto).
+// Se quitan del texto en streaming —aunque lleguen partidas entre trozos— y se convierten en
+// eventos para el avatar. Dentro de bloques de código (```) no se toca nada. Los nombres y sus
+// sinónimos están en src/shared/expressions.js.
+import { EMOTION_NAMES, GESTURE_NAMES, resolveEmotion, resolveGesture, expressionPrompt } from '../../shared/expressions.js';
 
-export const EMOTIONS = ['happy', 'angry', 'sad', 'relaxed', 'surprised', 'neutral'];
+export const EMOTIONS = EMOTION_NAMES;
+export const GESTURES = GESTURE_NAMES;
+export const EMOTION_PROMPT = expressionPrompt({ gestures: true });
+export { expressionPrompt };
 
-export const EMOTION_PROMPT =
-  'You have a visible animated face. When the emotional tone of what you say genuinely changes, you may start that sentence with a hidden tag: <emo:happy>, <emo:sad>, <emo:angry>, <emo:surprised>, <emo:relaxed> or <emo:neutral>. Use at most one or two per reply, never inside code, and never mention or explain them: they are removed from the text and only change your expression.';
-
-const TAG = /^<emo:([a-zA-Z]{1,12})>$/;
-const PREFIX = /^<(e(m(o(:[a-zA-Z]{0,12})?)?)?)?$/;
+const TAG = /^<(emo|act):([a-zA-Z0-9_-]{1,16})>$/;
+const PREFIX = /^<((e(m(o(:[a-zA-Z0-9_-]{0,16})?)?)?)|(a(c(t(:[a-zA-Z0-9_-]{0,16})?)?)?))?$/;
 
 export class EmotionTagFilter {
   constructor() {
@@ -22,6 +24,7 @@ export class EmotionTagFilter {
   push(delta) {
     let text = '';
     const emotions = [];
+    const gestures = [];
     const out = (s) => {
       if (!s) return;
       text += s;
@@ -32,8 +35,13 @@ export class EmotionTagFilter {
         const cand = this.pending + ch;
         const m = TAG.exec(cand);
         if (m) {
-          const name = m[1].toLowerCase();
-          if (EMOTIONS.includes(name)) emotions.push(name);
+          if (m[1] === 'emo') {
+            const name = resolveEmotion(m[2]);
+            if (name) emotions.push(name);
+          } else {
+            const name = resolveGesture(m[2]);
+            if (name) gestures.push(name);
+          }
           this.pending = '';
           this.eatSpace = true;
           continue;
@@ -65,14 +73,14 @@ export class EmotionTagFilter {
       }
       out(ch);
     }
-    return { text, emotions };
+    return { text, emotions, gestures };
   }
 
   flush() {
     const text = this.pending;
     this.pending = '';
     if (text) this.last = text.at(-1);
-    return { text, emotions: [] };
+    return { text, emotions: [], gestures: [] };
   }
 }
 

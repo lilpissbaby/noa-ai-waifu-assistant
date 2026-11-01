@@ -4,6 +4,43 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). L
 [SemVer](https://semver.org/lang/es/). El workflow de releases publica el apartado de cada versión como notas de
 la release.
 
+## [0.6.0] - 2026-11-01
+
+### Añadido
+
+- **31 emociones** (antes 5): alegre, emocionada, risa, enamorada, vergüenza, coqueta, chulita, traviesa,
+  orgullosa, agradecida, tranquila, aliviada, soñadora, con sueño, aburrida, pensativa, curiosa, confundida,
+  sorprendida, en shock, asustada, nerviosa, preocupada, triste, llorando, enfurruñada, molesta, enfadada, asco,
+  decidida y mareada. Cada una tiene su cara, su forma de mover la cabeza, sus efectos y, si toca, un gesto.
+  La IA las marca con `<emo:…>` y entiende sinónimos en inglés y español (`<emo:blush>`, `<emo:triste>`…).
+- **34 gestos** que la IA hace con `<act:…>`: saludar, asentir, negar, reverencia, celebrar, aplaudir, pulgar
+  arriba, signo de la paz, señalar, «¡idea!», pensar, encogerse de hombros, facepalm, cruzar los brazos, brazos
+  en jarra, corazón con las manos, lanzar un beso, guiñar, timidez, estirarse, bostezar, bailar, saltar, dar una
+  vuelta, saludo militar, «¡vamos!», risita, temblar, suspirar, mirar alrededor, ladear la cabeza, llorar,
+  echarse atrás y pataleta. En las skins 3D mueven el cuerpo y los dedos; en las 2D y Live2D, la cabeza, los
+  ojos y los efectos (y el movimiento del modelo Live2D que encaje, si lo tiene).
+- **Efectos manga** alrededor de la cabeza en cualquier skin: corazones, brillos, rubor, notas, flores,
+  suspiro, Zzz, puntos suspensivos, interrogaciones, exclamaciones, líneas de bajón, gota de sudor, lágrimas,
+  vapor, vena de enfado, llamas, estrellas de mareo y bombilla.
+- **Menú «Expresión»** (clic derecho en la waifu) para ponerle cualquier cara o gesto a mano, y desplegables
+  para probarlos en el editor 3D/Live2D.
+- **Gestos sueltos en reposo**: de vez en cuando se estira, mira alrededor, guiña o suspira.
+- **Mercado interno** en Ajustes → Skins → Galería: **13 skins 2D originales** dibujadas para la app, todas
+  mujeres adultas y con una cara para cada emoción: 7 normales (Aiko, Mika, Yuki, Lena, Hana, Elara y Rin) y
+  **6 más atrevidas** (Lilith, Vera, Selene, Marina, Nyx e Ivy), insinuantes y sin desnudos, que solo aparecen
+  con el contenido +18 desbloqueado. Se instalan con un clic. El generador está en `tools/draw_skins.py` (`npm run skins:market`).
+- Las skins 2D aceptan **caras por emoción** (`emotions` en `skin.json`) y el **guiño** ojo a ojo.
+- Ajustes → General: interruptores para los gestos de la IA, los efectos y los gestos en reposo.
+
+### Cambiado
+
+- Las emociones se funden entre sí en vez de saltar de una a otra, y las skins Live2D usan para cada emoción
+  nueva la expresión del modelo que encaje por nombre o la de su emoción base, con rubor (`ParamCheek`) y guiño.
+- La galería pasa a llamarse **Galería de skins** y enlaza a tiendas (BOOTH, VRoid Hub, nizima) para conseguir
+  modelos que la app no puede descargar sola.
+- Si se vuelve a bloquear el contenido +18, las skins +18 instaladas se ocultan y, si estaba puesta una, vuelve
+  la de serie.
+
 ## [0.5.0] - 2026-10-31
 
 ### Añadido

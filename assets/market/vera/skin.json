@@ -1,0 +1,101 @@
+{
+  "id": "mk-vera",
+  "name": "Vera",
+  "names": {
+    "es": "Vera",
+    "en": "Vera",
+    "ru": "Vera",
+    "uk": "Vera",
+    "zh": "Vera"
+  },
+  "width": 800,
+  "height": 1000,
+  "files": {
+    "base": "base.svg",
+    "eyesClosed": "eyes_closed.svg",
+    "mouthHalf": "mouth_half.svg",
+    "mouthOpen": "mouth_open.svg"
+  },
+  "emotions": {
+    "happy": "emo_happy.svg",
+    "excited": "emo_excited.svg",
+    "laugh": "emo_laugh.svg",
+    "love": "emo_love.svg",
+    "shy": "emo_shy.svg",
+    "flirty": "emo_flirty.svg",
+    "smug": "emo_smug.svg",
+    "playful": "emo_playful.svg",
+    "proud": "emo_proud.svg",
+    "grateful": "emo_grateful.svg",
+    "relaxed": "emo_relaxed.svg",
+    "relieved": "emo_relieved.svg",
+    "dreamy": "emo_dreamy.svg",
+    "sleepy": "emo_sleepy.svg",
+    "bored": "emo_bored.svg",
+    "thinking": "emo_thinking.svg",
+    "curious": "emo_curious.svg",
+    "confused": "emo_confused.svg",
+    "surprised": "emo_surprised.svg",
+    "shocked": "emo_shocked.svg",
+    "scared": "emo_scared.svg",
+    "nervous": "emo_nervous.svg",
+    "worried": "emo_worried.svg",
+    "sad": "emo_sad.svg",
+    "crying": "emo_crying.svg",
+    "pout": "emo_pout.svg",
+    "annoyed": "emo_annoyed.svg",
+    "angry": "emo_angry.svg",
+    "disgusted": "emo_disgusted.svg",
+    "determined": "emo_determined.svg",
+    "dizzy": "emo_dizzy.svg"
+  },
+  "rig": {
+    "eyes": [
+      {
+        "x": 334,
+        "y": 330,
+        "w": 104,
+        "h": 74
+      },
+      {
+        "x": 466,
+        "y": 330,
+        "w": 104,
+        "h": 74
+      }
+    ],
+    "mouth": {
+      "x": 400,
+      "y": 424,
+      "w": 40
+    },
+    "neck": {
+      "x": 400,
+      "y": 492
+    },
+    "cheeks": [
+      {
+        "x": 308,
+        "y": 378
+      },
+      {
+        "x": 492,
+        "y": 378
+      }
+    ]
+  },
+  "market": {
+    "adult": true,
+    "age": 27,
+    "author": "Waifu Desk",
+    "license": "mit",
+    "desc": {
+      "es": "Crupier de casino con traje de conejita",
+      "en": "Casino dealer in a bunny suit",
+      "ru": "Крупье казино в костюме зайчика",
+      "uk": "Круп'є казино в костюмі зайчика",
+      "zh": "穿兔女郎装的赌场荷官"
+    },
+    "tags": []
+  }
+}

@@ -129,7 +129,10 @@ export function defaultConfig(locale = resolveLocale('auto', systemLocales())) {
       position: null,
       alwaysOnTop: true,
       followCursor: true,
-      emotions: true, // la IA marca el tono con <emo:…> y el avatar 3D pone cara
+      emotions: true, // la IA marca el tono con <emo:…> y el avatar pone cara
+      gestures: true, // la IA puede hacer gestos con <act:…> (saludar, asentir, aplaudir…)
+      effects: true, // efectos manga alrededor de la cabeza (corazones, sudor, Zzz…)
+      idleGestures: true, // en reposo hace algún gesto suelto de vez en cuando
       hotkeyChat: 'Control+Alt+Space',
       hotkeyTalk: 'Control+Alt+V',
       hotkeyLook: 'Control+Alt+S', // «Mira esto»: captura la pantalla y la adjunta al chat

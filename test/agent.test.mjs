@@ -167,9 +167,13 @@ test('runTurn(): un error de la herramienta se le devuelve al modelo', async () 
   }
 });
 
-test('buildSystemPrompt(): instrucciones de emociones salvo que estén desactivadas', () => {
-  assert.match(buildSystemPrompt(cfg(), [], 'es'), /<emo:happy>/);
-  assert.doesNotMatch(buildSystemPrompt({ ...cfg(), ui: { emotions: false } }, [], 'es'), /<emo:/);
+test('buildSystemPrompt(): instrucciones de emociones y gestos salvo que estén desactivadas', () => {
+  const p = buildSystemPrompt(cfg(), [], 'es');
+  assert.match(p, /<emo:NAME>/);
+  assert.match(p, /flirty/);
+  assert.match(p, /<act:NAME>/);
+  assert.doesNotMatch(buildSystemPrompt({ ...cfg(), ui: { gestures: false } }, [], 'es'), /<act:/);
+  assert.doesNotMatch(buildSystemPrompt({ ...cfg(), ui: { emotions: false } }, [], 'es'), /<emo:|<act:/);
 });
 
 test('runTurn(): las etiquetas de emoción no llegan al chat ni al historial', async () => {
@@ -182,6 +186,19 @@ test('runTurn(): las etiquetas de emoción no llegan al chat ni al historial', a
     assert.equal(events.filter((e) => e.type === 'text').map((e) => e.delta).join(''), 'Hola');
     assert.deepEqual(events.filter((e) => e.type === 'emotion'), [{ type: 'emotion', name: 'happy' }]);
     assert.equal(history.at(-1).content, 'Hola');
+  } finally {
+    await srv.close();
+  }
+});
+
+test('runTurn(): las etiquetas de gesto salen como eventos «gesture»', async () => {
+  const srv = await serve((req, res) => sendSSE(res, [...['<act:wa', 've>¡Ho', 'la! <a', 'ct:nod>Vale'].map((c) => ({ choices: [{ delta: { content: c } }] })), '[DONE]']));
+  try {
+    const history = [{ role: 'user', content: 'hola' }];
+    const events = [];
+    const text = await runTurn({ cfg: cfg(), profile: { kind: 'openai', baseUrl: srv.url, model: 'm' }, apiKey: '', history, toolbox: { list: [], run: async () => '' }, emit: (e) => events.push(e) });
+    assert.equal(text, '¡Hola! Vale');
+    assert.deepEqual(events.filter((e) => e.type === 'gesture').map((e) => e.name), ['wave', 'nod']);
   } finally {
     await srv.close();
   }

@@ -159,3 +159,49 @@ test('setEmotion: un fotograma con marca de tiempo anterior no la cancela', () =
   assert.equal(b.tick(990, null).emotion.weight, 0);
   assert.ok(Math.abs(b.tick(1125, null).emotion.weight - 0.5) <= 0.05);
 });
+
+test('gesture(): mueve la cabeza, guiña, lleva sus efectos y termina', () => {
+  const b = new Behaviour({ now: 0 });
+  assert.equal(b.gesture('inventado', 0), false);
+  assert.equal(b.gesture('nod', 0), true);
+  const mid = b.tick(250, null);
+  assert.equal(mid.gesture.name, 'nod');
+  assert.equal(mid.gesture.started, true);
+  assert.ok(mid.head.pitch > 0.05, `pitch ${mid.head.pitch}`);
+  assert.equal(b.tick(260, null).gesture.started, false);
+  assert.equal(b.tick(1200, null).gesture, null);
+  b.gesture('blowkiss', 2000);
+  const k = b.tick(2800, null);
+  assert.ok(k.blinkL > 0.9 && k.blinkR < 0.5, 'guiño solo en un ojo');
+  assert.deepEqual(k.fx.map((e) => e.id), ['hearts']);
+  b.gesture('Hello', 5000);
+  assert.equal(b.tick(5100, null).gesture.name, 'wave', 'sinónimos');
+});
+
+test('setEmotion: emociones nuevas, sinónimos, fundido con la anterior y gesto con pausa', () => {
+  const b = new Behaviour({ now: 0 });
+  b.setEmotion('enamorada', 0);
+  let s = b.tick(1000, null);
+  assert.equal(s.emotion.name, 'love');
+  assert.deepEqual(s.fx.map((e) => e.id).sort(), ['blush', 'hearts', 'hearts'].sort());
+  assert.equal(s.gesture?.name, 'heart', 'la emoción lanza su gesto');
+  b.setEmotion('crying', 1100);
+  s = b.tick(1200, null);
+  assert.equal(s.emotion.name, 'crying');
+  assert.equal(s.emotionPrev.name, 'love');
+  assert.ok(s.emotionPrev.weight > 0 && s.emotionPrev.weight < 1);
+  assert.equal(b.tick(1500, null).emotionPrev.weight, 0);
+  assert.equal(b.tick(1600, null).closed, 1, 'llorando con los ojos cerrados');
+  b.gest = null;
+  b.setEmotion('love', 3000);
+  assert.equal(b.tick(3100, null).gesture, null, 'no repite gesto antes de 6 s');
+});
+
+test('idleGestures: en reposo hace algún gesto suelto (y no si está desactivado)', () => {
+  const b = new Behaviour({ now: 0, random: () => 0 });
+  for (let t = 0; t < 200000; t += 1000) assert.equal(b.tick(t, null).gesture, null);
+  b.idleGestures = true;
+  let seen = null;
+  for (let t = 200000; t < 400000 && !seen; t += 500) seen = b.tick(t, null).gesture?.name || null;
+  assert.ok(seen, 'ningún gesto en 200 s');
+});

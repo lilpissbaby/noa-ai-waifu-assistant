@@ -1,11 +1,12 @@
 // Señales de Behaviour -> modelo VRM: expresiones (parpadeo, vocales, emoción), mirada y la capa
 // procedural (respiración, giro de cabeza, saltito) que se suma a la pose de la animación.
 import { Euler, Quaternion } from 'three';
+import { EMOTIONS } from '../../../shared/expressions.js';
 
 const DEG = Math.PI / 180;
 export const VOWELS = ['aa', 'ih', 'ou', 'ee', 'oh'];
 export const EMOTION_NAMES = ['happy', 'angry', 'sad', 'relaxed', 'surprised'];
-const EXPRESSIONS = ['blink', ...VOWELS, ...EMOTION_NAMES];
+const EXPRESSIONS = ['blink', 'blinkLeft', 'blinkRight', ...VOWELS, ...EMOTION_NAMES];
 const SECONDARY = ['ih', 'ou', 'ee', 'oh'];
 const BUCKET = 125; // ms; los tramos duran 90–160 ms
 
@@ -40,25 +41,41 @@ export function mouthShapes(level, timeMs) {
   return out;
 }
 
+// Pesos de las expresiones VRM: las de la emoción actual y la anterior (cada emoción es una mezcla de
+// las cinco de VRM, del parpadeo y de alguna vocal; ver expressions.js), la boca y el parpadeo.
 export function expressionWeights(s) {
-  const emo = s.emotion || { name: 'neutral', weight: 0 };
-  const w = { blink: s.blink, ...mouthShapes(s.mouth, s.t * 1000) };
-  for (const n of EMOTION_NAMES) w[n] = emo.name === n ? emo.weight : 0;
+  const w = { blink: s.blink, blinkLeft: 0, blinkRight: 0, ...mouthShapes(Math.max(s.mouth, s.mouthHold || 0), s.t * 1000) };
+  for (const n of EMOTION_NAMES) w[n] = 0;
+  let lid = 0; // párpados medio caídos (sueño, aburrimiento…)
+  for (const e of [s.emotion, s.emotionPrev]) {
+    const mix = e && e.weight > 0 ? EMOTIONS[e.name]?.vrm : null;
+    if (!mix) continue;
+    for (const [k, v] of Object.entries(mix)) {
+      if (k === 'blink') lid = Math.max(lid, v * e.weight);
+      else if (k in w) w[k] = Math.min(1, w[k] + v * e.weight);
+    }
+  }
   if (w.happy > 0.5) w.blink = 0;
+  else w.blink = Math.min(1, Math.max(w.blink, lid));
+  // guiño: el ojo de la izquierda de la pantalla es el derecho del personaje
+  if (s.blinkL > s.blink) w.blinkRight = Math.min(1, s.blinkL);
   return w;
 }
 
 // Radianes. Ojos: hasta 25° a los lados y 15° arriba/abajo. Cabeza + cuello: el 40 % de 35°/20°,
 // 40 % en el cuello y 60 % en la cabeza. La inclinación de los estados va en el eje Z de la cabeza.
+// Gestos y emociones (s.head) se suman a cabeza y cuello: pitch + baja la cabeza, yaw + mira a la
+// derecha de la pantalla (la izquierda del personaje), roll + la inclina hacia la derecha de la pantalla.
 export function lookOffsets(s) {
   const lx = s.look.x;
   const ly = s.look.y;
-  const turnY = lx * 35 * 0.4 * DEG;
-  const turnX = ly * 20 * 0.4 * DEG;
+  const h = s.head || {};
+  const turnY = lx * 35 * 0.4 * DEG + (h.yaw || 0);
+  const turnX = ly * 20 * 0.4 * DEG + (h.pitch || 0);
   return {
     eyes: { yaw: lx * 25 * DEG, pitch: -ly * 15 * DEG },
-    neck: { x: turnX * 0.4, y: turnY * 0.4, z: 0 },
-    head: { x: turnX * 0.6 - s.lift * 0.08, y: turnY * 0.6, z: -(s.sway + s.tilt) },
+    neck: { x: turnX * 0.4, y: turnY * 0.4, z: -(h.roll || 0) * 0.3 },
+    head: { x: turnX * 0.6 - s.lift * 0.08, y: turnY * 0.6, z: -(s.sway + s.tilt) - (h.roll || 0) * 0.7 },
   };
 }
 
@@ -93,7 +110,11 @@ export function applyToVrm(vrm, s, ctx = {}) {
   rotate(bone('chest') || bone('spine'), -s.breath * 0.012, 0, 0, v0);
   rotate(bone('leftShoulder'), 0, 0, s.breath * 0.015, v0);
   rotate(bone('rightShoulder'), 0, 0, -s.breath * 0.015, v0);
-  // saltito
+  // saltito y botes de los gestos (s.head.y en fracción del alto ≈ 1,6 m)
   const hips = bone('hips');
   if (hips && s.hop > 0 && ctx.hipsRestY != null) hips.position.y += Math.abs(Math.sin(s.hop * Math.PI * 1.5)) * 0.035 * s.hop;
+  if (hips && ctx.hipsRestY != null && s.head) {
+    hips.position.y += (s.head.y || 0) * 1.6;
+    hips.position.x += (s.head.x || 0) * 1.6;
+  }
 }

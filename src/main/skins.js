@@ -2,7 +2,7 @@
 import { net } from 'electron';
 import fs from 'node:fs';
 import path from 'node:path';
-import { userDir, uid } from './config.js';
+import { userDir, uid, loadConfig } from './config.js';
 import { t, getLocale } from '../shared/i18n/index.js';
 import { validateVrmFile, MAX_VRM_BYTES } from './vrm-files.js';
 import { normalizeFraming } from '../renderer/shared/vrm/framing.js';
@@ -29,6 +29,8 @@ function readManifest(dir, builtin) {
     const toUrl = (f) => (f ? (builtin ? bundleUrl : userUrl)(path.join(rel, f)) : null);
     const urls = {};
     for (const [k, f] of Object.entries(m.files || {})) urls[k] = toUrl(f);
+    // Caras por emoción de las skins 2D: { happy: 'emo_happy.svg', … }
+    if (m.emotions && typeof m.emotions === 'object') urls.emotions = Object.fromEntries(Object.entries(m.emotions).filter(([, f]) => typeof f === 'string').map(([k, f]) => [k, toUrl(f)]));
     // `names` permite traducir el nombre de una skin: { "es": "…", "en": "…" }.
     const name = m.names?.[getLocale()] || m.name;
     const type = ['vrm', 'live2d'].includes(m.type) ? m.type : '2d';
@@ -39,7 +41,9 @@ function readManifest(dir, builtin) {
   }
 }
 
-export function listSkins() {
+// Las skins +18 del mercado (market.adult) solo se listan con el contenido +18 desbloqueado; si está
+// bloqueado y una de ellas era la activa, getSkin() devuelve la de serie.
+export function listSkins({ adult = !!loadConfig().content?.adultUnlockedAt } = {}) {
   const out = [];
   for (const [dir, builtin] of [
     [BUILTIN_DIR, true],
@@ -48,7 +52,7 @@ export function listSkins() {
     if (!fs.existsSync(dir)) continue;
     for (const name of fs.readdirSync(dir)) {
       const m = readManifest(path.join(dir, name), builtin);
-      if (m) out.push(m);
+      if (m && (adult || !m.market?.adult)) out.push(m);
     }
   }
   return out.sort((a, b) => (a.builtin === b.builtin ? (b.created || 0) - (a.created || 0) : a.builtin ? -1 : 1));
@@ -85,6 +89,9 @@ export function saveSkin({ id, name, width, height, rig, files }) {
     height,
     rig,
     files: { ...(prev.files || {}), ...written },
+    // Las caras por emoción y los datos del mercado siguen valiendo mientras no cambie la imagen base.
+    ...(prev.emotions && !written.base ? { emotions: prev.emotions } : {}),
+    ...(prev.market ? { market: prev.market } : {}),
     created: prev.created || Date.now(),
     updated: Date.now(),
   };

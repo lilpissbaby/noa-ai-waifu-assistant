@@ -6,7 +6,8 @@ import { loadLive2dRuntime } from './runtime.js';
 import { HitMask } from '../vrm/hit-mask.js';
 import { vtsInputs } from './vts-inputs.js';
 import { parseVtsConfig, VtsMapper, standardMapping } from './vts-mapping.js';
-import { autoAssignExpressions } from './expressions.js';
+import { autoAssignAll, expressionFor } from './expressions.js';
+import { GESTURES } from '../../../shared/expressions.js';
 import { framing2d, aspect2d, normalizeFraming2d } from './framing2d.js';
 
 const EMOTION_ON = 0.4;
@@ -99,11 +100,13 @@ export class Live2DRenderer {
     this.mapper = config.params.length ? new VtsMapper(config) : standardMapping(model3);
     this.inputsOf = new Map(this.mapper.config.params.map((p) => [p.output, p.input]));
     const expressionNames = (model3.FileReferences?.Expressions || []).map((e) => e.Name).filter(Boolean);
-    this.expressionOf = { ...autoAssignExpressions(expressionNames), ...(skin.expressions || {}) };
+    this.expressionOf = { ...autoAssignAll(expressionNames), ...(skin.expressions || {}) };
     for (const [k, v] of Object.entries(this.expressionOf)) if (!expressionNames.includes(v)) delete this.expressionOf[k];
     this.expressionNames = expressionNames;
     const groups = Object.keys(model3.FileReferences?.Motions || {});
+    this.motionGroups = groups;
     this.greetGroup = groups.find((g) => /^(tap|greet|wave)/i.test(g)) || null;
+    this.paramIds = new Set(this.parameters().map((p) => p.id));
     this.activeEmotion = null;
 
     // Los parámetros calculados se escriben tras los movimientos (así la física del pelo responde
@@ -170,7 +173,7 @@ export class Live2DRenderer {
 
   setEmotion(s) {
     const emo = s.emotion || { name: 'neutral', weight: 0 };
-    const want = emo.weight >= EMOTION_ON ? this.expressionOf[emo.name] : null;
+    const want = emo.weight >= EMOTION_ON ? expressionFor(emo.name, this.expressionOf) : null;
     if (want && this.activeEmotion !== want) {
       this.activeEmotion = want;
       this.model.expression(want).catch(() => {});
@@ -186,9 +189,17 @@ export class Live2DRenderer {
     if (!this.model || !this.signals) return;
     const s = this.signals;
     if (s.events?.includes('greet') && this.greetGroup) this.model.motion(this.greetGroup, undefined, 2).catch?.(() => {});
+    // Gestos de cuerpo: si el modelo tiene un grupo de movimientos que encaje, se reproduce uno.
+    if (s.gesture?.started) {
+      const re = GESTURES[s.gesture.name]?.body;
+      const group = re && this.motionGroups.find((g) => re.test(g));
+      if (group) this.model.motion(group, undefined, 2)?.catch?.(() => {});
+    }
     this.setEmotion(s);
-    const params = this.mapper.apply(vtsInputs(s), dt);
+    const inputs = vtsInputs(s);
+    const params = this.mapper.apply(inputs, dt);
     if (this.activeEmotion) for (const [id] of params) if (EXPRESSION_INPUTS.has(this.inputsOf.get(id))) params.delete(id);
+    if (inputs.Cheek > 0.01 && this.paramIds?.has('ParamCheek')) params.set('ParamCheek', Math.max(params.get('ParamCheek') || 0, inputs.Cheek));
     for (const [id, v] of this.overrides || []) params.set(id, v);
     this.params = params;
     this.model.update(dt * 1000);
@@ -209,6 +220,16 @@ export class Live2DRenderer {
 
   headAnchorCss() {
     return this.head;
+  }
+
+  // Dónde dibujar los efectos (fx.js): una estimación de la cabeza a partir del encuadre. El rubor lo
+  // pone el propio modelo si tiene ParamCheek.
+  fxAnchors() {
+    if (!this.fit || !this.bounds) return null;
+    const { x, y, scale } = this.fit;
+    const r = this.bounds.height * scale * 0.075;
+    const skip = this.paramIds?.has('ParamCheek') ? new Set(['blush']) : null;
+    return { x, y: y + this.bounds.height * scale * 0.12, r, eyes: null, cheeks: [[x - r * 0.5, y + this.bounds.height * scale * 0.12 + r * 0.45], [x + r * 0.5, y + this.bounds.height * scale * 0.12 + r * 0.45]], skip };
   }
 
   alphaAtCss(x, y, radius = 1) {

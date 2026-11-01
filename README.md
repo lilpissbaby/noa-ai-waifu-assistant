@@ -22,11 +22,11 @@ Español · [English](README.en.md) — la app está en español, inglés, ruso,
 <details>
 <summary><b>Índice</b></summary>
 
-- [Qué hace](#qué-hace) · [Novedades de la 0.5.0](#novedades-de-la-050) · [Descargar](#descargar) · [Primeros pasos](#primeros-pasos) · [Capturas](#capturas)
+- [Qué hace](#qué-hace) · [Novedades de la 0.6.0](#novedades-de-la-060) · [Descargar](#descargar) · [Primeros pasos](#primeros-pasos) · [Capturas](#capturas)
 - [Modelos gratis](#modelos-gratis) · [Idiomas](#idiomas) · [Modelos de IA](#modelos-de-ia) · [Personajes](#personajes) · [Voz](#voz)
 - [Productividad](#productividad) · [Organización](#organización) · [Información](#información-el-tiempo-noticias-portapapeles-y-el-pc)
 - [Hermes Agent](#hermes-agent-en-tu-vps) · [Paperclip](#paperclip) · [GitHub](#github) · [Home Assistant](#home-assistant) · [Avisos al móvil](#avisos-al-móvil)
-- [Automatizaciones](#automatizaciones) · [Skins](#skins) · [Skins 3D](#skins-3d-vrm) · [Avatares VTuber](#avatares-vtuber-live2d) · [Galería](#galería-de-modelos-gratis) · [Modo mascota](#modo-mascota)
+- [Automatizaciones](#automatizaciones) · [Expresiones y gestos](#expresiones-y-gestos) · [Skins](#skins) · [Skins 3D](#skins-3d-vrm) · [Avatares VTuber](#avatares-vtuber-live2d) · [Galería](#galería-de-skins) · [Modo mascota](#modo-mascota)
 - [Todas las herramientas](docs/herramientas.md) · [Desarrollo](#desarrollo) · [Solución de problemas](#solución-de-problemas) · [Privacidad](#privacidad) · [Licencia](#licencia)
 
 </details>
@@ -35,6 +35,8 @@ Español · [English](README.en.md) — la app está en español, inglés, ruso,
 
 - **Vive en el escritorio**: transparente, siempre encima y sin ventana que abrir. Respira, parpadea, mueve la
   boca al hablar y gira la cabeza siguiendo el ratón. Clic para el chat, doble clic para hablarle.
+- **Expresiva**: 31 emociones con su cara, 34 gestos (saludar, asentir, aplaudir, lanzar un beso, bailar…) y
+  efectos manga (corazones, gota de sudor, vena de enfado, Zzz…). La IA decide cuándo según lo que dice.
 - **Cualquier modelo**: Claude con tu API key, Azure OpenAI o cualquier API compatible con OpenAI (OpenAI,
   OpenRouter, Groq, Gemini, Ollama, LM Studio o el propio Hermes). Streaming, herramientas e imágenes. Las claves
   se guardan cifradas.
@@ -63,21 +65,23 @@ Español · [English](README.en.md) — la app está en español, inglés, ruso,
   la mano en la barbilla, teclea, saluda, gesticula al hablar), pone caras según el tono de la respuesta y
   puedes añadirle movimientos `.vrma` o de Mixamo.
 - **Avatares VTuber (Live2D)**: los modelos de VTube Studio, Booth o nizima, que se mueven con su `.vtube.json`.
-- **Galería de modelos gratis**: 26 modelos 3D y VTuber que se descargan de su origen con un clic.
+- **Galería de skins**: 13 skins 2D dibujadas para la app (6 de ellas +18, solo si lo desbloqueas) y 26 modelos
+  3D y VTuber gratis que se descargan de su origen con un clic.
 - **Modo mascota**: se duerme cuando no estás y te saluda al volver.
 - **Uso y coste**: cuántos tokens gasta cada modelo y cuánto te cuesta.
 - **Cinco idiomas**: español, English, Русский, Українська y 中文. Coge el del sistema y se cambia al vuelo.
 
-## Novedades de la 0.5.0
+## Novedades de la 0.6.0
 
-- [Organización](#organización): **tareas**, **rutinas** programadas, **modo concentración** y **pausas**.
-- [Información](#información-el-tiempo-noticias-portapapeles-y-el-pc): **el tiempo**, **noticias** RSS,
-  **historial del portapapeles** y **estado del PC**.
-- Conectores nuevos: [GitHub](#github), [Home Assistant](#home-assistant) y [avisos al móvil](#avisos-al-móvil).
-- [Monitor de servicios](#monitor-de-servicios) y [catálogo de servidores MCP](#catálogo-de-servidores-mcp).
-- [Galería de modelos gratis](#galería-de-modelos-gratis), [modo mascota](#modo-mascota) y
-  [uso y coste](#uso-y-coste) de cada modelo.
-- [66 herramientas](docs/herramientas.md) documentadas, generadas del propio código.
+- [Expresiones y gestos](#expresiones-y-gestos): **31 emociones** (antes 5) y **34 gestos** que la IA usa sola,
+  con **efectos manga** alrededor de la cabeza, en las skins 2D, 3D y Live2D. Menú «Expresión» para ponérselos
+  a mano.
+- [Mercado interno](#galería-de-skins): **13 skins 2D originales** con una cara para cada emoción, 6 de ellas
+  más atrevidas (+18, sin desnudos) que solo aparecen con el contenido +18 desbloqueado.
+- Lo de la 0.5.0 (organización, conectores, galería de modelos gratis, modo mascota…) está en el
+  [registro de cambios](CHANGELOG.md).
+
+![Las 31 caras de Hana, una de las skins del mercado, con sus efectos](docs/screenshots/emotions-2d.jpg)
 
 ![Le pide las tareas de hoy, le pone 25 minutos de concentración y le manda al móvil el estado del VPS](docs/screenshots/chat-organize.jpg)
 
@@ -178,7 +182,7 @@ pausa y un servicio caído.
   </tr>
   <tr>
     <td><img src="docs/screenshots/settings-skins.png" alt="Ajustes: skins" /><br /><sub>Skins: la de serie y las que importes (2D, 3D y VTuber).</sub></td>
-    <td><img src="docs/screenshots/settings-gallery.png" alt="Ajustes: galería de modelos gratis" /><br /><sub>Galería de modelos gratis: se descargan de su origen con un clic.</sub></td>
+    <td><img src="docs/screenshots/settings-gallery.png" alt="Ajustes: galería de skins" /><br /><sub>Galería de skins: las del mercado y modelos gratis que se descargan de su origen.</sub></td>
   </tr>
   <tr>
     <td><img src="docs/screenshots/settings-organize.png" alt="Ajustes: organización" /><br /><sub>Organización: tareas y modo concentración con la semana.</sub></td>
@@ -221,7 +225,7 @@ Las capturas se generan con la app de verdad y un servidor simulado: `npm run sc
 ## Modelos gratis
 
 Todos los modelos gratuitos de chicas anime que hemos reunido, sin crear cuenta en ningún sitio: **31 en 3D
-(VRM)** y **8 VTuber (Live2D)**. Los marcados en lila están en la [galería de la app](#galería-de-modelos-gratis)
+(VRM)** y **8 VTuber (Live2D)**. Los marcados en lila están en la [galería de la app](#galería-de-skins)
 y se descargan con un clic; los rosas («solo local») son gratis pero su licencia no deja redistribuirlos.
 
 ![Los 39 modelos gratis: 31 VRM y 8 Live2D](docs/screenshots/models.jpg)
@@ -581,6 +585,40 @@ VPS?») y lo incluye en el resumen diario si algo está caído.
 
 ![Ajustes: monitor de servicios](docs/screenshots/settings-monitors.png)
 
+## Expresiones y gestos
+
+La IA marca lo que siente y lo que hace con etiquetas ocultas que la app quita del texto: `<emo:love>` cambia la
+cara y `<act:wave>` hace un gesto. Entiende sinónimos en inglés y español (`<emo:blush>`, `<emo:triste>`,
+`<act:hello>`, `<act:guiño>`…). También se los puedes poner tú: clic derecho en la waifu → **Expresión**.
+
+- **31 emociones**, en cinco grupos: alegría (alegre, emocionada, risa, enamorada, agradecida, orgullosa),
+  coqueteo y juego (coqueta, traviesa, chulita, vergüenza, soñadora), calma (tranquila, aliviada, con sueño,
+  aburrida, pensativa, curiosa), sorpresa y nervios (sorprendida, en shock, confundida, mareada, nerviosa,
+  asustada) y tristeza y enfado (preocupada, triste, llorando, enfurruñada, molesta, enfadada, asco, decidida).
+  Cada una lleva su cara, una forma de mover la cabeza (se balancea, la agacha, tiembla…), sus efectos y a
+  veces un gesto. Duran unos segundos y se funden con la siguiente.
+- **34 gestos**: saludar, asentir, negar, reverencia, celebrar, aplaudir, pulgar arriba, signo de la paz,
+  señalar, «¡idea!», pensar, encogerse de hombros, facepalm, cruzar los brazos, brazos en jarra, corazón con las
+  manos, lanzar un beso, guiñar, timidez, estirarse, bostezar, bailar, saltar, dar una vuelta, saludo militar,
+  «¡vamos!», risita, temblar, suspirar, mirar alrededor, ladear la cabeza, llorar, echarse atrás y pataleta.
+- **Efectos manga** alrededor de la cabeza: corazones, brillos, rubor, notas, flores, suspiro, Zzz, «…», «?»,
+  «!», «!!», líneas de bajón, gota de sudor, lágrimas, vapor, vena de enfado, llamas, estrellas de mareo y
+  bombilla.
+
+Cómo se ve en cada tipo de skin:
+
+| | Cara | Gestos | Efectos |
+|---|---|---|---|
+| **2D del mercado** | una cara dibujada para cada emoción | cabeza, guiño y efectos | sí |
+| **2D importada de un dibujo** | ojos cerrados en las que los cierran | cabeza, guiño y efectos | sí, con rubor y lágrimas en su sitio |
+| **3D (VRM)** | mezcla de las expresiones del modelo | cuerpo entero y dedos | sí |
+| **VTuber (Live2D)** | sonrisa, ojos, cejas y rubor del modelo, más sus expresiones si encajan por nombre | cabeza y el movimiento del modelo que encaje | sí |
+
+En Ajustes → General se apagan por separado las caras, los gestos de la IA, los efectos y los **gestos en
+reposo** (de vez en cuando se estira, mira alrededor o guiña).
+
+![Los gestos en una skin 3D](docs/screenshots/gestures-3d.jpg)
+
 ## Skins
 
 Ajustes → Skins → **Importar un dibujo** (o clic derecho en Noa → Skin → Importar imagen):
@@ -602,7 +640,8 @@ Funciona mejor con personajes **de frente y de cintura para arriba**.
 
 Una skin es una carpeta con `skin.json` y sus imágenes dentro de la carpeta de datos (Ajustes → General → Abrir
 carpeta de datos → `skins/`). Si además de `base` añades capas del mismo tamaño, se usan en lugar de los
-efectos automáticos. `names` es opcional y traduce el nombre:
+efectos automáticos. `names` es opcional y traduce el nombre, y `emotions` le da una cara a cada emoción (capas
+del mismo tamaño que tapan la cara de la base; las que falten se quedan con la base):
 
 ```json
 {
@@ -615,6 +654,7 @@ efectos automáticos. `names` es opcional y traduce el nombre:
     "mouthHalf": "mouth_half.png",
     "mouthOpen": "mouth_open.png"
   },
+  "emotions": { "happy": "emo_happy.png", "love": "emo_love.png", "crying": "emo_crying.png" },
   "rig": {
     "eyes": [{ "x": 326, "y": 404, "w": 118, "h": 124 }, { "x": 474, "y": 404, "w": 118, "h": 124 }],
     "mouth": { "x": 400, "y": 512, "w": 40 },
@@ -623,7 +663,8 @@ efectos automáticos. `names` es opcional y traduce el nombre:
 }
 ```
 
-La skin de serie (Noa) está hecha así y se genera con `npm run skin:default`.
+La skin de serie (Noa) está hecha así y se genera con `npm run skin:default`; las del mercado, con todas sus
+caras, con `npm run skins:market` (`tools/draw_skins.py`).
 
 ## Skins 3D (VRM)
 
@@ -636,15 +677,14 @@ Ajustes → Skins → **Importar un modelo 3D (VRM)** (o clic derecho en Noa →
    redistribución, modificación, crédito). **Úsalo solo como permite.**
 3. **Encuadre**: cuerpo entero, medio cuerpo o busto, con zoom, giro, ángulo de cámara y altura. La ventana de la
    waifu toma la forma del encuadre.
-4. **Pruébala**: estados (reposo, pensando, escuchando, trabajando, hablando), caras y saludo.
+4. **Pruébala**: estados (reposo, pensando, escuchando, trabajando, hablando), caras y gestos (todos en los
+   desplegables).
 5. **Movimientos**: importa animaciones `.vrma` (por ejemplo, el pack gratuito de VRoid en Booth) o `.fbx` de
    [Mixamo](https://www.mixamo.com) (descarga «Without Skin») y asígnalas a un estado o gesto. Valen para todas
    las skins 3D; si no asignas nada, usa los movimientos de serie.
 6. **Guardar y usar**.
 
-**Caras según la IA**: el modelo marca el tono con etiquetas ocultas (`<emo:happy>`, `<emo:sad>`…) que la app
-quita del texto y convierte en expresiones. Se desactiva en Ajustes → General → «Pone caras según el tono de la
-IA».
+**Caras y gestos según la IA**: ver [Expresiones y gestos](#expresiones-y-gestos).
 
 La skin 3D de serie, **Noa 3D**, es la chica de ejemplo de pixiv del repositorio
 [three-vrm](https://github.com/pixiv/three-vrm) (VRM 1.0, permite redistribuirla y modificarla sin pedir
@@ -677,17 +717,40 @@ VTuber). Valen los modelos **Cubism 3, 4 y 5** (`.model3.json`), como los de VTu
 No hay modelo Live2D de serie: las licencias de los modelos de ejemplo no permiten incluirlos (pero están en la
 galería).
 
-## Galería de modelos gratis
+## Galería de skins
 
-Ajustes → Skins → **Galería de modelos gratis** (o clic derecho en Noa → Skin → Galería de modelos gratis): 26
-modelos gratuitos, **18 en 3D (VRM)** y **8 VTuber (Live2D)**, con su miniatura, autoría y licencia. Filtra por
-tipo y pulsa **Usar**: la app descarga el modelo de su **repositorio original** (con el commit fijado) y lo abre
-en el editor 3D o VTuber, donde ves su licencia, ajustas el encuadre y lo guardas. Los Live2D necesitan el
+Ajustes → Skins → **Galería de skins** (o clic derecho en Noa → Skin → Galería de skins). Arriba está el
+**mercado interno** y debajo los modelos gratis de internet.
+
+### Mercado interno
+
+**13 skins 2D originales** dibujadas para Waifu Desk, todas mujeres adultas, con una cara para cada una de las
+31 emociones. Van dentro de la app: **Instalar** las copia a tus skins y se pone.
+
+- **Normales**: Aiko (secretaria con gafas), Mika (alternativa, con rejilla y piercings), Yuki (kitsune del
+  santuario), Lena (hacker ciberpunk), Hana (barista), Elara (maga elfa) y Rin (streamer).
+- **+18**: Lilith (súcubo), Vera (crupier con traje de conejita), Selene (condesa vampira), Marina (socorrista en
+  bikini), Nyx (ladrona con mono ajustado) e Ivy (vestido lencero de satén). Son insinuantes, nunca desnudos, y
+  solo salen con el [contenido +18](#contenido-18) desbloqueado. Si lo vuelves a bloquear, desaparecen también de
+  tus skins y, si llevabas una puesta, vuelve la de serie.
+
+![Las skins normales del mercado](docs/screenshots/market-skins.jpg)
+
+Las dibuja `tools/draw_skins.py` (personajes, ropa, pelo y las 31 caras); `npm run skins:market` las vuelve a
+generar con sus miniaturas.
+
+### Modelos gratis de internet
+
+26 modelos gratuitos, **18 en 3D (VRM)** y **8 VTuber (Live2D)**, con su miniatura, autoría y licencia. Filtra
+por tipo y pulsa **Usar**: la app descarga el modelo de su **repositorio original** (con el commit fijado) y lo
+abre en el editor 3D o VTuber, donde ves su licencia, ajustas el encuadre y lo guardas. Los Live2D necesitan el
 Cubism Core (te lo ofrece la primera vez).
 
 Solo están los que su autoría deja usar a cualquiera y redistribuir, o que se bajan del repositorio de quien
-tiene los derechos. La app no lleva ningún modelo dentro: solo las miniaturas. Lista y licencias en
-[`docs/modelos.md`](docs/modelos.md).
+tiene los derechos. Lista y licencias en [`docs/modelos.md`](docs/modelos.md). Los VRM y Live2D más atrevidos
+que hay por internet se venden o regalan en tiendas con cuenta (BOOTH, VRoid Hub, nizima…) y su licencia no
+deja redistribuirlos, así que la app no los descarga: la galería enlaza a esas tiendas y los importas tú con
+**Importar VRM** o **Importar Live2D**.
 
 ![Ajustes: galería de modelos gratis](docs/screenshots/settings-gallery.png)
 
@@ -729,6 +792,8 @@ npm start
 | `npm run docs:tools` | Regenera [`docs/herramientas.md`](docs/herramientas.md) a partir del código |
 | `npm run docs:models` | Regenera [`docs/modelos.md`](docs/modelos.md) |
 | `npm run gallery:fetch -- <carpeta>` | Descarga todos los modelos de la galería (y los de la imagen del README) |
+| `npm run skins:market` | Vuelve a dibujar las skins del mercado (`assets/market/`) y sus miniaturas (Python 3, `rsvg-convert` y Pillow) |
+| `npm run shots:expressions` | Hojas de caras y gestos con la app real (`docs/screenshots/emotions-2d.jpg`, `gestures-3d.jpg`, `market-skins.jpg`) |
 | `npm run gallery:render` | Con `WAIFU_GALLERY_DIR=<carpeta>` y `WAIFU_LIVE2D_CORE=<Core o SDK>`, fotografía cada modelo con la app: miniaturas de `assets/gallery` y `docs/screenshots/models.jpg` |
 | `npm run dist:win` | Windows: `.zip` + instalador NSIS en `dist/`. Funciona en Windows, Linux o macOS sin Wine (necesita `makensis`) |
 | `npm run dist:linux` | Linux: AppImage + `.deb` |
@@ -771,6 +836,7 @@ src/
                    tareas, rutinas, concentración, pausas y modo mascota, el tiempo, noticias, estado del PC,
                    monitor de servicios, vigilante de CI, avisos al móvil y uso de tokens
     gallery.js     descarga de los modelos de la galería (VRM o Live2D por partes)
+    market.js      mercado interno: skins 2D propias, instalación y filtro +18
     voice.js       transcripción, síntesis y troceado en frases
     piper-runtime.js, voices.js   motor Piper (descarga comprobada) y voces: catálogo, importación, licencias
     attachments.js imágenes adjuntas al chat
@@ -788,16 +854,18 @@ src/
     editor/        importador de skins 2D (recorte IA, marcadores, vista previa)
     vrm-editor/    importador de skins 3D y VTuber (licencia, encuadre, movimientos, parámetros)
     shared/        comportamiento del avatar (behaviour.js) y bucle (stage.js), renderizador 2D WebGL2
-                   con malla deformable (y respaldo 2D), markdown
+                   con malla deformable y caras por emoción (y respaldo 2D), movimientos de cabeza de gestos
+                   y emociones (head-motion.js), efectos manga (fx.js), markdown
     shared/vrm/    renderizador VRM (three.js + three-vrm), encuadre, labios y mirada, animaciones
-                   propias (clips/), importación de .vrma y Mixamo
+                   propias (clips/, con los gestos en clips/actions.js), importación de .vrma y Mixamo
     shared/live2d/ renderizador Live2D (pixi.js + untitled-pixi-live2d-engine) y traducción de las
                    señales del avatar a las entradas y parámetros de VTube Studio
     avatar/piper-worker.js   síntesis Piper con onnxruntime-web en un worker
   shared/          personajes y filtros, acciones rápidas, galería de modelos, catálogo MCP, archivos de un
-                   modelo Live2D, traducciones (i18n/: es, en, ru, uk, zh)
+                   modelo Live2D, emociones y gestos (expressions.js), traducciones (i18n/: es, en, ru, uk, zh)
 assets/skins/default/   skin de serie en capas SVG
 assets/skins/noa-3d/    skin 3D de serie (VRM de ejemplo de pixiv)
+assets/market/          skins 2D del mercado interno (las genera tools/draw_skins.py)
 build/                  icono, instalador NSIS multilingüe y hook que pone icono y versión al .exe
 test/                   tests (node:test) con un stub de Electron
 assets/gallery/         miniaturas de la galería de modelos gratis
@@ -810,8 +878,8 @@ docs/azure/             Terraform de las políticas de contenido de Azure OpenAI
 
 - La ventana del avatar es transparente y deja pasar los clics fuera de la silueta (en Windows con reenvío del
   ratón; en Linux recortando la forma de la ventana).
-- `Behaviour` decide qué hace el avatar (respiración, parpadeo, boca, mirada, saltito, emoción) y cada
-  renderizador lo dibuja a su manera. En 2D se deforma una malla 40×N en la GPU (respiración, giro de cabeza
+- `Behaviour` decide qué hace el avatar (respiración, parpadeo, boca, mirada, saltito, emoción, gesto, guiño y
+  efectos) y cada renderizador lo dibuja a su manera; los efectos van en un canvas aparte encima. En 2D se deforma una malla 40×N en la GPU (respiración, giro de cabeza
   alrededor del cuello y mandíbula; parpadeo y boca por capas o con shaders). En 3D se mezclan el clip del
   estado, los gestos y una capa procedural (mirada, respiración), y las expresiones del VRM hacen los labios,
   el parpadeo y las caras.
