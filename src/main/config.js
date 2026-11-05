@@ -11,6 +11,7 @@ const configPath = () => path.join(userDir(), 'config.json');
 const secretsPath = () => path.join(userDir(), 'secrets.json');
 
 export const uid = () => crypto.randomBytes(5).toString('hex');
+export const DESKTOP_PROFILE_ID = 'claude-desktop';
 
 // Idiomas del sistema por orden de preferencia (p. ej. ['es-ES', 'en-US']).
 export function systemLocales() {
@@ -29,6 +30,8 @@ export const effectiveLocale = (cfg = loadConfig()) => resolveLocale(cfg.ui?.lan
 export function providerPresets() {
   const local = t('presets.local');
   return {
+    // Sin API key: el cerebro es una conversación de Claude Desktop conectada por MCP (src/main/desktop-mcp/).
+    claudeDesktop: { kind: 'claude-desktop', name: 'Claude Desktop (MCP)', baseUrl: '', model: 'claude-desktop', toolsEnabled: true },
     anthropic: { kind: 'anthropic', name: 'Claude (Anthropic)', baseUrl: 'https://api.anthropic.com', model: 'claude-sonnet-5-5', toolsEnabled: true },
     openai: { kind: 'openai', name: 'OpenAI', baseUrl: 'https://api.openai.com/v1', model: '', toolsEnabled: true },
     openrouter: { kind: 'openai', name: 'OpenRouter', baseUrl: 'https://openrouter.ai/api/v1', model: '', toolsEnabled: true },
@@ -69,6 +72,7 @@ export function defaultConfig(locale = resolveLocale('auto', systemLocales())) {
     profiles: [
       { id: claudeId, ...presets.anthropic, name: 'Claude Sonnet', maxTokens: 4096, temperature: null },
       { id: 'hermes', ...presets.hermes, maxTokens: 4096, temperature: null },
+      { id: DESKTOP_PROFILE_ID, ...presets.claudeDesktop, maxTokens: 4096, temperature: null },
     ],
     activeProfileId: claudeId,
     voice: {
@@ -96,6 +100,10 @@ export function defaultConfig(locale = resolveLocale('auto', systemLocales())) {
       shell: { enabled: false },
       webhooks: [],
       mcpServers: [],
+      // Claude Desktop (o Claude Code) se conecta a la app por MCP y le hace de cerebro. El servidor
+      // local se enciende con enabled o con el perfil «Claude Desktop (MCP)» en uso.
+      // tools: compact (noa_tools/noa_run_tool) | all (cada herramienta suelta) | none
+      claudeDesktop: { enabled: false, tools: 'compact' },
       github: { enabled: false, apiUrl: 'https://api.github.com', watchRepos: [], pollMin: 5 }, // token en el secreto «github»
       homeassistant: { enabled: false, baseUrl: '' }, // token en el secreto «homeassistant»
       // Avisos al móvil: ntfy | telegram | gotify (token en el secreto «push»). forward: off | important | all
@@ -167,6 +175,13 @@ export function loadConfig() {
   cache = deepMerge(defaultConfig(), migratePersonas(saved));
   cache.personas = (cache.personas.length ? cache.personas : defaultConfig().personas).map(normalizePersona);
   if (!cache.personas.some((p) => p.id === cache.activePersonaId)) cache.activePersonaId = cache.personas[0].id;
+  // 0.7.0: el perfil «Claude Desktop (MCP)» aparece una vez en las configuraciones de antes (si lo
+  // borras, no vuelve).
+  if (!cache.flags?.desktopProfile) {
+    if (!cache.profiles.some((p) => p.kind === 'claude-desktop'))
+      cache.profiles = [...cache.profiles, { id: DESKTOP_PROFILE_ID, ...providerPresets().claudeDesktop, maxTokens: 4096, temperature: null }];
+    cache.flags = { ...(cache.flags || {}), desktopProfile: true };
+  }
   return cache;
 }
 

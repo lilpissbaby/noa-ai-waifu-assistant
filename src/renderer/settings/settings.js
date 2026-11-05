@@ -7,6 +7,7 @@ import { piperSection, piperPersonaVoice } from './tabs/piper.js';
 import { productivityTab } from './tabs/productivity.js';
 import { organizeTab } from './tabs/organize.js';
 import { githubCard, homeAssistantCard, phoneCard, monitorsCard, mcpCatalogBox, galleryCard, presenceCard, usageCard } from './tabs/extras.js';
+import { desktopCard, desktopProfileBox } from './tabs/desktop.js';
 
 const wd = window.wd;
 const view = document.getElementById('view');
@@ -417,13 +418,18 @@ const TABS = {
         'select',
         {
           onchange: (e) => {
+            const was = list[i].kind;
             list[i].kind = e.target.value;
+            if (e.target.value === 'claude-desktop' && !list[i].model) list[i].model = 'claude-desktop';
             save('profiles', list, 0);
+            if ((was === 'claude-desktop') !== (e.target.value === 'claude-desktop')) setTimeout(render, 400);
           },
         },
         h('option', { value: 'anthropic', selected: p.kind === 'anthropic' }, 'Anthropic (Claude)'),
         h('option', { value: 'openai', selected: p.kind === 'openai' }, t('settings.models.openaiCompatible')),
+        h('option', { value: 'claude-desktop', selected: p.kind === 'claude-desktop' }, t('desktop.ui.kind')),
       );
+      const desktop = p.kind === 'claude-desktop';
       return h(
         'div',
         { class: 'item' },
@@ -462,48 +468,50 @@ const TABS = {
             },
           ),
         ),
-        h(
-          'div',
-          { class: 'grid' },
-          field(t('settings.common.name'), itemText('profiles', i, 'name')),
-          field(t('settings.models.apiType'), kindSel),
-          h('div', { class: 'full' }, field(t('settings.common.baseUrl'), itemText('profiles', i, 'baseUrl'), p.kind === 'anthropic' ? t('settings.models.baseUrlAnthropic') : t('settings.models.baseUrlOpenai'))),
-          field('API key', secret(`profile:${p.id}`, p.kind === 'openai' ? t('settings.models.keyOptionalLocal') : 'sk-ant-…')),
-          field(
-            t('settings.common.model'),
-            h(
+        desktop
+          ? h('div', { class: 'grid' }, field(t('settings.common.name'), itemText('profiles', i, 'name')), field(t('settings.models.apiType'), kindSel), desktopProfileBox(ui))
+          : h(
               'div',
-              { class: 'inline' },
-              itemText('profiles', i, 'model', { list: dl, placeholder: t('settings.models.modelPlaceholder') }),
-              h(
-                'button',
-                {
-                  class: 'btn',
-                  title: t('settings.models.loadTitle'),
-                  onclick: async () => {
-                    const models = await runTest(res, async () => {
-                      const m = await wd.invoke('models:list', list[i]);
-                      return { message: t('settings.models.available', { count: m.length }), m };
-                    });
-                    if (models?.m) document.getElementById(dl).innerHTML = models.m.map((x) => `<option value="${esc(x)}">`).join('');
-                  },
-                },
-                t('settings.models.load'),
+              { class: 'grid' },
+              field(t('settings.common.name'), itemText('profiles', i, 'name')),
+              field(t('settings.models.apiType'), kindSel),
+              h('div', { class: 'full' }, field(t('settings.common.baseUrl'), itemText('profiles', i, 'baseUrl'), p.kind === 'anthropic' ? t('settings.models.baseUrlAnthropic') : t('settings.models.baseUrlOpenai'))),
+              field('API key', secret(`profile:${p.id}`, p.kind === 'openai' ? t('settings.models.keyOptionalLocal') : 'sk-ant-…')),
+              field(
+                t('settings.common.model'),
+                h(
+                  'div',
+                  { class: 'inline' },
+                  itemText('profiles', i, 'model', { list: dl, placeholder: t('settings.models.modelPlaceholder') }),
+                  h(
+                    'button',
+                    {
+                      class: 'btn',
+                      title: t('settings.models.loadTitle'),
+                      onclick: async () => {
+                        const models = await runTest(res, async () => {
+                          const m = await wd.invoke('models:list', list[i]);
+                          return { message: t('settings.models.available', { count: m.length }), m };
+                        });
+                        if (models?.m) document.getElementById(dl).innerHTML = models.m.map((x) => `<option value="${esc(x)}">`).join('');
+                      },
+                    },
+                    t('settings.models.load'),
+                  ),
+                ),
               ),
+              h('datalist', { id: dl }),
+              field(t('settings.models.maxTokens'), itemText('profiles', i, 'maxTokens', { type: 'number' })),
+              field(t('settings.models.temperature'), itemText('profiles', i, 'temperature', { type: 'number', placeholder: t('settings.models.default') })),
+              h(
+                'div',
+                { class: 'full' },
+                itemCheck('profiles', i, 'toolsEnabled', t('settings.models.allowTools')),
+                h('small', { class: 'muted' }, t('settings.models.allowToolsHelp')),
+              ),
+              h('div', { class: 'full' }, itemCheck('profiles', i, 'vision', t('settings.models.vision')), h('small', { class: 'muted' }, t('settings.models.visionHelp'))),
+              p.azurePolicies ? h('div', { class: 'full' }, azureBox(list, i)) : null,
             ),
-          ),
-          h('datalist', { id: dl }),
-          field(t('settings.models.maxTokens'), itemText('profiles', i, 'maxTokens', { type: 'number' })),
-          field(t('settings.models.temperature'), itemText('profiles', i, 'temperature', { type: 'number', placeholder: t('settings.models.default') })),
-          h(
-            'div',
-            { class: 'full' },
-            itemCheck('profiles', i, 'toolsEnabled', t('settings.models.allowTools')),
-            h('small', { class: 'muted' }, t('settings.models.allowToolsHelp')),
-          ),
-          h('div', { class: 'full' }, itemCheck('profiles', i, 'vision', t('settings.models.vision')), h('small', { class: 'muted' }, t('settings.models.visionHelp'))),
-          p.azurePolicies ? h('div', { class: 'full' }, azureBox(list, i)) : null,
-        ),
         res,
       );
     });
@@ -721,6 +729,7 @@ const TABS = {
     return [
       h('h1', {}, t('settings.nav.connectors')),
       h('p', { class: 'lead' }, t('settings.conn.lead')),
+      desktopCard(ui),
       card(
         ['Hermes Agent', h('span', { class: `pill ${hm.enabled ? 'on' : ''}` }, hm.enabled ? t('settings.common.on') : t('settings.common.off'))],
         t('settings.conn.hermesText'),

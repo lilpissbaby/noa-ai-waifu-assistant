@@ -4,6 +4,28 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). L
 [SemVer](https://semver.org/lang/es/). El workflow de releases publica el apartado de cada versión como notas de
 la release.
 
+## [0.7.0] - 2026-11-05
+
+### Añadido
+
+- **Claude Desktop como cerebro, sin API key**: perfil nuevo «Claude Desktop (MCP)». Lo que le dices a la
+  asistente lo contesta una conversación de Claude Desktop (o Claude Code) en «Modo Noa», con el uso de tu
+  suscripción de Claude y sin gastar créditos de la API. Ella sigue poniendo la voz, las caras, los gestos, el
+  chat y la memoria.
+  - Servidor MCP con `noa_listen` (espera a que le hables, con imágenes y archivos adjuntos), `noa_say` (lo dice
+    ella), `noa_express`, `noa_context` (su personaje, su memoria y la conversación reciente) y
+    `noa_tools`/`noa_run_tool` para usar todas sus herramientas sin llenar de herramientas el resto de chats.
+    También se pueden exponer todas sueltas o ninguna.
+  - Prompt «Modo Noa» en el menú + de Claude Desktop con las instrucciones del bucle y el personaje.
+  - Ajustes → Conectores → **Claude Desktop (MCP)**: botón para añadirla a `claude_desktop_config.json` (versión
+    normal y de la Microsoft Store, sin tocar el resto y con copia de seguridad), estado de la conexión en vivo,
+    la configuración para copiar a mano y el comando para Claude Code.
+  - El puente lo ejecuta el propio ejecutable de la app en modo Node: no hace falta instalar Node. Si la app
+    está cerrada cuando Claude la necesita, la abre; si la mueves de sitio, la entrada se corrige sola.
+  - Avisos si Claude Desktop no está escuchando o no recoge un mensaje, y el botón de parar también corta la
+    respuesta que venía de Claude.
+- Guía en [docs/claude-desktop.md](docs/claude-desktop.md).
+
 ## [0.6.0] - 2026-11-01
 
 ### Añadido

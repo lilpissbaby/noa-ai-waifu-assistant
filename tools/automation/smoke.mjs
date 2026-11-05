@@ -10,6 +10,7 @@ import { sleep, waitForWindow, waitForChat, setLanguage } from './common.mjs';
 import { piperCheck } from './piper-check.mjs';
 import { makePdf } from '../../test/helpers/pdf.mjs';
 import { live2dFixtures, live2dCheck } from './live2d-check.mjs';
+import { desktopCheck } from './desktop-check.mjs';
 
 // Cualquier texto con forma de clave («chat.algo», «settings.x.y»), exista o no en el catálogo.
 const NAMESPACES = [...new Set(Object.keys(CATALOGS.es).map((k) => k.split('.')[0]))].join('|');
@@ -317,6 +318,9 @@ export default async function smoke(api) {
   if (!/Zzz/.test(zzz)) problems.push(`modo mascota: no sale el «Zzz» (${zzz})`);
   api.sendTo('avatar', 'avatar:sleep', false);
   await sleep(200);
+
+  // Claude Desktop (MCP) como cerebro: el puente arrancado como lo arranca Claude Desktop.
+  await desktopCheck(api, problems);
 
   // Live2D con el SDK oficial y Hiyori (CI: tools/fetch-live2d-fixtures.mjs → WAIFU_TEST_LIVE2D_DIR).
   const l2d = live2dFixtures(process.env.WAIFU_TEST_LIVE2D_DIR);

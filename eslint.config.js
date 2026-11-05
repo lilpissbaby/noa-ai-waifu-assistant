@@ -17,7 +17,7 @@ export default [
     languageOptions: { globals: globals.node },
   },
   {
-    files: ['src/preload/**/*.cjs'],
+    files: ['src/preload/**/*.cjs', 'src/main/**/*.cjs'],
     languageOptions: { sourceType: 'commonjs', globals: globals.node },
   },
   {

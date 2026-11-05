@@ -22,8 +22,8 @@ Español · [English](README.en.md) — la app está en español, inglés, ruso,
 <details>
 <summary><b>Índice</b></summary>
 
-- [Qué hace](#qué-hace) · [Novedades de la 0.6.0](#novedades-de-la-060) · [Descargar](#descargar) · [Primeros pasos](#primeros-pasos) · [Capturas](#capturas)
-- [Modelos gratis](#modelos-gratis) · [Idiomas](#idiomas) · [Modelos de IA](#modelos-de-ia) · [Personajes](#personajes) · [Voz](#voz)
+- [Qué hace](#qué-hace) · [Novedades de la 0.7.0](#novedades-de-la-070) · [Descargar](#descargar) · [Primeros pasos](#primeros-pasos) · [Capturas](#capturas)
+- [Modelos gratis](#modelos-gratis) · [Idiomas](#idiomas) · [Modelos de IA](#modelos-de-ia) · [Claude Desktop como cerebro](#claude-desktop-como-cerebro-sin-api-key) · [Personajes](#personajes) · [Voz](#voz)
 - [Productividad](#productividad) · [Organización](#organización) · [Información](#información-el-tiempo-noticias-portapapeles-y-el-pc)
 - [Hermes Agent](#hermes-agent-en-tu-vps) · [Paperclip](#paperclip) · [GitHub](#github) · [Home Assistant](#home-assistant) · [Avisos al móvil](#avisos-al-móvil)
 - [Automatizaciones](#automatizaciones) · [Expresiones y gestos](#expresiones-y-gestos) · [Skins](#skins) · [Skins 3D](#skins-3d-vrm) · [Avatares VTuber](#avatares-vtuber-live2d) · [Galería](#galería-de-skins) · [Modo mascota](#modo-mascota)
@@ -71,14 +71,12 @@ Español · [English](README.en.md) — la app está en español, inglés, ruso,
 - **Uso y coste**: cuántos tokens gasta cada modelo y cuánto te cuesta.
 - **Cinco idiomas**: español, English, Русский, Українська y 中文. Coge el del sistema y se cambia al vuelo.
 
-## Novedades de la 0.6.0
+## Novedades de la 0.7.0
 
-- [Expresiones y gestos](#expresiones-y-gestos): **31 emociones** (antes 5) y **34 gestos** que la IA usa sola,
-  con **efectos manga** alrededor de la cabeza, en las skins 2D, 3D y Live2D. Menú «Expresión» para ponérselos
-  a mano.
-- [Mercado interno](#galería-de-skins): **13 skins 2D originales** con una cara para cada emoción, 6 de ellas
-  más atrevidas (+18, sin desnudos) que solo aparecen con el contenido +18 desbloqueado.
-- Lo de la 0.5.0 (organización, conectores, galería de modelos gratis, modo mascota…) está en el
+- [Claude Desktop como cerebro](#claude-desktop-como-cerebro-sin-api-key): **sin API key ni créditos**. Una
+  conversación de Claude Desktop (o Claude Code) en «Modo Noa» contesta lo que le dices a la asistente con tu
+  suscripción de Claude, por MCP, y puede usar sus herramientas. Se añade a Claude Desktop con un botón.
+- Lo de la 0.6.0 (31 emociones, 34 gestos, efectos manga, mercado de skins) y versiones anteriores está en el
   [registro de cambios](CHANGELOG.md).
 
 ![Las 31 caras de Hana, una de las skins del mercado, con sus efectos](docs/screenshots/emotions-2d.jpg)
@@ -262,6 +260,9 @@ Cada **perfil** es un modelo con su clave. Se cambian desde el selector del chat
 - **Azure OpenAI**: perfil «Azure OpenAI», URL `https://RECURSO.openai.azure.com/openai/v1`, el nombre del
   despliegue como modelo y la clave del recurso. Puede elegir en cada mensaje una política de contenido según
   el personaje (ver [Personajes](#personajes)).
+- **Claude Desktop (MCP), sin API key**: el perfil «Claude Desktop (MCP)» le pasa lo que dices a una
+  conversación de Claude Desktop, que contesta con tu suscripción. Ver
+  [Claude Desktop como cerebro](#claude-desktop-como-cerebro-sin-api-key).
 - **Hermes Agent directo**: el perfil «Hermes Agent (VPS)» habla con Hermes como si fuera un modelo. Desactiva
   «Permitir herramientas», porque Hermes ya tiene las suyas.
 - **Visión**: con los modelos que ven imágenes puedes adjuntarlas, y Noa puede mirar tu pantalla. Si el modelo
@@ -278,6 +279,24 @@ de tokens, como lo publica el proveedor) y calcula el coste estimado; lo leído 
 precio de entrada salvo que lo ajustes. Claude informa siempre del uso; de los compatibles con OpenAI se pide
 a OpenAI, OpenRouter, Groq, Azure, Gemini, DeepSeek y Mistral (otros servidores podrían rechazar el parámetro).
 Se guarda en `usage.json` de tu carpeta de datos.
+
+## Claude Desktop como cerebro (sin API key)
+
+Si usas Claude Desktop para todo y se te acaban los créditos de la API, la asistente puede usar **una
+conversación de Claude Desktop como cerebro**. Le hablas a ella como siempre (texto o voz) y contesta Claude
+con el uso de tu suscripción: sin API key y sin créditos. Sigue siendo ella: su voz, sus caras, su chat, su
+memoria y sus herramientas, más las de Claude Desktop (búsqueda web, tus conectores…).
+
+1. Ajustes → **Conectores** → **Claude Desktop (MCP)** → **Usar Claude Desktop como cerebro** y **Añadir a
+   Claude Desktop**. Reinicia Claude Desktop del todo.
+2. En una conversación nueva de Claude Desktop: menú **+** → **noa** → **Modo Noa** (o escribe «modo Noa»).
+   Permite siempre las herramientas de noa.
+3. Deja esa conversación abierta y háblale a la asistente.
+
+Claude Desktop no deja que un servidor MCP le pida respuestas, así que Claude entra en un bucle: `noa_listen`
+espera a que digas algo, Claude lo resuelve y contesta con `noa_say`, que ella dice en voz alta con su cara.
+Con Claude Code: `claude mcp add …` (el comando exacto está en Ajustes). Todo el detalle, los límites y la
+configuración a mano: [docs/claude-desktop.md](docs/claude-desktop.md).
 
 ## Personajes
 

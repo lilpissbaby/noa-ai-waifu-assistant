@@ -70,14 +70,31 @@ drives your Home Assistant and pings your phone too.
 - **Five languages**: Español, English, Русский, Українська and 中文. Follows the system language and switches
   instantly.
 
-## New in 0.6.0
+## New in 0.7.0
 
-- [Expressions and gestures](#expressions-and-gestures): **31 emotions** (up from 5) and **34 gestures** the AI
-  uses on her own, with **manga effects** around her head, on 2D, 3D and Live2D skins. An "Expression" menu to
-  set them by hand.
-- [Built-in market](#skin-gallery): **13 original 2D skins** with a face for every emotion, 6 of them spicier
-  (18+, no nudity) that only show up once 18+ content is unlocked.
-- What came in 0.5.0 (organize, connectors, free model gallery, pet mode…) is in the [changelog](CHANGELOG.md).
+- [Claude Desktop as her brain](#claude-desktop-as-her-brain-no-api-key): **no API key, no credits**. A Claude
+  Desktop (or Claude Code) conversation in "Noa mode" answers what you say to the assistant with your Claude
+  subscription, over MCP, and can use her tools. One button adds it to Claude Desktop.
+- What came in 0.6.0 (31 emotions, 34 gestures, manga effects, skin market) and earlier is in the
+  [changelog](CHANGELOG.md) (in Spanish).
+
+## Claude Desktop as her brain (no API key)
+
+If you use Claude Desktop for everything and run out of API credits, the assistant can use **a Claude Desktop
+conversation as her brain**. You talk to her as usual (text or voice) and Claude answers using your
+subscription: no API key and no credits. She is still herself: her voice, faces, chat, memory and tools, plus
+Claude Desktop's own (web search, your connectors…).
+
+1. Settings → **Connectors** → **Claude Desktop (MCP)** → **Use Claude Desktop as the brain** and **Add to
+   Claude Desktop**. Restart Claude Desktop fully.
+2. In a new Claude Desktop conversation: **+** menu → **noa** → **Noa mode** (or type "Noa mode"). Always allow
+   the noa tools.
+3. Leave that conversation open and talk to the assistant.
+
+Claude Desktop does not let an MCP server ask it for answers, so Claude runs a loop instead: `noa_listen` waits
+until you say something, Claude works it out and answers with `noa_say`, which she says out loud with her
+face. For Claude Code there is a `claude mcp add …` command in Settings. Details, limits and manual setup (in
+Spanish): [docs/claude-desktop.md](docs/claude-desktop.md).
 
 ![Hana's 31 faces, one of the market skins, with their effects](docs/screenshots/emotions-2d.jpg)
 

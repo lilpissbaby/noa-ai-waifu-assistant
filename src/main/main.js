@@ -5,7 +5,7 @@ import fs from 'node:fs';
 import { pathToFileURL } from 'node:url';
 import { loadConfig, patchConfig, saveConfig, getSecret, setSecret, hasSecret, secureStorageAvailable, userDir, uid, providerPresets, effectiveLocale } from './config.js';
 import { t, tIn, setLocale, getLocale, localeTag, languageFromName, SUPPORTED, LANGUAGES } from '../shared/i18n/index.js';
-import { runTurn, replyLanguage } from './llm/agent.js';
+import { runTurn, replyLanguage, buildSystemPrompt } from './llm/agent.js';
 import { listAnthropicModels } from './llm/anthropic.js';
 import { listOpenAIModels } from './llm/openai.js';
 import { buildToolbox } from './tools/index.js';
@@ -22,8 +22,8 @@ import { parseCard, cardToPersona, MAX_CARD_BYTES } from './persona-cards.js';
 import { piperRuntimeStatus, downloadPiperRuntime, piperRuntimeUrl, PIPER_WASM } from './piper-runtime.js';
 import { setAnnouncer } from './bus.js';
 import { Reminders } from './productivity/reminders.js';
-import { listMemory, forgetMemory } from './productivity/memory.js';
-import { saveImageAttachment, attachmentsDir, clearAttachments } from './attachments.js';
+import { listMemory, forgetMemory, memoryPrompt } from './productivity/memory.js';
+import { saveImageAttachment, attachmentsDir, clearAttachments, attachmentUrl } from './attachments.js';
 import { attachmentsFromPaths } from './productivity/docs.js';
 import { actionsFor, composeAction, clipboardText } from '../shared/quick-actions.js';
 import { briefingDue, dayKey, BRIEFING_PROMPT } from './productivity/briefing.js';
@@ -47,6 +47,7 @@ import { testHomeAssistant } from './tools/homeassistant.js';
 import { downloadGalleryItem } from './gallery.js';
 import { listMarket, installMarket } from './market.js';
 import { EMOTION_GROUPS, GESTURE_NAMES } from '../shared/expressions.js';
+import { createDesktopMcp } from './desktop-mcp/index.js';
 
 process.on('uncaughtException', (e) => logger.error('uncaughtException', e));
 process.on('unhandledRejection', (e) => logger.error('unhandledRejection', e));
@@ -350,6 +351,7 @@ function avatarContextMenu() {
     click: () => {
       patchConfig({ activeProfileId: p.id });
       broadcast('cfg:changed', publicConfig());
+      desktopMcp.sync();
     },
   }));
   const scales = [0.6, 0.8, 1, 1.25, 1.5, 2].map((s) => ({
@@ -557,6 +559,8 @@ function setState(state, label = '') {
 
 function stopEverything() {
   current?.ctrl.abort();
+  // Claude Desktop: se tira lo que había en cola y la respuesta a medias deja de salir.
+  if (desktopMcp.host.cancel().length || desktopTurn) desktopCloseTurn({ aborted: true });
   ttsGen++;
   ttsChain = Promise.resolve();
   sendTo('avatar', 'tts:stop');
@@ -589,6 +593,7 @@ function switchPersona(id, { greet = true } = {}) {
   applyLocale(loadConfig());
   refreshTrayMenu();
   broadcast('cfg:changed', publicConfig());
+  desktopMcp.writeFiles();
   if (greet && persona.greeting.trim()) appendAssistantMessage(persona.greeting.trim().replaceAll('{{user}}', cfg.assistant.userName || '').replaceAll('{{char}}', persona.name));
   return persona;
 }
@@ -848,6 +853,154 @@ const services = {
   },
 };
 
+// ---------------------------------------------------------------- Claude Desktop (MCP)
+// Con el perfil «Claude Desktop (MCP)», lo que le dices va a una conversación de Claude Desktop
+// que la usa de cuerpo: llama a noa_listen y contesta con noa_say (src/main/desktop-mcp/). Sin
+// API key: gasta el uso de tu suscripción de Claude, no créditos de la API.
+const activeProfile = (cfg = loadConfig()) => cfg.profiles.find((p) => p.id === cfg.activeProfileId) || cfg.profiles[0];
+const isDesktopProfile = (cfg = loadConfig()) => activeProfile(cfg)?.kind === 'claude-desktop';
+let desktopTurn = null; // respuesta de Claude Desktop abierta en el chat: { speak, msg }
+const DESKTOP_PICKUP_MS = 20000; // si en este tiempo Claude no recoge el mensaje, se avisa
+
+function desktopOpenTurn(speak = false) {
+  if (!desktopTurn) {
+    desktopTurn = { speak, msg: null };
+    chatEvent({ type: 'assistant_start', profile: { name: 'Claude Desktop', model: 'MCP' } });
+  } else if (speak) desktopTurn.speak = true;
+  return desktopTurn;
+}
+
+function desktopCloseTurn({ aborted = false } = {}) {
+  if (!desktopTurn) return;
+  desktopTurn = null;
+  saveHistory();
+  chatEvent({ type: 'done', ...(aborted ? { aborted: true } : {}) });
+  if (assistantState !== 'idle') setState('idle');
+}
+
+// Lo que Claude necesita saber para ser ella: el mismo prompt de sistema que con una API (sin la
+// lista de herramientas), la memoria y lo último que se ha hablado.
+function desktopBriefing(n = 12) {
+  const cfg = loadConfig();
+  const name = assistantName(cfg);
+  const memory = cfg.productivity?.memory !== false ? memoryPrompt(listMemory()) : '';
+  const clip = (s) => {
+    const str = String(s || '').trim();
+    return str.length > 600 ? `${str.slice(0, 597)}…` : str;
+  };
+  const recent = history
+    .filter((m) => (m.role === 'user' && !m.hidden) || (m.role === 'assistant' && m.content && !m.notice))
+    .slice(-n)
+    .map((m) => `${m.role === 'user' ? 'User' : name}: ${clip(m.content) || '(attachment)'}`);
+  const mode = cfg.connectors.claudeDesktop?.tools || 'compact';
+  const lines = [`=== Who you are: ${name} ===`, buildSystemPrompt(cfg, [], getLocale(), { memory })];
+  if (n > 0 && recent.length) lines.push('', `=== Recent conversation with ${name} (oldest first) ===`, ...recent);
+  lines.push(
+    '',
+    '=== How this works ===',
+    `The user talks to ${name} on their desktop and only sees what you send with noa_say.` +
+      (mode === 'none' ? '' : ` ${name}'s own tools on the user's PC are available through noa_tools and noa_run_tool${mode === 'all' ? ' (and directly as tools)' : ''}.`) +
+      ' Before actions with side effects (changing tasks, waking agents, running commands, calling webhooks) make sure the request is clear; if it is ambiguous, ask one single question with noa_say.',
+  );
+  return lines.join('\n');
+}
+
+const desktopMcp = createDesktopMcp({
+  logger,
+  shouldRun: () => {
+    const cfg = loadConfig();
+    return !!cfg.connectors.claudeDesktop?.enabled || isDesktopProfile(cfg);
+  },
+  name: () => assistantName(loadConfig()),
+  mode: () => loadConfig().connectors.claudeDesktop?.tools || 'compact',
+  toolbox: () => buildToolbox(loadConfig(), () => wins.chat || wins.avatar, services),
+  briefing: ({ history: n }) => desktopBriefing(n),
+  // Cambia con el personaje o el idioma: entonces el siguiente noa_listen vuelve a dar el contexto.
+  briefKey: () => {
+    const cfg = loadConfig();
+    return JSON.stringify([activePersona(cfg), cfg.assistant, cfg.ui.emotions, cfg.ui.gestures, getLocale(), cfg.connectors.claudeDesktop?.tools]);
+  },
+  promptTitle: () => t('desktop.promptTitle', { name: assistantName(loadConfig()) }),
+  ui: {
+    delivered: (items) => {
+      desktopOpenTurn(items.some((i) => i.speak));
+      setState('thinking', t('desktop.state.thinking'));
+    },
+    said: ({ text, emotions, gestures, final, items }) => {
+      const cfg = loadConfig();
+      // Sin petición (le has pedido algo a Claude en su chat): habla salvo que la voz esté en «nunca».
+      const turn = desktopOpenTurn(items.length ? items.some((i) => i.speak) : cfg.voice.speakReplies !== 'never');
+      for (const name of emotions) sendTo('avatar', 'avatar:emotion', name);
+      for (const name of gestures) sendTo('avatar', 'avatar:gesture', name);
+      let spoken = false;
+      if (text) {
+        chatEvent({ type: 'text', delta: turn.msg ? `\n\n${text}` : text });
+        if (turn.msg) turn.msg.content += `\n\n${text}`;
+        else {
+          turn.msg = { role: 'assistant', content: text, ts: Date.now(), via: 'claude-desktop' };
+          history.push(turn.msg);
+        }
+        if (turn.speak && cfg.voice.speakReplies !== 'never' && cfg.voice.tts.mode !== 'off') {
+          for (const s of splitSentences(text)) enqueueSpeech(s);
+          spoken = true;
+        }
+        setState('talking');
+      }
+      if (final) desktopCloseTurn();
+      else setState('thinking', t('desktop.state.thinking'));
+      return { spoken };
+    },
+    expressed: ({ emotion, gesture }) => {
+      if (emotion) sendTo('avatar', 'avatar:emotion', emotion);
+      if (gesture) sendTo('avatar', 'avatar:gesture', gesture);
+    },
+    toolStart: (e) => {
+      if (desktopTurn) chatEvent({ type: 'tool_start', id: e.id, name: e.name, input: e.input });
+      setState('working', prettyTool(e.name));
+    },
+    toolProgress: (e) => {
+      if (desktopTurn) chatEvent({ type: 'tool_progress', id: e.id, name: e.name, message: e.message });
+      setState('working', e.message);
+    },
+    toolEnd: (e) => {
+      if (desktopTurn) chatEvent({ type: 'tool_end', id: e.id, name: e.name, ok: e.ok, result: e.result, ...(e.images?.length ? { images: e.images.map(attachmentUrl) } : {}) });
+      if (desktopTurn) setState('thinking', t('desktop.state.thinking'));
+      else setState('idle');
+    },
+    settled: () => desktopCloseTurn(),
+    status: (st) => broadcast('desktop:status', st),
+  },
+});
+
+function sendToDesktop(text, via, { attachments = [], onDone = null, hidden = false } = {}) {
+  current?.ctrl.abort(); // un turno de la API a medias (se cambió de perfil mientras contestaba)
+  ttsGen++;
+  ttsChain = Promise.resolve();
+  sendTo('avatar', 'tts:stop');
+  const cfg = loadConfig();
+  const name = assistantName(cfg);
+  const userMsg = { role: 'user', content: text, via, ts: Date.now(), ...(attachments.length ? { attachments } : {}), ...(hidden ? { hidden: true } : {}) };
+  history.push(userMsg);
+  saveHistory();
+  chatEvent({ type: 'user', message: userMsg });
+  const speak = !hidden && (cfg.voice.speakReplies === 'always' || (cfg.voice.speakReplies === 'voice' && via === 'voice'));
+  if (!desktopMcp.running()) desktopMcp.sync();
+  const { item, connected } = desktopMcp.host.enqueue({ text, via, attachments, hidden, speak, onDone });
+  if (hidden) return;
+  const warn = (key) => {
+    chatEvent({ type: 'notice', level: 'warn', message: t(key, { name }) });
+    sendTo('avatar', 'avatar:announce', { text: t('desktop.notListeningShort', { name }), kind: 'desktop' });
+    if (!desktopTurn) setState('idle');
+  };
+  if (!connected) return warn('desktop.notListening');
+  if (!desktopTurn) setState('thinking', t('desktop.state.sent'));
+  // «Conectado» pero el mensaje sigue en cola: Claude dejó el bucle (o lo cortó su límite de pasos).
+  setTimeout(() => {
+    const { relay } = desktopMcp.host;
+    if (relay.inbox.includes(item) && !relay.pending().length) warn('desktop.notPicked');
+  }, DESKTOP_PICKUP_MS);
+}
+
 // ---------------------------------------------------------------- ver la pantalla
 // Captura la pantalla del cursor (o la ventana de arriba que no sea nuestra) con el avatar y el
 // chat ocultos un instante. JPEG 85 % con el lado mayor a 1568 px (lo que aprovechan los modelos).
@@ -1030,6 +1183,7 @@ async function unlockAdult(parent) {
 
 function newConversation() {
   stopEverything();
+  desktopMcp.host.noteReset();
   history = [];
   saveHistory();
   composerAttachments = [];
@@ -1115,6 +1269,7 @@ async function sendMessage(text, via = 'text', { attachments = [], onDone = null
   text = String(text || '').trim();
   attachments = cleanAttachments(attachments);
   if (!text && !attachments.length) return;
+  if (isDesktopProfile()) return sendToDesktop(text, via, { attachments, onDone, hidden });
   if (current) {
     current.ctrl.abort();
     await current.done.catch(() => {});
@@ -1217,6 +1372,7 @@ function registerIpc() {
     patchConfig(patch);
     applyUiConfig();
     broadcast('cfg:changed', publicConfig());
+    desktopMcp.sync();
     if (patch?.connectors?.mcpServers) await syncMcp(loadConfig());
     if (patch?.productivity?.clipboardHistory) syncClipboardWatch();
     if (patch?.productivity?.monitors) scheduleMonitors(1500);
@@ -1227,6 +1383,7 @@ function registerIpc() {
   ipcMain.handle('cfg:replace', (_e, cfg) => {
     saveConfig(cfg);
     applyUiConfig();
+    desktopMcp.sync();
     broadcast('cfg:changed', publicConfig());
     return publicConfig();
   });
@@ -1238,6 +1395,7 @@ function registerIpc() {
   ipcMain.handle('cfg:new-id', () => uid());
 
   ipcMain.handle('models:list', async (_e, profile) => {
+    if (profile.kind === 'claude-desktop') return [];
     const key = getSecret(`profile:${profile.id}`);
     return profile.kind === 'anthropic' ? listAnthropicModels(profile, key) : listOpenAIModels(profile, key);
   });
@@ -1248,9 +1406,24 @@ function registerIpc() {
     return mcpStatus();
   });
   ipcMain.handle('mcp:status', () => mcpStatus());
+  ipcMain.handle('desktop:info', () => desktopMcp.info());
+  ipcMain.handle('desktop:install', async () => {
+    patchConfig({ connectors: { claudeDesktop: { enabled: true } } });
+    await desktopMcp.sync();
+    const files = desktopMcp.install();
+    broadcast('cfg:changed', publicConfig());
+    return { files, info: desktopMcp.info() };
+  });
+  ipcMain.handle('desktop:uninstall', () => ({ files: desktopMcp.uninstall(), info: desktopMcp.info() }));
+  ipcMain.handle('desktop:copy', (_e, what) => {
+    const info = desktopMcp.info();
+    const text = { config: info.snippet, configNode: info.snippetNode, claudeCode: info.claudeCode, prompt: info.prompt }[what];
+    if (!text) throw new Error(`Unknown: ${what}`);
+    return clipboard.writeText(text).then(() => true);
+  });
   ipcMain.handle('tools:list', () => buildToolbox(loadConfig(), null, services).list.map((tool) => ({ name: tool.name, group: tool.group, description: tool.description })));
 
-  ipcMain.handle('chat:history', () => ({ messages: history, seq: chatSeq, busy: !!current, partialText: current ? partialText : '' }));
+  ipcMain.handle('chat:history', () => ({ messages: history, seq: chatSeq, busy: !!current || !!desktopTurn, partialText: current ? partialText : '' }));
   ipcMain.handle('chat:pending', () => pendingChatEvents.splice(0));
   ipcMain.handle('chat:send', (_e, text, via, attachments) => sendMessage(text, via, { attachments }));
   ipcMain.handle('chat:open-attachment', (_e, file) => {
@@ -1733,6 +1906,10 @@ app.whenReady().then(async () => {
   scheduleMonitors(20000);
   scheduleCi(30000);
   step('portapapeles', syncClipboardWatch);
+  step('Claude Desktop', () => {
+    desktopMcp.sync();
+    desktopMcp.repair();
+  });
   step('bandeja', buildTray);
   step('ajustes de ventana', applyUiConfig);
   syncMcp(loadConfig()).catch((e) => logger.error('MCP', e));
@@ -1786,6 +1963,7 @@ function runAutomation(file) {
     usageLog,
     presence,
     sendTo,
+    desktopMcp,
   };
   import(pathToFileURL(path.resolve(file)).href)
     .then((m) => m.default(api))
@@ -1797,6 +1975,7 @@ function runAutomation(file) {
 
 app.on('window-all-closed', (e) => e.preventDefault?.());
 app.on('will-quit', () => {
+  desktopMcp.removeEndpoint();
   globalShortcut.unregisterAll();
   usageLog.flush();
   focus.dispose();
